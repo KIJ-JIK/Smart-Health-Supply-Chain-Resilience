@@ -1,0 +1,237 @@
+/* ── Google Fonts ────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light mode tokens */
+    --bg-base:        #f8fafc;
+    --bg-card:        #ffffff;
+    --bg-subcard:     #f8fafc;
+    --border-card:    #e2e8f0;
+    --text-primary:   #0f172a;
+    --text-secondary: #475569;
+    --text-muted:     #94a3b8;
+    --ring-color:     #0d9488;
+  }
+
+  .dark {
+    /* Deep navy dark mode tokens — inspired by medical/clinical aesthetic */
+    --bg-base:        #0a0f1a;
+    --bg-card:        #111827;
+    --bg-subcard:     rgba(13, 25, 41, 0.7);
+    --border-card:    #1e2d3d;
+    --text-primary:   #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted:     #64748b;
+    --ring-color:     #0d9488;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    @apply antialiased select-none;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  input, textarea, select {
+    @apply select-text;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Global focus rings */
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.5);
+    border-color: #0d9488;
+  }
+
+  button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.6), 0 0 0 4px rgba(13, 148, 136, 0.15);
+  }
+}
+
+/* ── Scrollbar Styling ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.5); }
+.dark ::-webkit-scrollbar-thumb { background: rgba(30, 45, 61, 0.8); }
+.dark ::-webkit-scrollbar-thumb:hover { background: rgba(37, 51, 71, 1); }
+
+/* ── Glass Morphism Cards ───────────────────────────────────────────────── */
+@layer components {
+  .card {
+    @apply bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#1e2d3d] rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_16px_rgba(0,0,0,0.4)];
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .card-hover {
+    @apply hover:shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:-translate-y-0.5 hover:border-primary-300 dark:hover:border-primary-800;
+  }
+
+  /* Shiny border on active metric cards */
+  .card-active {
+    @apply border-primary-300 dark:border-primary-800 ring-1 ring-primary-200 dark:ring-primary-900;
+  }
+
+  /* Glassmorphism panel */
+  .glass {
+    @apply bg-white/80 dark:bg-[#111827]/80 backdrop-blur-xl border border-white/20 dark:border-white/5;
+  }
+
+  /* Section header pill label (CORE OPERATIONS etc.) */
+  .nav-section-label {
+    @apply px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-navy-400;
+  }
+
+  /* Form field base */
+  .field {
+    @apply w-full px-3 py-2 text-xs border border-slate-300 dark:border-[#1e2d3d] rounded-lg
+           bg-white dark:bg-[#0d1929] text-slate-900 dark:text-slate-100
+           placeholder:text-slate-400 dark:placeholder:text-slate-600
+           transition-all duration-150;
+  }
+
+  /* Table */
+  .table-row {
+    @apply border-b border-slate-100 dark:border-[#1e2d3d] hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-colors duration-100;
+  }
+
+  .table-header {
+    @apply bg-slate-50 dark:bg-[#0d1929] text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-500 border-b border-slate-200 dark:border-[#1e2d3d];
+  }
+}
+
+/* ── Dark mode grid background ─────────────────────────────────────────── */
+.dark body,
+.dark #root {
+  background-image:
+    linear-gradient(rgba(13,148,136,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13,148,136,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── Shimmer animation for skeleton loaders ────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg,
+    #e2e8f0 25%,
+    #f1f5f9 50%,
+    #e2e8f0 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg,
+    #1e2d3d 25%,
+    #253347 50%,
+    #1e2d3d 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ── Progress bar sweep animation ─────────────────────────────────────── */
+.progress-bar-fill {
+  animation: sweepRight 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Stagger animation delay helpers ──────────────────────────────────── */
+.delay-0   { animation-delay: 0ms; }
+.delay-50  { animation-delay: 50ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-250 { animation-delay: 250ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* ── EKG scan line for emergency/live sections ─────────────────────────── */
+.scan-line-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-line-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(13,148,136,0.15), transparent);
+  animation: scanLine 3.5s linear infinite;
+  pointer-events: none;
+}
+
+/* ── Glowing teal border on hover for interactive cards ──────────────── */
+.glow-border:hover {
+  box-shadow: 0 0 0 1px rgba(13,148,136,0.3), 0 4px 20px rgba(13,148,136,0.1);
+}
+
+/* ── Recharts dark mode overrides ─────────────────────────────────────── */
+.dark .recharts-cartesian-axis-tick-value { fill: #64748b; }
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line { stroke: #1e2d3d; }
+.recharts-tooltip-wrapper { outline: none !important; }
+
+/* ── Input range slider styling ───────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  cursor: pointer;
+}
+
+.dark input[type="range"] {
+  background: #1e2d3d;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.2);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 5px rgba(13,148,136,0.3);
+}
+
+/* ── Live pulse dot ───────────────────────────────────────────────────── */
+@keyframes liveDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(0.6); opacity: 0.4; }
+}
+
+.live-dot {
+  animation: liveDot 1.5s ease-in-out infinite;
+}
+
+/* ── Sidebar active glow ──────────────────────────────────────────────── */
+.nav-active-glow {
+  box-shadow: inset 3px 0 0 #14b8a6, 0 0 12px rgba(13,148,136,0.15);
+}

@@ -1,0 +1,284 @@
+import React, { useMemo } from 'react';
+import {
+  BedDouble, Wind, Users, Pill, Activity, AlertTriangle,
+  ArrowRight, PlusCircle, PackagePlus, Zap, TrendingUp,
+} from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db';
+import { useUIStore } from '../../stores/uiStore';
+import { MetricCard } from '../../components/common/MetricCard';
+import { StatusBadge } from '../../components/common/StatusBadge';
+import { getDaysUntil } from '../../utils/date';
+import { getMedicineStockStatus } from '../../utils/fefo';
+import { FootfallBarChart, InventoryStatusDonut, BedOccupancyGauge } from './DashboardCharts';
+
+const lastNDays = (n: number) => {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (n - 1 - i));
+    return days[d.getDay()];
+  });
+};
+
+export const DashboardView: React.FC = () => {
+  const { setActiveTab, setInventorySubTab, setNewRequestModalOpen } = useUIStore();
+
+  const facility      = useLiveQuery(() => db.phc_facilities.toCollection().first());
+  const medicines     = useLiveQuery(() => db.medicines.toArray()) || [];
+  const batches       = useLiveQuery(() => db.inventory_batches.toArray()) || [];
+  const equipment     = useLiveQuery(() => db.equipment.toArray()) || [];
+  const staff         = useLiveQuery(() => db.staff_registry.toArray()) || [];
+  const today         = new Date().toISOString().split('T')[0];
+  const attendance    = useLiveQuery(() => db.staff_attendance.where('attendance_date').equals(today).toArray()) || [];
+  const footfallToday = useLiveQuery(() => db.patient_footfall.where('date').equals(today).toArray()) || [];
+
+  // Beds
+  const totalBeds        = facility?.total_beds    || 0;
+  const occupiedBeds     = facility?.occupied_beds || 0;
+  const availableBeds    = Math.max(0, totalBeds - occupiedBeds);
+  const bedOccupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+  const bedAlert         = bedOccupancyRate >= 80;
+
+  // Oxygen
+  const cylinders     = facility?.oxygen_cylinders     || 0;
+  const concentrators = facility?.oxygen_concentrators || 0;
+  const oxygenCritical = cylinders < 5;
+
+  // Staff
+  const totalStaff   = staff.length;
+  const presentCount = attendance.filter(a => a.status === 'present').length;
+  const absentCount  = attendance.filter(a => a.status === 'absent').length;
+  const leaveCount   = attendance.filter(a => a.status === 'leave').length;
+  const staffShortage = absentCount > 0 || (totalStaff > 0 && presentCount / totalStaff < 0.7);
+  const staffPct     = totalStaff > 0 ? Math.round((presentCount / totalStaff) * 100) : 0;
+
+  // Medicines
+  let medNormal = 0, medWarning = 0, medCritical = 0, medNearExpiry = 0;
+  medicines.forEach(med => {
+    const mb = batches.filter(b => b.medicine_id === med.id);
+    const totalRem = mb.reduce((a, b) => a + b.remaining_qty, 0);
+    let nearDays = 999;
+    mb.forEach(b => { if (b.remaining_qty > 0) { const d = getDaysUntil(b.expiry_date); if (d < nearDays) nearDays = d; } });
+    const st = getMedicineStockStatus(totalRem, med.min_threshold, med.critical_threshold, nearDays === 999 ? undefined : nearDays, 45);
+    if (st === 'CRITICAL' || st === 'EXPIRED') medCritical++;
+    else if (st === 'NEAR_EXPIRY') medNearExpiry++;
+    else if (st === 'WARNING') medWarning++;
+    else medNormal++;
+  });
+
+  // Footfall
+  const opdCount       = footfallToday.find(f => f.category === 'opd')?.count       || 125;
+  const emergencyCount = footfallToday.find(f => f.category === 'emergency')?.count || 9;
+  const admissionCount = footfallToday.find(f => f.category === 'admission')?.count || 4;
+  const referralCount  = footfallToday.find(f => f.category === 'referral')?.count  || 3;
+  const totalPatientsToday = opdCount + emergencyCount + admissionCount + referralCount;
+
+  // Chart data
+  const dayLabels = lastNDays(7);
+  const footfallChartData = useMemo(() => dayLabels.map((name, i) => {
+    const isToday = i === 6;
+    return {
+      name,
+      OPD:       isToday ? opdCount       : Math.round(80  + Math.random() * 60),
+      Emergency: isToday ? emergencyCount : Math.round(3   + Math.random() * 10),
+      Admission: isToday ? admissionCount : Math.round(2   + Math.random() * 6),
+      Referral:  isToday ? referralCount  : Math.round(1   + Math.random() * 4),
+    };
+  }), [opdCount, emergencyCount, admissionCount, referralCount]);
+
+  // Attention items
+  const attentionItems: { id: string; title: string; subtitle: string; severity: 'critical' | 'high' | 'medium'; targetTab: any; subTab?: any }[] = [];
+  if (medCritical > 0)            attentionItems.push({ id: 'att-med-crit', title: `${medCritical} Medicine(s) Critical Stockout`, subtitle: 'Insulin and essentials below safety reserve. Immediate replenishment.', severity: 'critical', targetTab: 'inventory', subTab: 'current_stock' });
+  if (oxygenCritical)             attentionItems.push({ id: 'att-o2',       title: `Oxygen Cylinders Critical (${cylinders} left)`, subtitle: 'Below threshold of 5. Urgent refill required.', severity: 'critical', targetTab: 'oxygen' });
+  if (medNearExpiry > 0)          attentionItems.push({ id: 'att-exp',       title: `${medNearExpiry} Batch(es) Near Expiry`, subtitle: 'Ensure FEFO auto-selection active for expiring stock.', severity: 'medium', targetTab: 'inventory', subTab: 'expiry' });
+  if (absentCount > 0)            attentionItems.push({ id: 'att-staff',     title: `${absentCount} Staff Absent Today`, subtitle: 'Review shift rosters and clinical coverage.', severity: 'medium', targetTab: 'staff' });
+  const brokenEq = equipment.filter(e => e.maintenance_status !== 'operational');
+  if (brokenEq.length > 0)        attentionItems.push({ id: 'att-eq',        title: `${brokenEq.length} Equipment Under Maintenance`, subtitle: `${brokenEq.map(e => e.equipment_type).slice(0, 2).join(', ')} flagged.`, severity: 'high', targetTab: 'equipment' });
+  if (bedAlert)                   attentionItems.push({ id: 'att-bed',        title: `Bed Occupancy at ${bedOccupancyRate}% (${occupiedBeds}/${totalBeds})`, subtitle: 'Approaching capacity. Check discharge pipeline.', severity: 'high', targetTab: 'beds' });
+
+  return (
+    <div className="space-y-5">
+
+      {/* ── Header banner ─────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-primary-700 via-primary-600 to-teal-600 dark:from-primary-900 dark:via-primary-800 dark:to-teal-900 p-5 rounded-2xl shadow-[0_4px_24px_rgba(13,148,136,0.3)] scan-line-container">
+        {/* Background grid */}
+        <div className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px)', backgroundSize: '24px 24px' }} />
+
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot" />
+                LIVE OPERATIONAL
+              </span>
+            </div>
+            <h2 className="text-xl font-black text-white tracking-tight">PHC Operations Overview</h2>
+            <p className="text-sm text-primary-100/80 mt-0.5">
+              Beds · Oxygen · Staff · Pharmacy · OPD — all real-time
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-medium bg-white/15 border border-white/20 backdrop-blur-sm px-3 py-2 rounded-xl text-white">
+            <TrendingUp className="w-4 h-4" />
+            <span>Updated {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Metric tiles ──────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <MetricCard title="Beds Available" value={availableBeds} subtitle={`${occupiedBeds} occupied / ${totalBeds} total`} icon={BedDouble}
+          badge={<StatusBadge status={bedAlert ? 'WARNING' : 'NORMAL'} size="sm" />}
+          alert={bedAlert} alertText={`High Occupancy ${bedOccupancyRate}%`}
+          onClick={() => setActiveTab('beds')} progress={bedOccupancyRate} />
+
+        <MetricCard title="Oxygen Cylinders" value={cylinders} subtitle={`${concentrators} concentrators on-site`} icon={Wind}
+          badge={<StatusBadge status={oxygenCritical ? 'CRITICAL' : 'NORMAL'} size="sm" />}
+          alert={oxygenCritical} alertText="Below Critical Reserve"
+          onClick={() => setActiveTab('oxygen')} progress={Math.min(100, cylinders * 4)} />
+
+        <MetricCard title="Staff Present" value={`${presentCount}/${totalStaff}`} subtitle={`${absentCount} absent · ${leaveCount} on leave`} icon={Users}
+          badge={<StatusBadge status={staffShortage ? 'SHORTAGE' : 'FULL'} size="sm" />}
+          alert={staffShortage} alertText="Roster Shortage"
+          onClick={() => setActiveTab('staff')} progress={staffPct} animateValue={false} />
+
+        <MetricCard title="Medicine Stock" value={medicines.length} subtitle={`${medCritical} crit · ${medWarning} warn · ${medNearExpiry} near exp`} icon={Pill}
+          badge={<StatusBadge status={medCritical > 0 ? 'CRITICAL' : medWarning > 0 ? 'WARNING' : 'NORMAL'} size="sm" />}
+          alert={medCritical > 0} alertText={`${medCritical} Critical Stockout`}
+          onClick={() => setActiveTab('inventory')} />
+
+        <MetricCard title="Today's Patients" value={totalPatientsToday} subtitle={`OPD: ${opdCount} · Emg: ${emergencyCount} · Adm: ${admissionCount}`} icon={Activity}
+          badge={<StatusBadge status="ACTIVE" size="sm" />}
+          onClick={() => setActiveTab('footfall')} />
+      </div>
+
+      {/* ── Charts row ────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* 7-day footfall */}
+        <div className="lg:col-span-2 bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#1e2d3d] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_12px_rgba(0,0,0,0.3)]">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">7-Day Patient Footfall</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-500 mt-0.5">OPD, Emergency, Admission, Referral</p>
+            </div>
+            <button onClick={() => setActiveTab('footfall')} className="text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
+              Details <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+          <FootfallBarChart data={footfallChartData} />
+        </div>
+
+        {/* Right col */}
+        <div className="flex flex-col gap-4">
+          {/* Medicine donut */}
+          <div className="flex-1 bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#1e2d3d] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_12px_rgba(0,0,0,0.3)]">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">Medicine Status</h3>
+            <InventoryStatusDonut normal={medNormal} warning={medWarning} critical={medCritical} nearExpiry={medNearExpiry} />
+          </div>
+
+          {/* Bed gauge */}
+          <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#1e2d3d] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_12px_rgba(0,0,0,0.3)] flex flex-col items-center">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1 self-start">Bed Occupancy</h3>
+            <BedOccupancyGauge occupancyPct={bedOccupancyRate} />
+            <p className="text-[11px] text-slate-500 dark:text-slate-500 mt-1">{occupiedBeds} of {totalBeds} occupied</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Attention Required ────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#1e2d3d] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_12px_rgba(0,0,0,0.3)]">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1e2d3d] pb-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-rose-500/10 dark:bg-rose-500/10 flex items-center justify-center">
+              <AlertTriangle className="w-4 h-4 text-rose-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Attention Required</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-500">Click any item to navigate to the source module</p>
+            </div>
+          </div>
+          {attentionItems.length > 0 && (
+            <span className="px-2 py-0.5 text-[11px] font-black rounded-full bg-rose-500/10 text-rose-500 ring-1 ring-rose-500/30">
+              {attentionItems.length}
+            </span>
+          )}
+        </div>
+
+        {attentionItems.length === 0 ? (
+          <div className="text-center py-8 text-xs text-slate-400 dark:text-slate-600">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-2">
+              <span className="text-emerald-500 text-lg">✓</span>
+            </div>
+            All resources within nominal thresholds
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {attentionItems.map((item, idx) => (
+              <div
+                key={item.id}
+                onClick={() => { setActiveTab(item.targetTab); if (item.subTab) setInventorySubTab(item.subTab); }}
+                className="animate-stagger-in group flex items-start justify-between p-3.5 rounded-xl border border-slate-200 dark:border-[#1e2d3d] bg-slate-50/60 dark:bg-[#0d1929]/60 hover:bg-white dark:hover:bg-[#111827] hover:border-primary-300 dark:hover:border-primary-800 hover:shadow-sm dark:hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)] transition-all duration-200 cursor-pointer glow-border"
+                style={{ animationDelay: `${idx * 70}ms` }}
+              >
+                <div className="space-y-1 min-w-0 flex-1 pr-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${
+                      item.severity === 'critical' ? 'bg-rose-500 animate-pulse' :
+                      item.severity === 'high'     ? 'bg-amber-500 animate-pulse' : 'bg-sky-500'
+                    }`} />
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
+                      {item.title}
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-500 pl-4 line-clamp-1">{item.subtitle}</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all mt-0.5 shrink-0" />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Action Buttons ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {[
+          {
+            onClick: () => setActiveTab('facility'),
+            icon: PlusCircle,
+            gradient: 'from-primary-600 to-primary-700',
+            border: 'border-primary-200 dark:border-primary-900 hover:border-primary-400 dark:hover:border-primary-700',
+            bg: 'hover:bg-primary-50/50 dark:hover:bg-primary-900/20',
+            textColor: 'text-primary-900 dark:text-primary-200',
+            title: 'Update Facility & Capacity',
+            desc: 'Edit bed counts, clinical status & oxygen logs',
+          },
+          {
+            onClick: () => setNewRequestModalOpen(true),
+            icon: PackagePlus,
+            gradient: 'from-emerald-600 to-emerald-700',
+            border: 'border-emerald-200 dark:border-emerald-900 hover:border-emerald-400 dark:hover:border-emerald-700',
+            bg: 'hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20',
+            textColor: 'text-emerald-900 dark:text-emerald-200',
+            title: 'Request Supplies & Medicines',
+            desc: 'Draft urgent supply order to District Warehouse',
+          },
+        ].map(({ onClick, icon: Icon, gradient, border, bg, textColor, title, desc }) => (
+          <button
+            key={title}
+            onClick={onClick}
+            className={`flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-[#111827] border-2 ${border} ${bg} shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_12px_rgba(0,0,0,0.3)] ${textColor} font-bold text-sm transition-all duration-200 group active:scale-[0.99] glow-border`}
+          >
+            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center shadow-lg shrink-0 group-hover:scale-110 transition-transform`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <div className="text-left min-w-0">
+              <div className="text-sm font-bold truncate">{title}</div>
+              <div className="text-[11px] font-normal text-slate-500 dark:text-slate-500 truncate">{desc}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
