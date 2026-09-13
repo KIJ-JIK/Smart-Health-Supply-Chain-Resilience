@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "revert-ui": "git reset --hard pre-ui-elevation && git clean -fd"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.28.4",

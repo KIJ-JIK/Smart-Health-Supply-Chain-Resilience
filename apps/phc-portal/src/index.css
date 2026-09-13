@@ -235,3 +235,62 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .nav-active-glow {
   box-shadow: inset 3px 0 0 #14b8a6, 0 0 12px rgba(13,148,136,0.15);
 }
+
+/* ── ReactBits ShinyText Animation ───────────────────────────────────── */
+@keyframes shinyTextAnimation {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* ── EKG Heartbeat Waveform Animation ─────────────────────────────────── */
+@keyframes ekgSweep {
+  0% {
+    stroke-dashoffset: 240;
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.3;
+  }
+}
+
+.ekg-path {
+  stroke-dasharray: 120;
+  animation: ekgSweep 2.8s linear infinite;
+}
+
+/* ── Motionsites Iridescent Glowing Pill ──────────────────────────────── */
+.pill-iridescent {
+  position: relative;
+  border-radius: 9999px;
+  background: rgba(13, 21, 35, 0.7);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 16px rgba(45, 212, 191, 0.2);
+}
+
+.pill-iridescent::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9999px;
+  padding: 1px;
+  background: linear-gradient(90deg, #2dd4bf, #38bdf8, #818cf8, #c084fc, #2dd4bf);
+  background-size: 300% 100%;
+  animation: shinyTextAnimation 6s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── Superdesign Micro-Borders ────────────────────────────────────────── */
+.micro-border {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 3px rgba(0, 0, 0, 0.2);
+}

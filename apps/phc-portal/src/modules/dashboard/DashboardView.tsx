@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   BedDouble, Wind, Users, Pill, Activity, AlertTriangle,
-  ArrowRight, PlusCircle, PackagePlus, Zap, TrendingUp,
+  ArrowRight, PlusCircle, PackagePlus, Zap, TrendingUp, Siren,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
@@ -11,6 +11,9 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { getDaysUntil } from '../../utils/date';
 import { getMedicineStockStatus } from '../../utils/fefo';
 import { FootfallBarChart, InventoryStatusDonut, BedOccupancyGauge } from './DashboardCharts';
+import { TelemetryDotGrid } from '../../components/common/TelemetryDotGrid';
+import { ShinyText } from '../../components/common/ShinyText';
+import { MagneticButton } from '../../components/common/MagneticButton';
 
 const lastNDays = (n: number) => {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -22,7 +25,7 @@ const lastNDays = (n: number) => {
 };
 
 export const DashboardView: React.FC = () => {
-  const { setActiveTab, setInventorySubTab, setNewRequestModalOpen } = useUIStore();
+  const { setActiveTab, setInventorySubTab, setNewRequestModalOpen, setEmergencyModalOpen } = useUIStore();
 
   const facility      = useLiveQuery(() => db.phc_facilities.toCollection().first());
   const medicines     = useLiveQuery(() => db.medicines.toArray()) || [];
@@ -101,27 +104,58 @@ export const DashboardView: React.FC = () => {
     <div className="space-y-5">
 
       {/* ── Header banner ─────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-primary-700 via-primary-600 to-teal-600 dark:from-primary-900 dark:via-primary-800 dark:to-teal-900 p-5 rounded-2xl shadow-[0_4px_24px_rgba(13,148,136,0.3)] scan-line-container">
-        {/* Background grid */}
-        <div className="absolute inset-0 opacity-10"
-          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px)', backgroundSize: '24px 24px' }} />
+      <div className="relative overflow-hidden bg-gradient-to-r from-primary-800 via-primary-700 to-teal-700 dark:from-[#0a1526] dark:via-primary-950 dark:to-[#071d24] p-6 rounded-3xl border border-primary-500/20 dark:border-teal-500/20 shadow-[0_8px_32px_rgba(13,148,136,0.25)] scan-line-container">
+        {/* Paper Shaders & Haikei Interactive Telemetry Dot Grid */}
+        <TelemetryDotGrid dotSpacing={22} dotBaseRadius={1.2} dotColor="rgba(45, 212, 191, 0.22)" glowColor="rgba(94, 234, 212, 0.9)" />
 
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot" />
-                LIVE OPERATIONAL
+        {/* Ambient background glow */}
+        <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-teal-500/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-emerald-500/10 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="max-w-2xl">
+            {/* Motionsites-style Iridescent Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full pill-iridescent text-white mb-2.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 live-dot shadow-[0_0_8px_#34d399]" />
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-teal-200">
+                LIVE OPERATIONAL · 24/7 SURVEILLANCE
               </span>
             </div>
-            <h2 className="text-xl font-black text-white tracking-tight">PHC Operations Overview</h2>
-            <p className="text-sm text-primary-100/80 mt-0.5">
-              Beds · Oxygen · Staff · Pharmacy · OPD — all real-time
+
+            {/* ReactBits ShinyText Title */}
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <ShinyText text="PHC Operations Command Center" speed={3.5} />
+            </h2>
+            <p className="text-xs sm:text-sm text-primary-100/85 mt-1 font-medium leading-relaxed">
+              Real-Time Bed Telemetry · Oxygen Reserves · FEFO Pharmacy · Clinical Triage
             </p>
+
+            {/* Neuform-inspired Quick Telemetry Chips */}
+            <div className="flex items-center gap-2 flex-wrap mt-3">
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-black/30 text-teal-300 border border-teal-500/30 backdrop-blur-md">
+                Beds: <strong className="text-white font-bold">{occupiedBeds}/{totalBeds}</strong> ({bedOccupancyRate}%)
+              </span>
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-black/30 text-teal-300 border border-teal-500/30 backdrop-blur-md">
+                O₂ Cylinders: <strong className="text-white font-bold">{cylinders}</strong>
+              </span>
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-black/30 text-teal-300 border border-teal-500/30 backdrop-blur-md">
+                Staff: <strong className="text-white font-bold">{presentCount}/{totalStaff}</strong> On Duty
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-medium bg-white/15 border border-white/20 backdrop-blur-sm px-3 py-2 rounded-xl text-white">
-            <TrendingUp className="w-4 h-4" />
-            <span>Updated {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+
+          <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-2.5">
+            <div className="flex items-center gap-2 text-xs font-semibold bg-white/10 border border-white/20 backdrop-blur-md px-3.5 py-2 rounded-xl text-white shadow-inner">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <span>Telemetry Sync Active · {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <button
+              onClick={() => setEmergencyModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 backdrop-blur-md transition-all active:scale-95 group"
+            >
+              <Siren className="w-3.5 h-3.5 text-rose-400 group-hover:animate-bounce" />
+              <span>Broadcast Protocol</span>
+            </button>
           </div>
         </div>
       </div>
@@ -131,12 +165,14 @@ export const DashboardView: React.FC = () => {
         <MetricCard title="Beds Available" value={availableBeds} subtitle={`${occupiedBeds} occupied / ${totalBeds} total`} icon={BedDouble}
           badge={<StatusBadge status={bedAlert ? 'WARNING' : 'NORMAL'} size="sm" />}
           alert={bedAlert} alertText={`High Occupancy ${bedOccupancyRate}%`}
-          onClick={() => setActiveTab('beds')} progress={bedOccupancyRate} />
+          onClick={() => setActiveTab('beds')} progress={bedOccupancyRate}
+          showEkg={true} ekgStatus={bedAlert ? 'warning' : 'calm'} />
 
         <MetricCard title="Oxygen Cylinders" value={cylinders} subtitle={`${concentrators} concentrators on-site`} icon={Wind}
           badge={<StatusBadge status={oxygenCritical ? 'CRITICAL' : 'NORMAL'} size="sm" />}
           alert={oxygenCritical} alertText="Below Critical Reserve"
-          onClick={() => setActiveTab('oxygen')} progress={Math.min(100, cylinders * 4)} />
+          onClick={() => setActiveTab('oxygen')} progress={Math.min(100, cylinders * 4)}
+          showEkg={true} ekgStatus={oxygenCritical ? 'critical' : 'normal'} />
 
         <MetricCard title="Staff Present" value={`${presentCount}/${totalStaff}`} subtitle={`${absentCount} absent · ${leaveCount} on leave`} icon={Users}
           badge={<StatusBadge status={staffShortage ? 'SHORTAGE' : 'FULL'} size="sm" />}
@@ -150,7 +186,8 @@ export const DashboardView: React.FC = () => {
 
         <MetricCard title="Today's Patients" value={totalPatientsToday} subtitle={`OPD: ${opdCount} · Emg: ${emergencyCount} · Adm: ${admissionCount}`} icon={Activity}
           badge={<StatusBadge status="ACTIVE" size="sm" />}
-          onClick={() => setActiveTab('footfall')} />
+          onClick={() => setActiveTab('footfall')}
+          showEkg={true} ekgStatus="normal" />
       </div>
 
       {/* ── Charts row ────────────────────────────────────────────────── */}
@@ -240,43 +277,62 @@ export const DashboardView: React.FC = () => {
         )}
       </div>
 
-      {/* ── Action Buttons ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* ── Rapid Action Command HUD ───────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {[
           {
             onClick: () => setActiveTab('facility'),
             icon: PlusCircle,
             gradient: 'from-primary-600 to-primary-700',
-            border: 'border-primary-200 dark:border-primary-900 hover:border-primary-400 dark:hover:border-primary-700',
-            bg: 'hover:bg-primary-50/50 dark:hover:bg-primary-900/20',
+            border: 'border-primary-300/40 dark:border-primary-800/60 hover:border-primary-400 dark:hover:border-primary-600',
+            bg: 'hover:bg-primary-50/60 dark:hover:bg-primary-950/30',
             textColor: 'text-primary-900 dark:text-primary-200',
             title: 'Update Facility & Capacity',
-            desc: 'Edit bed counts, clinical status & oxygen logs',
+            desc: 'Edit live bed counts, clinical status & oxygen logs',
+            tag: 'Telemetry'
           },
           {
             onClick: () => setNewRequestModalOpen(true),
             icon: PackagePlus,
             gradient: 'from-emerald-600 to-emerald-700',
-            border: 'border-emerald-200 dark:border-emerald-900 hover:border-emerald-400 dark:hover:border-emerald-700',
-            bg: 'hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20',
+            border: 'border-emerald-300/40 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600',
+            bg: 'hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30',
             textColor: 'text-emerald-900 dark:text-emerald-200',
             title: 'Request Supplies & Medicines',
-            desc: 'Draft urgent supply order to District Warehouse',
+            desc: 'Draft urgent supply requisition to District Warehouse',
+            tag: 'FEFO Order'
           },
-        ].map(({ onClick, icon: Icon, gradient, border, bg, textColor, title, desc }) => (
-          <button
+          {
+            onClick: () => setEmergencyModalOpen(true),
+            icon: Siren,
+            gradient: 'from-rose-600 to-rose-700',
+            border: 'border-rose-300/40 dark:border-rose-800/60 hover:border-rose-400 dark:hover:border-rose-600',
+            bg: 'hover:bg-rose-50/60 dark:hover:bg-rose-950/30',
+            textColor: 'text-rose-900 dark:text-rose-200',
+            title: 'Emergency Mass Protocol',
+            desc: 'Broadcast hospital surge, mass casualty & divert triage',
+            tag: 'Rapid Alert'
+          },
+        ].map(({ onClick, icon: Icon, gradient, border, bg, textColor, title, desc, tag }) => (
+          <MagneticButton
             key={title}
             onClick={onClick}
-            className={`flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-[#111827] border-2 ${border} ${bg} shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_12px_rgba(0,0,0,0.3)] ${textColor} font-bold text-sm transition-all duration-200 group active:scale-[0.99] glow-border`}
+            strength={0.15}
+            className={`w-full flex items-center gap-3.5 p-4 rounded-2xl bg-white dark:bg-[#111827] border ${border} ${bg} shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_12px_rgba(0,0,0,0.3)] ${textColor} font-bold text-sm transition-all duration-200 group active:scale-[0.99] glow-border micro-border`}
           >
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center shadow-lg shrink-0 group-hover:scale-110 transition-transform`}>
               <Icon className="w-5 h-5" />
             </div>
-            <div className="text-left min-w-0">
-              <div className="text-sm font-bold truncate">{title}</div>
-              <div className="text-[11px] font-normal text-slate-500 dark:text-slate-500 truncate">{desc}</div>
+            <div className="text-left min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-1">
+                <div className="text-xs font-bold truncate">{title}</div>
+                <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#1e2d3d] text-slate-600 dark:text-slate-400 shrink-0">
+                  {tag}
+                </span>
+              </div>
+              <div className="text-[11px] font-normal text-slate-500 dark:text-slate-400 truncate mt-0.5">{desc}</div>
             </div>
-          </button>
+          </MagneticButton>
         ))}
       </div>
     </div>
