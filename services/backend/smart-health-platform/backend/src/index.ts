@@ -4,6 +4,18 @@ import { tenantContextMiddleware, requireAuth } from './middleware/tenantContext
 const app = express();
 app.use(express.json());
 
+// Enable CORS for all frontends (PHC Portal, Governance Portal, BRICS Portal)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Device-Cert, X-Device-ID, X-PHC-ID');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
+
 // ---------------------------------------------------------------------------
 // Global: 10-field structured request logging middleware (Prompt 21)
 // ---------------------------------------------------------------------------
@@ -424,7 +436,7 @@ import { SimulatorService } from './modules/ai/simulatorService';
 const server = http.createServer(app);
 SimulatorService.attachWebSocketServer(server);
 
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || 8000);
 server.listen(PORT, () => {
   console.log(`Smart Health Platform backend listening on :${PORT}`);
   console.log('RLS session-claim middleware active on all /api/* routes');

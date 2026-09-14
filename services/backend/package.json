@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "npm --prefix smart-health-platform/backend install",
     "dev": "npm --prefix smart-health-platform/backend run dev",
-    "build": "npm --prefix smart-health-platform/backend run build"
+    "build": "npm --prefix smart-health-platform/backend run build",
+    "test": "npm --prefix smart-health-platform/backend test:sync"
   }
 }
