@@ -1,0 +1,48 @@
+{
+  "name": "smart-health-backend",
+  "version": "1.0.0",
+  "description": "Shared Backend for Smart Health and Supply Chain Resilience",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "migrate": "ts-node ../database/seeds/migrate.ts",
+    "seed": "ts-node ../database/seeds/seed.ts",
+    "test:rls": "ts-node tests/test_rls_matrix.ts",
+    "test:auth": "ts-node tests/test_auth_device.ts",
+    "test:contracts": "ts-node tests/test_api_contracts.ts",
+    "test:sync": "ts-node tests/test_sync_engine.ts",
+    "test:facility-inventory": "ts-node tests/test_facility_inventory.ts",
+    "test:billing": "ts-node tests/test_billing_fefo.ts",
+    "test:chunk10": "ts-node tests/test_chunk10_consumption_workforce_footfall.ts",
+    "test:chunk11": "ts-node tests/test_chunk11_requests_alerts.ts",
+    "test:chunk12": "ts-node tests/test_chunk12_event_catalog.ts",
+    "test:events": "ts-node tests/test_chunk12_event_catalog.ts",
+    "test:chunk13": "ts-node tests/test_chunk13_governance_config.ts",
+    "test:chunk14": "ts-node tests/test_chunk14_ai_brics.ts",
+    "test:chunk15": "ts-node tests/test_chunk15_supply_chain_audit.ts",
+    "test:chunk16": "ts-node tests/test_chunk16_observability_cross_team.ts",
+    "load-test:billing": "ts-node scripts/load_test_scale.ts"
+  },
+  "dependencies": {
+    "@types/ws": "^8.18.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "graphql": "^16.8.1",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.11.5",
+    "ws": "^8.21.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/ioredis": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.12.7",
+    "@types/pg": "^8.11.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

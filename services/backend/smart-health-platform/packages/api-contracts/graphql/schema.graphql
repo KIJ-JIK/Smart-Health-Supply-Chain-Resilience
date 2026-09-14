@@ -1,0 +1,379 @@
+"""
+Smart Health & Supply Chain Resilience — Governance & Federation GraphQL Schema
+Matches: Final Architecture §1.2, §5.7, Arya_Governance_National.md, Sumaiya_BRICS.md
+"""
+
+# ---------------------------------------------------------------------------
+# Scalar & Input Definitions
+# ---------------------------------------------------------------------------
+scalar DateTime
+scalar JSON
+
+enum ScopeLevel {
+  NATIONAL
+  STATE
+  DISTRICT
+  PHC
+}
+
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+
+input ScopeInput {
+  level: ScopeLevel!
+  stateId: ID
+  districtId: ID
+  phcId: ID
+}
+
+type ScopeOutput {
+  level: String!
+  stateId: ID
+  districtId: ID
+  phcId: ID
+}
+
+input ShipmentFilter {
+  status: String
+  sourcePhcId: ID
+  destPhcId: ID
+  limit: Int = 50
+  offset: Int = 0
+}
+
+input AuditFilter {
+  entityType: String
+  entityId: ID
+  actorId: ID
+  action: String
+  limit: Int = 50
+  offset: Int = 0
+}
+
+# ---------------------------------------------------------------------------
+# Core Governance Dashboard Types
+# ---------------------------------------------------------------------------
+type NationalOverview {
+  totalPhcs: Int!
+  activePhcs: Int!
+  criticalPhcs: Int!
+  totalBeds: Int!
+  occupiedBeds: Int!
+  bedOccupancyRate: Float!
+  oxygenCylindersAvailable: Int!
+  openAlertsCount: Int!
+  criticalAlertsCount: Int!
+  staffShortagePhcCount: Int!
+  pendingRedistributionsCount: Int!
+  lastUpdated: DateTime!
+}
+
+type StateOverview {
+  stateId: ID!
+  stateName: String!
+  totalDistricts: Int!
+  totalPhcs: Int!
+  activePhcs: Int!
+  bedOccupancyRate: Float!
+  criticalAlertsCount: Int!
+  districts: [DistrictSummary!]!
+  lastUpdated: DateTime!
+}
+
+type DistrictSummary {
+  districtId: ID!
+  districtName: String!
+  totalPhcs: Int!
+  criticalPhcs: Int!
+  stockoutRiskCount: Int!
+  bedOccupancyRate: Float!
+}
+
+type DistrictOverview {
+  districtId: ID!
+  districtName: String!
+  stateId: ID!
+  totalPhcs: Int!
+  phcList: [PhcSummary!]!
+  pendingRequestsCount: Int!
+  openAlertsCount: Int!
+  lastUpdated: DateTime!
+}
+
+type PhcSummary {
+  phcId: ID!
+  name: String!
+  totalBeds: Int!
+  occupiedBeds: Int!
+  oxygenCylinders: Int!
+  riskLevel: RiskLevel!
+  openAlerts: Int!
+  latitude: Float
+  longitude: Float
+}
+
+type PhcDetail {
+  phcId: ID!
+  name: String!
+  districtId: ID!
+  stateId: ID!
+  totalBeds: Int!
+  occupiedBeds: Int!
+  oxygenCylinders: Int!
+  riskScore: Float!
+  riskLevel: RiskLevel!
+  inventoryCount: Int!
+  activeStaffCount: Int!
+  openRequests: [ResourceRequestSummary!]!
+  activeAlerts: [AlertSummary!]!
+  lastSyncedAt: DateTime
+}
+
+# ---------------------------------------------------------------------------
+# Domain Intelligence Types
+# ---------------------------------------------------------------------------
+type MedicineIntelligence {
+  scope: ScopeOutput
+  totalStockItems: Int!
+  criticalStockouts: [StockoutItem!]!
+  nearExpiryBatches: [ExpiryBatchItem!]!
+  consumptionVelocityDaily: Float!
+  daysOfSupplyAverage: Float!
+}
+
+type StockoutItem {
+  medicineId: ID!
+  medicineName: String!
+  category: String!
+  affectedPhcCount: Int!
+  recommendedAction: String!
+}
+
+type ExpiryBatchItem {
+  batchId: ID!
+  medicineName: String!
+  phcName: String!
+  remainingQty: Int!
+  expiryDate: String!
+  daysToExpiry: Int!
+}
+
+type ResourceIntelligence {
+  scope: ScopeOutput
+  totalVentilators: Int!
+  functionalVentilators: Int!
+  totalOxygenConcentrators: Int!
+  coldChainUnitsOptimal: Int!
+  maintenanceRequiredCount: Int!
+}
+
+type WorkforceIntelligence {
+  scope: ScopeOutput
+  totalRegisteredStaff: Int!
+  presentToday: Int!
+  attendanceRate: Float!
+  doctorToPatientRatio: Float!
+  criticalStaffShortages: [StaffShortageDetail!]!
+}
+
+type StaffShortageDetail {
+  phcId: ID!
+  phcName: String!
+  missingRole: String!
+  consecutiveDays: Int!
+}
+
+type PatientIntelligence {
+  scope: ScopeOutput
+  totalFootfallToday: Int!
+  footfallTrendWeekly: [DailyFootfallPoint!]!
+  syndromicCategories: [SyndromicCategoryCount!]!
+}
+
+type DailyFootfallPoint {
+  date: String!
+  count: Int!
+}
+
+type SyndromicCategoryCount {
+  category: String!
+  count: Int!
+  weekOverWeekDeltaPercent: Float!
+}
+
+# ---------------------------------------------------------------------------
+# Predictive AI & Supply Chain Types
+# ---------------------------------------------------------------------------
+type ForecastPrediction {
+  id: ID!
+  phcId: ID!
+  medicineId: ID!
+  medicineName: String
+  forecastType: String!
+  predictedValue: Float!
+  confidenceLower: Float!
+  confidenceUpper: Float!
+  modelUsed: String!
+  modelVersion: String!
+  generatedAt: DateTime!
+}
+
+type RedistributionRecommendation {
+  transferId: ID!
+  sourcePhcId: ID!
+  sourcePhcName: String!
+  destPhcId: ID!
+  destPhcName: String!
+  medicineId: ID!
+  medicineName: String!
+  recommendedQuantity: Int!
+  status: String!
+  aiExplanation: String
+  urgencyLevel: RiskLevel!
+  createdDate: DateTime!
+}
+
+type SupplyChainShipment {
+  id: ID!
+  transferId: ID!
+  sourcePhcName: String!
+  destPhcName: String!
+  medicineName: String!
+  quantity: Int!
+  status: String!
+  trackingNumber: String
+  dispatchedAt: DateTime
+  estimatedDeliveryAt: DateTime
+  deliveredAt: DateTime
+}
+
+type AuditLogEntry {
+  id: ID!
+  actorId: ID!
+  actorRole: String!
+  action: String!
+  entityType: String!
+  entityId: ID!
+  beforeState: JSON
+  afterState: JSON
+  phcId: ID
+  districtId: ID
+  stateId: ID
+  sourceIp: String
+  deviceId: ID
+  correlationId: String
+  createdAt: DateTime!
+}
+
+type ResourceRequestSummary {
+  id: ID!
+  requestType: String!
+  priority: String!
+  status: String!
+  createdAt: DateTime!
+}
+
+type AlertSummary {
+  id: ID!
+  alertType: String!
+  severity: String!
+  status: String!
+  createdAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# BRICS Federated Learning Types (Sumaiya_BRICS.md, Architecture §5.7)
+# ---------------------------------------------------------------------------
+type FederatedNode {
+  countryCode: String!
+  countryName: String!
+  nodeStatus: String!
+  activeModelVersion: String!
+  lastTrainedAt: DateTime
+}
+
+type FederatedRound {
+  id: ID!
+  roundNumber: Int!
+  modelId: String!
+  status: String!
+  participatingCountries: [String!]!
+  globalLoss: Float
+  previousEntryHash: String!
+  thisHash: String!
+  startedAt: DateTime!
+  completedAt: DateTime
+}
+
+type FederatedModelVersion {
+  id: ID!
+  modelVersion: String!
+  accuracyScore: Float!
+  testAccuracyDelta: Float!
+  status: String!
+  releasedAt: DateTime!
+}
+
+type PrivacyBudgetEntry {
+  id: ID!
+  countryId: String!
+  roundNumber: Int!
+  epsilonConsumed: Float!
+  cumulativeEpsilon: Float!
+  budgetLimit: Float!
+  withinBudget: Boolean!
+}
+
+# ---------------------------------------------------------------------------
+# Root Query & Mutation Definitions
+# ---------------------------------------------------------------------------
+type Query {
+  # Governance Command Center
+  nationalOverview: NationalOverview!
+  stateOverview(stateId: ID!): StateOverview!
+  districtOverview(districtId: ID!): DistrictOverview!
+  phcDetail(phcId: ID!): PhcDetail!
+
+  # Domain Intelligence
+  medicineIntelligence(scope: ScopeInput): MedicineIntelligence!
+  resourceIntelligence(scope: ScopeInput): ResourceIntelligence!
+  workforceIntelligence(scope: ScopeInput): WorkforceIntelligence!
+  patientIntelligence(scope: ScopeInput): PatientIntelligence!
+
+  # Predictions & Supply Chain
+  forecasts(entityId: ID, metric: String): [ForecastPrediction!]!
+  redistributionRecommendations(districtId: ID): [RedistributionRecommendation!]!
+  supplyChainShipments(filter: ShipmentFilter): [SupplyChainShipment!]!
+  auditLog(filter: AuditFilter): [AuditLogEntry!]!
+
+  # BRICS Federated Learning
+  federatedNodes: [FederatedNode!]!
+  federatedRounds: [FederatedRound!]!
+  federatedModelVersions: [FederatedModelVersion!]!
+  privacyBudgetLedger: [PrivacyBudgetEntry!]!
+}
+
+type Mutation {
+  # Governance Decision Actions
+  decideRedistribution(
+    transferId: ID!
+    decision: String!
+    modifiedQuantity: Int
+    notes: String
+  ): RedistributionRecommendation!
+
+  # BRICS Federation Coordination
+  startFederatedRound(
+    modelId: String!
+    targetEpsilon: Float!
+  ): FederatedRound!
+
+  approveAggregatedModel(
+    roundId: ID!
+    targetVersion: String!
+  ): FederatedModelVersion!
+}

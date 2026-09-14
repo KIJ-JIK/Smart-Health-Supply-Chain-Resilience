@@ -1,0 +1,827 @@
+﻿openapi: 3.0.3
+info:
+  title: Smart Health & Supply Chain Resilience — API Contracts
+  version: "1.0.0"
+  description: >
+    Authoritative single source of truth for the PHC-facing REST surface,
+    offline-first delta sync engine, and authentication contracts.
+    Consumed by PHC Portal, Governance Portal, and Core Backend.
+
+servers:
+  - url: http://localhost:3000
+    description: Local development backend
+  - url: https://api.healthresilience.gov/v1
+    description: Production National DC Gateway
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ---------------------------------------------------------------------------
+  # Offline Sync Protocol (Final Architecture §8.2)
+  # ---------------------------------------------------------------------------
+  /sync/push:
+    post:
+      summary: Upload a batch of queued offline mutations
+      operationId: syncPush
+      tags: [Sync]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPushRequest'
+      responses:
+        '200':
+          description: Batch processed (individual mutations may be accepted/duplicate/rejected/conflict)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPushResponse'
+        '400':
+          description: Malformed batch envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Unauthorized for claimed phc_id or device binding failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /sync/pull:
+    get:
+      summary: Download authoritative deltas since last known server sequence
+      operationId: syncPull
+      tags: [Sync]
+      parameters:
+        - name: since
+          in: query
+          required: true
+          description: Last server_seq watermark client has applied (0 for full/initial sync)
+          schema:
+            type: integer
+            minimum: 0
+        - name: device_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        '200':
+          description: Page of deltas since given watermark
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPullResponse'
+        '410':
+          description: Watermark expired / too stale — client must perform full resync
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ---------------------------------------------------------------------------
+  # PHC Operational REST Endpoints (/api/v1/phc/{phcId}/*)
+  # ---------------------------------------------------------------------------
+  /api/v1/phc/{phcId}/facility:
+    get:
+      summary: Get facility profile and current operational capacity
+      operationId: getFacility
+      tags: [Facility]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+    put:
+      summary: Update facility operational parameters (beds, oxygen)
+      operationId: updateFacility
+      tags: [Facility]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityUpdateInput'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+
+  /api/v1/phc/{phcId}/inventory:
+    get:
+      summary: List inventory batches with FEFO sorting and expiry tracking
+      operationId: listInventory
+      tags: [Inventory]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InventoryBatch'
+    post:
+      summary: Receive / add an inventory batch
+      operationId: addInventoryBatch
+      tags: [Inventory]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInventoryBatchInput'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryBatch'
+
+  /api/v1/phc/{phcId}/billing/checkout:
+    post:
+      summary: FEFO transactional billing checkout (idempotent on client_txn_id)
+      operationId: billingCheckout
+      tags: [Billing]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingCheckoutInput'
+      responses:
+        '200':
+          description: Checkout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCheckoutResult'
+        '409':
+          description: Stock oversold / insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictDetail'
+
+  /api/v1/phc/{phcId}/equipment:
+    get:
+      summary: List critical equipment status (ventilators, oxygen concentrators, cold chain)
+      operationId: listEquipment
+      tags: [Equipment]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EquipmentItem'
+
+  /api/v1/phc/{phcId}/equipment/{equipmentId}:
+    put:
+      summary: Update status or maintenance notes for equipment item
+      operationId: updateEquipmentStatus
+      tags: [Equipment]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+        - name: equipmentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [functional, requires_maintenance, inoperable, decommissioned]
+                notes: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentItem'
+
+  /api/v1/phc/{phcId}/staff:
+    get:
+      summary: List registered PHC staff registry and role allocations
+      operationId: listStaff
+      tags: [Workforce]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StaffMember'
+
+  /api/v1/phc/{phcId}/staff/attendance:
+    post:
+      summary: Record daily staff attendance
+      operationId: recordAttendance
+      tags: [Workforce]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffAttendanceInput'
+      responses:
+        '201':
+          description: Attendance recorded
+
+  /api/v1/phc/{phcId}/footfall:
+    get:
+      summary: Retrieve patient footfall counts by category
+      operationId: getFootfall
+      tags: [Footfall]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FootfallRecord'
+    post:
+      summary: Append patient footfall observation (append-only)
+      operationId: recordFootfall
+      tags: [Footfall]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FootfallInput'
+      responses:
+        '201':
+          description: Footfall recorded
+
+  /api/v1/phc/{phcId}/requests:
+    get:
+      summary: List resource replenishment and emergency requests
+      operationId: listRequests
+      tags: [Requests]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ResourceRequest'
+    post:
+      summary: Create replenishment or operational resource request
+      operationId: createRequest
+      tags: [Requests]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceRequestInput'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceRequest'
+
+  /api/v1/phc/{phcId}/emergency:
+    post:
+      summary: Fast-path emergency incident report (CRITICAL severity)
+      operationId: reportEmergency
+      tags: [Emergency]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencyReportInput'
+      responses:
+        '201':
+          description: Emergency alert generated and broadcast immediately
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertItem'
+
+  /api/v1/phc/{phcId}/alerts:
+    get:
+      summary: List active operational alerts for this PHC
+      operationId: listPhcAlerts
+      tags: [Alerts]
+      parameters:
+        - $ref: '#/components/parameters/phcId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AlertItem'
+
+  # ---------------------------------------------------------------------------
+  # Authentication & Device Binding Surface
+  # ---------------------------------------------------------------------------
+  /api/v1/auth/login:
+    post:
+      summary: Authenticate via OIDC/IdP and issue 15-min JWT access token
+      operationId: authLogin
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginInput'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      summary: Rotate refresh token and issue new access token
+      operationId: authRefresh
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /api/v1/auth/me:
+    get:
+      summary: Get current authenticated tenant identity & claims
+      operationId: authMe
+      tags: [Auth]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      role: { type: string }
+                      phcId: { type: string }
+                      districtId: { type: string }
+                      stateId: { type: string }
+
+  /api/v1/auth/device/register:
+    post:
+      summary: Register PHC edge device with RSA keypair / certificate
+      operationId: registerDevice
+      tags: [Device]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationInput'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeviceRegistrationResult'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    phcId:
+      name: phcId
+      in: path
+      required: true
+      description: Target PHC facility UUID
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    # --- Sync Schemas (§8.2) ---
+    SyncPushRequest:
+      type: object
+      required: [device_id, phc_id, mutations]
+      properties:
+        device_id: { type: string, format: uuid }
+        phc_id: { type: string, format: uuid }
+        client_clock: { type: string, format: date-time }
+        mutations:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Mutation'
+
+    Mutation:
+      type: object
+      required: [id, entity_type, operation, payload, local_seq, client_timestamp]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Client-generated UUID idempotency key
+        entity_type:
+          type: string
+          enum: [billing_transaction, inventory_batch_update, resource_request, footfall_entry,
+                 facility_update, staff_attendance, alert_report]
+        operation:
+          type: string
+          enum: [create, update]
+        payload:
+          type: object
+        local_seq:
+          type: integer
+        client_timestamp:
+          type: string
+          format: date-time
+
+    SyncPushResponse:
+      type: object
+      required: [server_seq, results]
+      properties:
+        server_seq: { type: integer }
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MutationResult'
+
+    MutationResult:
+      type: object
+      required: [mutation_id, status]
+      properties:
+        mutation_id: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [accepted, duplicate, rejected, conflict]
+        server_entity_id: { type: string, format: uuid }
+        error_code: { type: string }
+        conflict:
+          $ref: '#/components/schemas/ConflictDetail'
+
+    ConflictDetail:
+      type: object
+      required: [conflict_type, server_state]
+      properties:
+        conflict_type:
+          type: string
+          enum: [stock_oversold, concurrent_absolute_edit, stale_reference]
+        server_state:
+          type: object
+        suggested_resolution:
+          type: string
+          enum: [requeue_with_reduced_quantity, discard_local_edit, manual_reconciliation_required]
+        reconciliation_ref: { type: string, format: uuid }
+
+    SyncPullResponse:
+      type: object
+      required: [server_seq, has_more, deltas]
+      properties:
+        server_seq: { type: integer }
+        has_more: { type: boolean }
+        deltas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Delta'
+
+    Delta:
+      type: object
+      required: [server_seq, entity_type, operation, entity_id, payload]
+      properties:
+        server_seq: { type: integer }
+        entity_type:
+          type: string
+          enum: [redistribution_approval, request_status_change, alert, threshold_config_update, facility_config_update]
+        operation:
+          type: string
+          enum: [upsert, delete]
+        entity_id: { type: string, format: uuid }
+        payload: { type: object }
+        server_timestamp: { type: string, format: date-time }
+
+    ErrorResponse:
+      type: object
+      required: [error_code, message]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string, format: uuid }
+
+    # --- Domain Schemas ---
+    Facility:
+      type: object
+      required: [id, name, district_id, state_id, total_beds, occupied_beds, oxygen_cylinders]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        district_id: { type: string, format: uuid }
+        state_id: { type: string, format: uuid }
+        total_beds: { type: integer }
+        occupied_beds: { type: integer }
+        oxygen_cylinders: { type: integer }
+        status: { type: string }
+
+    FacilityUpdateInput:
+      type: object
+      properties:
+        total_beds: { type: integer }
+        occupied_beds: { type: integer }
+        oxygen_cylinders: { type: integer }
+
+    InventoryBatch:
+      type: object
+      required: [id, phc_id, medicine_id, batch_no, remaining_qty, expiry_date]
+      properties:
+        id: { type: string, format: uuid }
+        phc_id: { type: string, format: uuid }
+        medicine_id: { type: string, format: uuid }
+        medicine_name: { type: string }
+        batch_no: { type: string }
+        remaining_qty: { type: integer }
+        minimum_threshold: { type: integer }
+        expiry_date: { type: string, format: date }
+
+    CreateInventoryBatchInput:
+      type: object
+      required: [medicine_id, batch_no, remaining_qty, expiry_date]
+      properties:
+        medicine_id: { type: string, format: uuid }
+        batch_no: { type: string }
+        remaining_qty: { type: integer, minimum: 1 }
+        minimum_threshold: { type: integer, default: 10 }
+        expiry_date: { type: string, format: date }
+
+    BillingCheckoutInput:
+      type: object
+      required: [client_txn_id, items]
+      properties:
+        client_txn_id: { type: string, format: uuid }
+        patient_ref: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            required: [medicine_id, quantity]
+            properties:
+              medicine_id: { type: string, format: uuid }
+              quantity: { type: integer, minimum: 1 }
+
+    BillingCheckoutResult:
+      type: object
+      required: [transaction_id, client_txn_id, dispensed_items]
+      properties:
+        transaction_id: { type: string, format: uuid }
+        client_txn_id: { type: string, format: uuid }
+        dispensed_items:
+          type: array
+          items:
+            type: object
+            properties:
+              batch_id: { type: string, format: uuid }
+              medicine_id: { type: string, format: uuid }
+              qty_dispensed: { type: integer }
+
+    EquipmentItem:
+      type: object
+      required: [id, phc_id, equipment_type, status]
+      properties:
+        id: { type: string, format: uuid }
+        phc_id: { type: string, format: uuid }
+        equipment_type: { type: string }
+        serial_no: { type: string }
+        status: { type: string }
+        last_inspected_at: { type: string, format: date-time }
+
+    StaffMember:
+      type: object
+      required: [id, phc_id, name, role]
+      properties:
+        id: { type: string, format: uuid }
+        phc_id: { type: string, format: uuid }
+        name: { type: string }
+        role: { type: string }
+        active: { type: boolean }
+
+    StaffAttendanceInput:
+      type: object
+      required: [staff_id, attendance_date, status]
+      properties:
+        staff_id: { type: string, format: uuid }
+        attendance_date: { type: string, format: date }
+        status: { type: string, enum: [present, absent, on_leave] }
+
+    FootfallRecord:
+      type: object
+      required: [time, phc_id, category, count]
+      properties:
+        time: { type: string, format: date-time }
+        phc_id: { type: string, format: uuid }
+        category: { type: string }
+        count: { type: integer }
+
+    FootfallInput:
+      type: object
+      required: [category, count]
+      properties:
+        category: { type: string, enum: [general_opd, maternal_child, emergency, chronic_followup, infectious] }
+        count: { type: integer, minimum: 1 }
+        time: { type: string, format: date-time }
+
+    ResourceRequest:
+      type: object
+      required: [id, phc_id, request_type, priority, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        phc_id: { type: string, format: uuid }
+        request_type: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        created_at: { type: string, format: date-time }
+        decided_at: { type: string, format: date-time }
+
+    ResourceRequestInput:
+      type: object
+      required: [request_type, priority, items]
+      properties:
+        request_type: { type: string, enum: [replenishment, emergency, equipment_repair] }
+        priority: { type: string, enum: [low, normal, high, critical] }
+        items:
+          type: array
+          items:
+            type: object
+            required: [medicine_id, requested_qty]
+            properties:
+              medicine_id: { type: string, format: uuid }
+              requested_qty: { type: integer, minimum: 1 }
+
+    EmergencyReportInput:
+      type: object
+      required: [alert_type, title, description]
+      properties:
+        alert_type: { type: string, enum: [mass_casualty, disease_outbreak, oxygen_failure, extreme_weather] }
+        title: { type: string }
+        description: { type: string }
+
+    AlertItem:
+      type: object
+      required: [id, alert_type, severity, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        phc_id: { type: string, format: uuid }
+        district_id: { type: string, format: uuid }
+        state_id: { type: string, format: uuid }
+        alert_type: { type: string }
+        severity: { type: string }
+        status: { type: string }
+        created_at: { type: string, format: date-time }
+
+    AuthLoginInput:
+      type: object
+      required: [username]
+      properties:
+        username: { type: string }
+        role: { type: string, enum: [national_admin, state_admin, district_admin, phc_user] }
+        phcId: { type: string, format: uuid }
+        districtId: { type: string, format: uuid }
+        stateId: { type: string, format: uuid }
+
+    AuthResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn, tokenType]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        expiresIn: { type: integer, example: 900 }
+        tokenType: { type: string, example: Bearer }
+        user:
+          type: object
+          properties:
+            userId: { type: string }
+            role: { type: string }
+            phcId: { type: string }
+
+    DeviceRegistrationInput:
+      type: object
+      required: [phcId, deviceName]
+      properties:
+        phcId: { type: string, format: uuid }
+        deviceName: { type: string }
+        publicKey: { type: string }
+        metadata: { type: object }
+
+    DeviceRegistrationResult:
+      type: object
+      required: [deviceId, phcId, deviceName, publicKey, deviceFingerprint, status, registeredAt]
+      properties:
+        deviceId: { type: string, format: uuid }
+        phcId: { type: string, format: uuid }
+        deviceName: { type: string }
+        publicKey: { type: string }
+        privateKey: { type: string }
+        deviceFingerprint: { type: string }
+        status: { type: string }
+        registeredAt: { type: string, format: date-time }

@@ -1,0 +1,13 @@
+﻿{
+  "name": "@smart-health/api-contracts",
+  "version": "1.0.0",
+  "description": "Shared API Contracts (OpenAPI REST, Offline Sync, and GraphQL Schemas) for Smart Health Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
