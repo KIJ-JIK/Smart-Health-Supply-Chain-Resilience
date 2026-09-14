@@ -45,14 +45,43 @@ export class OptimizationService {
       return [];
     }
 
-    const sourcePhc = phcIds[0];
-    const destPhc   = phcIds[1];
-
     // 2. Pick a medicine
     const medRes = await adminPool.query(`SELECT id FROM medicines LIMIT 1`);
     const medicineId = medRes.rows[0]?.id || '00000000-0000-0000-0000-000000000001';
 
-    const recommendedQty = 50;
+    let sourcePhc = phcIds[0];
+    let destPhc   = phcIds[1];
+    let recommendedQty = 50;
+    let aiExplanation = 'Source PHC has 60 days of supply; Destination PHC projected stockout in 3 days.';
+
+    // Prompt 33 swap-in: Call real MILP optimizer (Prompt 28) if reachable
+    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 800);
+      const res = await fetch(`${aiEngineUrl}/optimize/redistribution`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          surplus_nodes: [{ phc_id: sourcePhc, medicine_id: medicineId, available_qty: 100, expiry_date: '2026-12-31', lat: 12.97, lon: 77.59 }],
+          deficit_nodes: [{ phc_id: destPhc, medicine_id: medicineId, deficit_qty: recommendedQty, urgency: 'critical', lat: 12.98, lon: 77.60 }],
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data: any = await res.json();
+        if (data.recommendations && data.recommendations.length > 0) {
+          const top = data.recommendations[0];
+          sourcePhc = top.source_phc_id || sourcePhc;
+          destPhc = top.dest_phc_id || destPhc;
+          recommendedQty = top.quantity || recommendedQty;
+          aiExplanation = top.reasoning || aiExplanation;
+        }
+      }
+    } catch {
+      // Graceful fallback
+    }
 
     // 3. Write recommendation to redistribution_transfers table (Dataset 17)
     const insRes = await adminPool.query(

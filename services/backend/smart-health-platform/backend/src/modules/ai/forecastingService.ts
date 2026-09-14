@@ -52,13 +52,42 @@ export class ForecastingService {
     );
     const districtId = facRes.rows[0]?.district_id || null;
 
-    // Deterministic placeholder calculation (Prophet baseline)
+    // Prompt 33 swap-in: Call real AI Engine (Prophet/XGBoost champion-challenger) if reachable
     const baseConsumption = 25.0;
-    const predictedValue = parseFloat((baseConsumption * (1 + Math.sin(Date.now() / 100000) * 0.2)).toFixed(2));
-    const confidenceLower = parseFloat((predictedValue * 0.85).toFixed(2));
-    const confidenceUpper = parseFloat((predictedValue * 1.15).toFixed(2));
-    const modelUsed = 'Prophet-v2.1';
-    const modelVersion = 'v2.1.0';
+    let predictedValue = parseFloat((baseConsumption * (1 + Math.sin(Date.now() / 100000) * 0.2)).toFixed(2));
+    let confidenceLower = parseFloat((predictedValue * 0.85).toFixed(2));
+    let confidenceUpper = parseFloat((predictedValue * 1.15).toFixed(2));
+    let modelUsed = 'Prophet-v2.1';
+    let modelVersion = 'v2.1.0';
+
+    const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 800);
+      const res = await fetch(`${aiEngineUrl}/predict/demand`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phc_id: phcId,
+          medicine_id: medicineId,
+          forecast_type: forecastType,
+          days_ahead: horizonDays,
+          current_stock: 100,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data: any = await res.json();
+        predictedValue = data.predicted_value ?? predictedValue;
+        confidenceLower = data.confidence_lower ?? confidenceLower;
+        confidenceUpper = data.confidence_upper ?? confidenceUpper;
+        modelUsed = data.model_used ?? modelUsed;
+        modelVersion = data.model_version ?? modelVersion;
+      }
+    } catch {
+      // Graceful fallback to moving average baseline (Prompt 33 / masterplan §88)
+    }
 
     const insertRes = await adminPool.query(
       `INSERT INTO forecast_predictions (

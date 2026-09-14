@@ -55,8 +55,39 @@ export class CopilotService {
       const topAlert = alertRes.rows[0];
       const topFacility = facRes.rows[0];
 
-      // 3. Deterministic placeholder LLM inference synthesis
-      const answer = `Based on current governance intelligence for your scope (${claims.role}), ${facRes.rows.length} facilities were analyzed. ${alertRes.rows.length > 0 ? `Active alert: ${topAlert.alert_type} (${topAlert.severity}). Recommended action: dispatch stock buffer.` : 'All operational parameters remain within normal safety buffers.'}`;
+      // 3. LLM inference synthesis — Prompt 33 swap-in to real AI Copilot (Prompt 30)
+      let answer = `Based on current governance intelligence for your scope (${claims.role}), ${facRes.rows.length} facilities were analyzed. ${alertRes.rows.length > 0 ? `Active alert: ${topAlert.alert_type} (${topAlert.severity}). Recommended action: dispatch stock buffer.` : 'All operational parameters remain within normal safety buffers.'}`;
+      let modelVersion = 'copilot-med-v1.8';
+
+      const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:5000';
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 800);
+        const res = await fetch(`${aiEngineUrl}/copilot/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: prompt,
+            role: claims.role,
+            scope_id: claims.phcId || claims.districtId || claims.stateId,
+            context_snippets: [
+              `Role: ${claims.role}`,
+              `Facilities: ${facRes.rows.map((f: any) => `${f.name}: beds=${f.occupied_beds}/${f.total_beds}, O2=${f.oxygen_cylinders_available}`).join('; ')}`,
+              `Alerts: ${alertRes.rows.map((a: any) => `${a.alert_type} (${a.severity})`).join('; ')}`,
+            ],
+            alert_ids: alertRes.rows.map((a: any) => a.id),
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const data: any = await res.json();
+          answer = data.answer || answer;
+          modelVersion = data.model_version || modelVersion;
+        }
+      } catch {
+        // Graceful fallback
+      }
 
       return {
         answer,
