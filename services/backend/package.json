@@ -5,7 +5,9 @@
   "scripts": {
     "postinstall": "npm --prefix smart-health-platform/backend install",
     "dev": "npm --prefix smart-health-platform/backend run dev",
+    "start": "npm --prefix smart-health-platform/backend run start",
     "build": "npm --prefix smart-health-platform/backend run build",
-    "test": "npm --prefix smart-health-platform/backend test:sync"
+    "test": "npm --prefix smart-health-platform/backend test",
+    "test:all": "npm --prefix smart-health-platform/backend run test:all"
   }
 }
