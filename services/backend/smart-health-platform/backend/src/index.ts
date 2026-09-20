@@ -34,8 +34,21 @@ import { auditInstrumentationMiddleware } from './modules/audit/auditMiddleware'
 app.use(auditInstrumentationMiddleware);
 
 // ---------------------------------------------------------------------------
-// Health check — unauthenticated
+// Service root & health check — unauthenticated
 // ---------------------------------------------------------------------------
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'smart-health-backend',
+    status: 'online',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      graphql: '/graphql',
+      api: '/api/v1',
+    },
+  });
+});
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });

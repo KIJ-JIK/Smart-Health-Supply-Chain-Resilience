@@ -1,4 +1,4 @@
-﻿import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { DeviceService } from '../modules/auth/deviceService';
 
 /**
@@ -12,7 +12,7 @@ import { DeviceService } from '../modules/auth/deviceService';
  *   - x-device-signature: Base64 RSA signature over `${req.method}:${req.originalUrl}:${timestamp}:${rawBody}`
  */
 export async function requireDeviceBinding(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const phcId = req.params.phcId;
+  const phcId = req.params?.phcId;
 
   if (!phcId) {
     res.status(400).json({ error: 'Device binding requires :phcId in route parameters.' });
