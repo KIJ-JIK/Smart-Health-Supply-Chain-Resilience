@@ -2,8 +2,22 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Menu, Bell, X, ChevronRight } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  Menu,
+  Bell,
+  X,
+  ChevronRight,
+  ChevronDown,
+  Layers,
+  LogOut,
+  HeartPulse,
+  Building2,
+  Globe2,
+  ExternalLink,
+  Bot,
+  Flame,
+} from 'lucide-react';
 import { useAuthStore, DEV_PERSONAS } from '@/store/authStore';
 import { useAlertStore } from '@/store/alertStore';
 import { UserRole, Alert } from '@/types';
@@ -128,11 +142,13 @@ interface HeaderProps {
 
 export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
   const pathname = usePathname();
-  const { user, isDevMode, switchRole } = useAuthStore();
+  const router = useRouter();
+  const { user, isDevMode, switchRole, logout } = useAuthStore();
   const { alerts, unacknowledgedCount, addAlert } = useAlertStore();
   const { isCrisisMode, crisisTitle, activatedBy, activateCrisisMode, deactivateCrisisMode } = useCrisisStore();
   const { isOpen: isCopilotOpen, toggleCopilot } = useCopilotStore();
   const [alertPanelOpen, setAlertPanelOpen] = useState(false);
+  const [portalMenuOpen, setPortalMenuOpen] = useState(false);
 
   // SSE — wire the live alert stream. In dev the backend isn't live so we
   // absorb the error silently; mocked alerts come from the store seed.
@@ -380,6 +396,158 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
           >
             {initials}
           </div>
+
+          {/* Global Platform Switcher */}
+          <div className="relative" style={{ position: 'relative' }}>
+            <button
+              id="global-portal-switcher-btn"
+              onClick={() => setPortalMenuOpen((o) => !o)}
+              className="header-toggle-btn"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '0 10px',
+                width: 'auto',
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--color-border)',
+              }}
+              title="Switch Platform Portals"
+            >
+              <Layers size={14} style={{ color: '#06B6D4' }} />
+              <span className="hidden sm:inline">Portals</span>
+              <ChevronDown size={11} />
+            </button>
+
+            {portalMenuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '100%',
+                  marginTop: 6,
+                  width: 250,
+                  background: '#0F172A',
+                  border: '1px solid #1E293B',
+                  borderRadius: 12,
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.6)',
+                  padding: 8,
+                  zIndex: 100,
+                }}
+              >
+                <div
+                  style={{
+                    padding: '6px 8px',
+                    fontSize: 10,
+                    fontFamily: 'monospace',
+                    color: '#94A3B8',
+                    textTransform: 'uppercase',
+                    borderBottom: '1px solid #1E293B',
+                    marginBottom: 4,
+                  }}
+                >
+                  Cross-Portal Navigation
+                </div>
+                <a
+                  href="/"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    color: '#E2E8F0',
+                    textDecoration: 'none',
+                    fontSize: 12,
+                  }}
+                  className="hover:bg-slate-800"
+                >
+                  <Building2 size={15} style={{ color: '#06B6D4' }} />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Platform Hub</div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>Command Gateway</div>
+                  </div>
+                </a>
+                <a
+                  href="http://localhost:5173"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    color: '#E2E8F0',
+                    textDecoration: 'none',
+                    fontSize: 12,
+                  }}
+                  className="hover:bg-slate-800"
+                >
+                  <HeartPulse size={15} style={{ color: '#14B8A6' }} />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>PHC Health Centre</div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>Port 5173 · Clinical</div>
+                  </div>
+                </a>
+                <a
+                  href="/governance"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    color: '#3B82F6',
+                    textDecoration: 'none',
+                    fontSize: 12,
+                    background: 'rgba(59,130,246,0.12)',
+                  }}
+                >
+                  <Building2 size={15} style={{ color: '#3B82F6' }} />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Governance Portal</div>
+                    <div style={{ fontSize: 10, color: '#60A5FA' }}>Active · Port 3000</div>
+                  </div>
+                </a>
+                <a
+                  href="http://localhost:3001"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    color: '#E2E8F0',
+                    textDecoration: 'none',
+                    fontSize: 12,
+                  }}
+                  className="hover:bg-slate-800"
+                >
+                  <Globe2 size={15} style={{ color: '#F59E0B' }} />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>BRICS Federated</div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>Port 3001 · Sovereign AI</div>
+                  </div>
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Sign Out Button */}
+          <button
+            id="header-logout-btn"
+            className="header-toggle-btn"
+            onClick={() => {
+              logout();
+              router.push('/login');
+            }}
+            style={{ color: '#EF4444' }}
+            title="Sign Out to Login"
+            aria-label="Sign Out to Login"
+          >
+            <LogOut size={15} />
+          </button>
         </div>
       </header>
 

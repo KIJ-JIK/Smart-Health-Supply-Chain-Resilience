@@ -44,8 +44,11 @@ export const DEV_PERSONAS: Record<UserRole, User> = {
 
 interface AuthState {
   user: User;
+  isAuthenticated: boolean;
   isDevMode: boolean;
   setUser: (user: User) => void;
+  login: (user: User) => void;
+  logout: () => void;
   switchRole: (role: UserRole) => void;
   /** Convenience helpers */
   canAccessNational: () => boolean;
@@ -57,12 +60,17 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: DEV_PERSONAS.national_admin,
+      isAuthenticated: false,
       isDevMode: process.env.NODE_ENV !== 'production',
 
       setUser: (user) => set({ user }),
 
+      login: (user) => set({ user, isAuthenticated: true }),
+
+      logout: () => set({ isAuthenticated: false }),
+
       switchRole: (role) =>
-        set({ user: DEV_PERSONAS[role] }),
+        set({ user: DEV_PERSONAS[role], isAuthenticated: true }),
 
       canAccessNational: () => get().user.role === 'national_admin',
 
@@ -81,9 +89,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'governance-portal-auth',
-      // Only persist in dev mode so prod always reads from real auth
-      partialize: (state) =>
-        state.isDevMode ? { user: state.user } : {},
+      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
     },
   ),
 );
