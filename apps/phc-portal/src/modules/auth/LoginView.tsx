@@ -65,7 +65,8 @@ export const LoginView: React.FC = () => {
         selectedFacility.id
       );
       setIsLoading(false);
-    }, 350);
+      window.location.href = '/';
+    }, 250);
   };
 
   return (

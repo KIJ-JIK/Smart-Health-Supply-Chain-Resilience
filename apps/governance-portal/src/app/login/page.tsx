@@ -126,8 +126,8 @@ export default function GovernanceLoginPage() {
       });
 
       setIsLoading(false);
-      router.push('/governance');
-    }, 400);
+      window.location.href = '/governance';
+    }, 250);
   };
 
   return (
