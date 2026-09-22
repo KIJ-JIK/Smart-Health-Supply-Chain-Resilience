@@ -13,7 +13,7 @@ let geminiModel: import('@google/generative-ai').GenerativeModel | null = null;
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);
-      geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
       console.log('[CopilotService] Gemini LLM initialized ✓');
     } catch (e) {
       console.warn('[CopilotService] Gemini init failed:', e);
@@ -164,12 +164,12 @@ async function getFacilitySummary(client: import('pg').PoolClient) {
 // Build compact context string for the LLM prompt
 // ─────────────────────────────────────────────────────────────────────────────
 function buildContext(data: {
-  alerts: Record<string, unknown>[];
-  lowStock: Record<string, unknown>[];
-  expiring: Record<string, unknown>[];
-  redistributions: Record<string, unknown>[];
-  footfall: Record<string, unknown>[];
-  facilities: Record<string, unknown>[];
+  alerts: any[];
+  lowStock: any[];
+  expiring: any[];
+  redistributions: any[];
+  footfall: any[];
+  facilities: any[];
 }): string {
   const sections: string[] = [];
 
@@ -215,7 +215,7 @@ function buildContext(data: {
         data.redistributions
           .map(
             (r) =>
-              `- ${r.status.toUpperCase()}: Transfer ${r.quantity} units of ${r.medicine} from ${r.source_phc} → ${r.dest_phc} (${r.urgency_level})`,
+              `- ${String(r.status).toUpperCase()}: Transfer ${r.quantity} units of ${r.medicine} from ${r.source_phc} → ${r.dest_phc} (${r.urgency_level})`,
           )
           .join('\n'),
     );
@@ -435,12 +435,12 @@ Provide a direct, data-grounded answer:`;
 function buildFallbackAnswer(
   userMessage: string,
   data: {
-    alerts: Record<string, unknown>[];
-    lowStock: Record<string, unknown>[];
-    expiring: Record<string, unknown>[];
-    redistributions: Record<string, unknown>[];
-    footfall: Record<string, unknown>[];
-    facilities: Record<string, unknown>[];
+    alerts: any[];
+    lowStock: any[];
+    expiring: any[];
+    redistributions: any[];
+    footfall: any[];
+    facilities: any[];
   },
 ): string {
   const q = userMessage.toLowerCase();
