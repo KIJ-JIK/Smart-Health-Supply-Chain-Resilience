@@ -65,29 +65,13 @@ export default function GovernanceLoginPage() {
     }
   };
 
-  // Preset quick fill
-  const applyPreset = (personaKey: 'national_admin' | 'state_admin' | 'district_admin') => {
-    const p = DEV_PERSONAS[personaKey];
-    if (personaKey === 'national_admin') {
-      setSelectedLevel('national');
-      setEmail(p.email || 'nat-admin@gov.in');
-    } else if (personaKey === 'state_admin') {
-      setSelectedLevel('state');
-      setSelectedStateId(p.stateId || 'state-mh');
-      setEmail(p.email || 'mh-admin@gov.in');
-    } else {
-      setSelectedLevel('district');
-      setSelectedStateId(p.stateId || 'state-mh');
-      setSelectedDistrictId(p.districtId || 'dist-pune');
-      setEmail(p.email || 'pune-admin@gov.in');
-    }
-    setPassword('governance@2026');
-    setErrorMsg('');
-  };
-
-  // Handle submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Execute authentication and navigate to /governance
+  const performLogin = (
+    lvl: 'national' | 'state' | 'district',
+    stId: string | null,
+    distId: string | null,
+    userEmail: string
+  ) => {
     setIsLoading(true);
     setErrorMsg('');
 
@@ -97,23 +81,23 @@ export default function GovernanceLoginPage() {
       let districtId: string | null = null;
       let userName = 'National Health Director';
 
-      if (selectedLevel === 'national') {
+      if (lvl === 'national') {
         role = 'national_admin';
         userName = 'Dr. Rajesh Kumar (National Director)';
         setNational();
-      } else if (selectedLevel === 'state') {
+      } else if (lvl === 'state') {
         role = 'state_admin';
-        stateId = selectedStateId;
-        const s = STATES.find((st) => st.id === selectedStateId);
+        stateId = stId || selectedStateId;
+        const s = STATES.find((st) => st.id === (stId || selectedStateId));
         userName = `Smt. Priya Sharma (${s?.name || 'State'} Directorate)`;
-        setState(selectedStateId);
+        setState(stId || selectedStateId);
       } else {
         role = 'district_admin';
-        stateId = selectedStateId;
-        districtId = selectedDistrictId;
-        const d = availableDistricts.find((dst) => dst.id === selectedDistrictId);
+        stateId = stId || selectedStateId;
+        districtId = distId || selectedDistrictId;
+        const d = availableDistricts.find((dst) => dst.id === (distId || selectedDistrictId));
         userName = `Suresh Iyer (${d?.name || 'District'} Health Officer)`;
-        setDistrict(selectedDistrictId);
+        setDistrict(distId || selectedDistrictId);
       }
 
       login({
@@ -122,12 +106,30 @@ export default function GovernanceLoginPage() {
         role,
         stateId,
         districtId,
-        email,
+        email: userEmail,
       });
 
       setIsLoading(false);
-      window.location.href = '/governance';
-    }, 250);
+      window.location.assign('/governance');
+    }, 200);
+  };
+
+  // Preset quick fill & immediate login
+  const applyPreset = (personaKey: 'national_admin' | 'state_admin' | 'district_admin') => {
+    const p = DEV_PERSONAS[personaKey];
+    if (personaKey === 'national_admin') {
+      performLogin('national', null, null, p.email || 'nat-admin@gov.in');
+    } else if (personaKey === 'state_admin') {
+      performLogin('state', p.stateId || 'state-mh', null, p.email || 'mh-admin@gov.in');
+    } else {
+      performLogin('district', p.stateId || 'state-mh', p.districtId || 'dist-pune', p.email || 'pune-admin@gov.in');
+    }
+  };
+
+  // Handle submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    performLogin(selectedLevel, selectedStateId, selectedDistrictId, email);
   };
 
   return (

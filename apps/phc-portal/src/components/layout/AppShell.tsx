@@ -41,7 +41,7 @@ export const AppShell: React.FC = () => {
     }
   }, [isDark]);
 
-  if (!isAuthenticated || isLoginRoute) {
+  if (!isAuthenticated) {
     return <LoginView />;
   }
 

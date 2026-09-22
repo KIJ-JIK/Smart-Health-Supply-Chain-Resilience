@@ -40,33 +40,40 @@ export const LoginView: React.FC = () => {
     }
   };
 
-  const applyPreset = (persona: PhcStaffPersona) => {
-    setSelectedRole(persona.role);
-    setSelectedFacilityId(persona.facilityId);
-    setStaffId(persona.role === 'medical_officer' ? 'dr.sharma@phc.gov.in' : `${persona.id}@phc.gov.in`);
-    setPin('clinic@2026');
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = (persona: PhcStaffPersona, facId?: string) => {
     setIsLoading(true);
-
     setTimeout(() => {
-      const persona = PHC_PERSONAS.find((p) => p.role === selectedRole) || PHC_PERSONAS[0];
       login(
         {
           ...persona,
-          id: staffId,
-          facilityId: selectedFacility.id,
+          id: persona.role === 'medical_officer' ? 'dr.sharma@phc.gov.in' : `${persona.id}@phc.gov.in`,
+          facilityId: facId || selectedFacility.id,
           facilityName: selectedFacility.name,
           district: selectedFacility.district,
           state: selectedFacility.state,
         },
-        selectedFacility.id
+        facId || selectedFacility.id
       );
       setIsLoading(false);
-      window.location.href = '/';
-    }, 250);
+      if (typeof window !== 'undefined') {
+        if (window.location.pathname === '/login' || window.location.hash === '#login') {
+          window.location.assign('/');
+        }
+      }
+    }, 200);
+  };
+
+  const applyPreset = (persona: PhcStaffPersona) => {
+    setSelectedRole(persona.role);
+    setSelectedFacilityId(persona.facilityId);
+    setStaffId(persona.role === 'medical_officer' ? 'dr.sharma@phc.gov.in' : `${persona.id}@phc.gov.in`);
+    performLogin(persona, persona.facilityId);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const persona = PHC_PERSONAS.find((p) => p.role === selectedRole) || PHC_PERSONAS[0];
+    performLogin(persona, selectedFacility.id);
   };
 
   return (
