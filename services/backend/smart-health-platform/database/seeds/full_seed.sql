@@ -443,7 +443,7 @@ ON CONFLICT DO NOTHING;
 
 -- ── Redistribution Transfers ──────────────────────────────────────────────────
 INSERT INTO redistribution_transfers (id, source_phc_id, dest_phc_id, medicine_id, quantity, status, ai_explanation, urgency_level) VALUES
-  ('g0000007-0000-0000-0000-000000000001',
+  ('07000007-0000-0000-0000-000000000001',
     'c0000003-0000-0000-0000-000000000001',  -- Kothrud (donor: 8400 strips)
     'c0000003-0000-0000-0000-000000000002',  -- Hadapsar (stockout)
     'd0000004-0000-0000-0000-000000000002',  -- Amoxicillin
@@ -451,7 +451,7 @@ INSERT INTO redistribution_transfers (id, source_phc_id, dest_phc_id, medicine_i
     'Kothrud PHC has 8,400 surplus strips (48 days coverage). Transfer of 2,500 restores 16.5-day safety stock at Hadapsar (current: 0 strips, 340 patients/day). Kothrud retains 32-day reserve post-transfer.',
     'CRITICAL'
   ),
-  ('g0000007-0000-0000-0000-000000000002',
+  ('07000007-0000-0000-0000-000000000002',
     'c0000003-0000-0000-0000-000000000005',  -- Shirur (oxygen: 20)
     'c0000003-0000-0000-0000-000000000002',  -- Hadapsar (oxygen: 3)
     'd0000004-0000-0000-0000-000000000011',  -- Salbutamol (proxy for oxygen transfer recommendation)
@@ -459,7 +459,7 @@ INSERT INTO redistribution_transfers (id, source_phc_id, dest_phc_id, medicine_i
     'Shirur PHC has 20 oxygen cylinders with low demand. Hadapsar has 3 cylinders with estimated 6 hours holdover. Emergency transfer recommended before cold chain breach.',
     'CRITICAL'
   ),
-  ('g0000007-0000-0000-0000-000000000003',
+  ('07000007-0000-0000-0000-000000000003',
     'c0000003-0000-0000-0000-000000000004',  -- Chakan PHC
     'c0000003-0000-0000-0000-000000000013',  -- Aminabad PHC
     'd0000004-0000-0000-0000-000000000001',  -- Paracetamol
@@ -471,14 +471,14 @@ ON CONFLICT DO NOTHING;
 
 -- ── Staff Registry ────────────────────────────────────────────────────────────
 INSERT INTO staff_registry (id, phc_id, name, role, active) VALUES
-  ('h0000008-0000-0000-0000-000000000001', 'c0000003-0000-0000-0000-000000000001', 'Dr. Anjali Sharma',    'Medical Officer',     true),
-  ('h0000008-0000-0000-0000-000000000002', 'c0000003-0000-0000-0000-000000000001', 'Priya Patel',          'ANM',                 true),
-  ('h0000008-0000-0000-0000-000000000003', 'c0000003-0000-0000-0000-000000000001', 'Ramesh Kulkarni',      'Lab Technician',      false),
-  ('h0000008-0000-0000-0000-000000000004', 'c0000003-0000-0000-0000-000000000002', 'Dr. Suresh Patil',     'Medical Officer',     true),
-  ('h0000008-0000-0000-0000-000000000005', 'c0000003-0000-0000-0000-000000000002', 'Meena Joshi',          'Pharmacist',          true),
-  ('h0000008-0000-0000-0000-000000000006', 'c0000003-0000-0000-0000-000000000003', 'Dr. Kavitha Rao',      'Medical Officer',     true),
-  ('h0000008-0000-0000-0000-000000000007', 'c0000003-0000-0000-0000-000000000013', 'Dr. Mohammed Akhtar',  'Medical Officer',     true),
-  ('h0000008-0000-0000-0000-000000000008', 'c0000003-0000-0000-0000-000000000013', 'Sunita Verma',         'ANM',                 true)
+  ('08000008-0000-0000-0000-000000000001', 'c0000003-0000-0000-0000-000000000001', 'Dr. Anjali Sharma',    'Medical Officer',     true),
+  ('08000008-0000-0000-0000-000000000002', 'c0000003-0000-0000-0000-000000000001', 'Priya Patel',          'ANM',                 true),
+  ('08000008-0000-0000-0000-000000000003', 'c0000003-0000-0000-0000-000000000001', 'Ramesh Kulkarni',      'Lab Technician',      false),
+  ('08000008-0000-0000-0000-000000000004', 'c0000003-0000-0000-0000-000000000002', 'Dr. Suresh Patil',     'Medical Officer',     true),
+  ('08000008-0000-0000-0000-000000000005', 'c0000003-0000-0000-0000-000000000002', 'Meena Joshi',          'Pharmacist',          true),
+  ('08000008-0000-0000-0000-000000000006', 'c0000003-0000-0000-0000-000000000003', 'Dr. Kavitha Rao',      'Medical Officer',     true),
+  ('08000008-0000-0000-0000-000000000007', 'c0000003-0000-0000-0000-000000000013', 'Dr. Mohammed Akhtar',  'Medical Officer',     true),
+  ('08000008-0000-0000-0000-000000000008', 'c0000003-0000-0000-0000-000000000013', 'Sunita Verma',         'ANM',                 true)
 ON CONFLICT DO NOTHING;
 
 -- ── Patient Footfall ──────────────────────────────────────────────────────────
@@ -491,8 +491,8 @@ INSERT INTO patient_footfall (phc_id, date, category, count) VALUES
   ('c0000003-0000-0000-0000-000000000003', CURRENT_DATE - 1, 'OPD',          210),
   ('c0000003-0000-0000-0000-000000000003', CURRENT_DATE - 1, 'dengue_fever', 47),
   ('c0000003-0000-0000-0000-000000000004', CURRENT_DATE - 1, 'OPD',          95),
-  ('c0000003-0000-0000-0000-000000000013','c0000003-0000-0000-0000-000000000013', CURRENT_DATE - 1, 'OPD', 174),
-  ('c0000003-0000-0000-0000-000000000013', CURRENT_DATE - 1, 'malaria_fever',62)
+  ('c0000003-0000-0000-0000-000000000013', CURRENT_DATE - 1, 'OPD',          174),
+  ('c0000003-0000-0000-0000-000000000013', CURRENT_DATE - 1, 'malaria_fever', 62)
 ON CONFLICT DO NOTHING;
 
 -- ── Forecast Predictions ──────────────────────────────────────────────────────
@@ -500,13 +500,13 @@ INSERT INTO forecast_predictions (phc_id, medicine_id, forecast_type, predicted_
   ('c0000003-0000-0000-0000-000000000002', 'd0000004-0000-0000-0000-000000000002', 'demand', 4760, 4200, 5320, 'xgboost',  'v1.0'),
   ('c0000003-0000-0000-0000-000000000001', 'd0000004-0000-0000-0000-000000000001', 'demand', 2800, 2500, 3100, 'prophet',  'v2.1'),
   ('c0000003-0000-0000-0000-000000000003', 'd0000004-0000-0000-0000-000000000001', 'demand', 3000, 2700, 3300, 'prophet',  'v2.1'),
-  ('c0000003-0000-0000-0000-000000000013','d0000004-0000-0000-0000-000000000008', 'demand', 1400, 1200, 1600, 'xgboost',  'v1.0')
+  ('c0000003-0000-0000-0000-000000000013', 'd0000004-0000-0000-0000-000000000008', 'demand', 1400, 1200, 1600, 'xgboost',  'v1.0')
 ON CONFLICT DO NOTHING;
 
 -- ── Federation Rounds ─────────────────────────────────────────────────────────
 INSERT INTO federation_rounds (id, round_number, model_id, status, participating_countries, global_loss, previous_entry_hash, this_hash, started_at, completed_at) VALUES
-  ('i0000009-0000-0000-0000-000000000001', 18, 'demand-forecaster-v2', 'completed', ARRAY['IN','BR','RU','CN','ZA'], 0.0312, '0000000000000000000000000000000000000000000000000000000000000000', 'a3f9c2d18e7b45f601234abcdef567890fedcba987654321fedcba9876543210', now() - interval '7 days', now() - interval '6 days'),
-  ('i0000009-0000-0000-0000-000000000002', 19, 'demand-forecaster-v2', 'completed', ARRAY['IN','BR','RU','CN','ZA'], 0.0287, 'a3f9c2d18e7b45f601234abcdef567890fedcba987654321fedcba9876543210', 'b4f0d3e29f8c56a712345bcdef678901fedcba098765432fedcba0987654321', now() - interval '1 day', now() - interval '23 hours')
+  ('09000009-0000-0000-0000-000000000001', 18, 'demand-forecaster-v2', 'completed', ARRAY['IN','BR','RU','CN','ZA'], 0.0312, '0000000000000000000000000000000000000000000000000000000000000000', 'a3f9c2d18e7b45f601234abcdef567890fedcba987654321fedcba9876543210', now() - interval '7 days', now() - interval '6 days'),
+  ('09000009-0000-0000-0000-000000000002', 19, 'demand-forecaster-v2', 'completed', ARRAY['IN','BR','RU','CN','ZA'], 0.0287, 'a3f9c2d18e7b45f601234abcdef567890fedcba987654321fedcba9876543210', 'b4f0d3e29f8c56a712345bcdef678901fedcba098765432fedcba0987654321', now() - interval '1 day', now() - interval '23 hours')
 ON CONFLICT DO NOTHING;
 
 -- ── Privacy Budget Ledger ──────────────────────────────────────────────────────
@@ -538,7 +538,7 @@ ON CONFLICT (key) DO NOTHING;
 
 -- ── Audit Log ─────────────────────────────────────────────────────────────────
 INSERT INTO audit_log (actor_id, actor_role, action, entity_type, entity_id, after_state, phc_id, district_id) VALUES
-  ('dev-nat-001', 'national_admin', 'APPROVE_REDISTRIBUTION', 'redistribution_transfer', 'g0000007-0000-0000-0000-000000000003', '{"status":"approved","quantity":1000}', 'c0000003-0000-0000-0000-000000000013', 'b0000002-0000-0000-0000-000000000007'),
+  ('dev-nat-001', 'national_admin', 'APPROVE_REDISTRIBUTION', 'redistribution_transfer', '07000007-0000-0000-0000-000000000003', '{"status":"approved","quantity":1000}', 'c0000003-0000-0000-0000-000000000013', 'b0000002-0000-0000-0000-000000000007'),
   ('dev-dist-001', 'district_admin', 'ACKNOWLEDGE_ALERT', 'alert', 'f0000006-0000-0000-0000-000000000007', '{"status":"acknowledged"}', 'c0000003-0000-0000-0000-000000000006', 'b0000002-0000-0000-0000-000000000002')
 ON CONFLICT DO NOTHING;
 
