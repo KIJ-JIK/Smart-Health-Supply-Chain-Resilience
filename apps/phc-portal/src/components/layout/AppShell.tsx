@@ -21,11 +21,16 @@ import { ResilienceTestView } from '../../modules/testing/ResilienceTestView';
 import { SettingsView } from '../../modules/settings/SettingsView';
 import { EmergencyModal } from '../../modules/emergency/EmergencyModal';
 import { AutoDraftModal } from '../../modules/autoDraft/AutoDraftModal';
+import { LoginView } from '../../modules/auth/LoginView';
+import { usePhcAuthStore } from '../../stores/authStore';
 import { X, CheckCircle2, AlertTriangle, Info, AlertOctagon } from 'lucide-react';
 
 export const AppShell: React.FC = () => {
   const { activeTab, toasts, removeToast } = useUIStore();
   const { isDark } = useThemeStore();
+  const { isAuthenticated } = usePhcAuthStore();
+
+  const isLoginRoute = typeof window !== 'undefined' && (window.location.pathname === '/login' || window.location.hash === '#login');
 
   // Sync dark class to <html> on every render
   useEffect(() => {
@@ -35,6 +40,10 @@ export const AppShell: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
   }, [isDark]);
+
+  if (!isAuthenticated || isLoginRoute) {
+    return <LoginView />;
+  }
 
   const renderActiveView = () => {
     switch (activeTab) {

@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Bot,
   Flame,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuthStore, DEV_PERSONAS } from '@/store/authStore';
 import { useAlertStore } from '@/store/alertStore';
@@ -131,7 +132,6 @@ function AlertPanel({
 
 import { useCrisisStore } from '@/store/crisisStore';
 import { useCopilotStore } from '@/store/copilotStore';
-import { Flame, AlertTriangle, Bot } from 'lucide-react';
 import { StalePhcSyncBanner } from '@/components/common/StalePhcSyncBanner';
 
 // ── Header component ───────────────────────────────────────────────────────────

@@ -1,21 +1,48 @@
 // ---------------------------------------------------------------------------
-// Apollo Client configuration with a local-only mock link.
-// Uses SchemaLink to resolve queries against in-memory mock resolvers
-// so the portal works without a live backend during development.
+// Apollo Client — connected to the Node.js backend GraphQL server.
+// Backend: http://localhost:8000/graphql (VITE_BACKEND_URL override)
+// Falls back to mock SchemaLink if VITE_USE_MOCK=true (offline/CI mode).
 // ---------------------------------------------------------------------------
 
-import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
+import { onError } from '@apollo/client/link/error';
 import { SchemaLink } from '@apollo/client/link/schema';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { typeDefs } from './schema';
 import { resolvers } from './resolvers';
 
-// Build an executable schema from our type definitions and mock resolvers
-const schema = makeExecutableSchema({ typeDefs, resolvers });
+const BACKEND_URL = import.meta.env?.VITE_BACKEND_URL || 'http://localhost:8000/graphql';
 
-// Create the Apollo Client with a SchemaLink — all queries resolve locally
+// Auth header injection
+const authLink = setContext((_, { headers }) => {
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('brics_auth_token') : null;
+  return {
+    headers: {
+      ...headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'Content-Type': 'application/json',
+    },
+  };
+});
+
+const errorLink = onError(({ graphQLErrors, networkError }) => {
+  if (graphQLErrors) {
+    graphQLErrors.forEach(({ message }) => console.warn('[BRICS GQL]', message));
+  }
+  if (networkError) console.warn('[BRICS Network]', networkError);
+});
+
+const httpLink = new HttpLink({ uri: BACKEND_URL });
+
+// Fallback mock schema for offline/CI use
+const mockSchema = makeExecutableSchema({ typeDefs, resolvers });
+const mockLink = new SchemaLink({ schema: mockSchema });
+
+const useMock = import.meta.env?.VITE_USE_MOCK === 'true';
+
 export const apolloClient = new ApolloClient({
-  link: new SchemaLink({ schema }),
+  link: useMock ? mockLink : from([errorLink, authLink, httpLink]),
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: { fetchPolicy: 'cache-and-network' },

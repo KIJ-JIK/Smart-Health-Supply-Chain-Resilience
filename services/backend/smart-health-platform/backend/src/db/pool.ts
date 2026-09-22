@@ -1,4 +1,6 @@
 import { Pool, PoolClient } from 'pg';
+import * as dotenv from 'dotenv';
+dotenv.config(); // load .env from the current working directory
 
 // ---------------------------------------------------------------------------
 // Singleton connection pool — shared across all requests.
@@ -8,9 +10,9 @@ import { Pool, PoolClient } from 'pg';
 export const pool = new Pool({
   host:     process.env.PGHOST     || 'localhost',
   port:     Number(process.env.PGPORT     || 5432),
-  user:     process.env.DB_USER    || process.env.APP_PGUSER || 'app_user',
-  password: process.env.PGPASSWORD || 'password',
-  database: process.env.PGDATABASE || 'meddb',
+  user:     process.env.DB_USER    || process.env.APP_PGUSER || process.env.PGUSER || 'postgres',
+  password: process.env.PGPASSWORD || 'postgres',
+  database: process.env.PGDATABASE || 'smarthealth',
   max:      20,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 5_000,

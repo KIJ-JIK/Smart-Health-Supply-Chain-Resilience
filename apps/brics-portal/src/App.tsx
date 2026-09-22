@@ -15,14 +15,25 @@ import {
   LineagePage,
   PrivacyPage,
   SettingsPage,
+  LoginPage,
 } from '@/pages';
+import { useBricsAuthStore } from '@/store/auth-store';
+
+function ProtectedRoutes() {
+  const isAuthenticated = useBricsAuthStore((state) => state.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <AppLayout />;
+}
 
 export function App() {
   return (
     <ApolloWrapper>
       <BrowserRouter>
         <Routes>
-          <Route element={<AppLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route element={<ProtectedRoutes />}>
             <Route path="/" element={<OverviewPage />} />
             <Route path="/nodes" element={<NodesPage />} />
             <Route path="/rounds" element={<RoundsPage />} />

@@ -31,6 +31,7 @@ import {
   ErrorState,
 } from '@/components/common';
 import { colors, typography } from '@/styles/theme';
+import { useBricsAuthStore } from '@/store/auth-store';
 import type {
   FederatedNode,
   FederatedRound,
@@ -39,6 +40,7 @@ import type {
 
 export default function OverviewPage() {
   const navigate = useNavigate();
+  const { selectedCountry, currentUser } = useBricsAuthStore();
 
   const {
     data: nodesData,
@@ -160,6 +162,65 @@ export default function OverviewPage() {
             prefix="Federation Sync"
           />
         </div>
+      </div>
+
+      {/* Active Sovereign Delegation Banner */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 18px',
+          borderRadius: 8,
+          backgroundColor: '#fff8c5',
+          border: '1px solid #fae17d',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: '1.75rem' }}>{selectedCountry.flag}</span>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#9a6700' }}>
+                Active Delegation: {selectedCountry.name} Sovereign Node ({selectedCountry.code})
+              </span>
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #fae17d',
+                  color: '#9a6700',
+                  fontWeight: 600,
+                }}
+              >
+                DELEGATE: {currentUser.name}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#7a5200', marginTop: 2 }}>
+              {selectedCountry.organization} · Local Endpoint: <span style={{ fontFamily: 'monospace' }}>{selectedCountry.endpoint}</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/login')}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 6,
+            backgroundColor: '#d97706',
+            color: '#ffffff',
+            border: 'none',
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            cursor: 'pointer',
+          }}
+        >
+          Switch Sovereign Country ⇄
+        </button>
       </div>
 
       {/* Top KPI Tiles (4 Columns) */}
@@ -292,26 +353,63 @@ export default function OverviewPage() {
               gap: 16,
             }}
           >
-            {nodes.map((node) => {
-              // Determine if this country submitted in the latest completed round
-              const lastSubmitted =
-                currentRound?.submittedCountries?.includes(node.countryCode) ||
-                (node.countryCode !== 'CN' && node.status === 'participating');
+            {[...nodes]
+              .sort((a, b) => {
+                if (a.countryCode === selectedCountry.code) return -1;
+                if (b.countryCode === selectedCountry.code) return 1;
+                return 0;
+              })
+              .map((node) => {
+                const isSelectedNode = node.countryCode === selectedCountry.code;
+                const lastSubmitted =
+                  currentRound?.submittedCountries?.includes(node.countryCode) ||
+                  (node.countryCode !== 'CN' && node.status === 'participating');
 
-              return (
-                <CountryNodeCard
-                  key={node.countryCode}
-                  countryCode={node.countryCode}
-                  countryName={node.countryName}
-                  status={node.status}
-                  lastLocalTraining={node.lastLocalTraining}
-                  lastModelUpload={node.lastModelUpload}
-                  healthIndicator={node.healthIndicator}
-                  lastRoundParticipation={lastSubmitted}
-                  onClick={() => navigate(`/nodes?country=${node.countryCode}`)}
-                />
-              );
-            })}
+                return (
+                  <div
+                    key={node.countryCode}
+                    style={
+                      isSelectedNode
+                        ? {
+                            borderRadius: 12,
+                            boxShadow: '0 0 0 2px #f59e0b, 0 8px 20px rgba(245, 158, 11, 0.15)',
+                            position: 'relative',
+                          }
+                        : undefined
+                    }
+                  >
+                    {isSelectedNode && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: -10,
+                          left: 12,
+                          backgroundColor: '#f59e0b',
+                          color: '#000',
+                          fontSize: '0.625rem',
+                          fontWeight: 800,
+                          padding: '1px 8px',
+                          borderRadius: 99,
+                          letterSpacing: '0.05em',
+                          zIndex: 2,
+                        }}
+                      >
+                        YOUR DELEGATION
+                      </div>
+                    )}
+                    <CountryNodeCard
+                      countryCode={node.countryCode}
+                      countryName={node.countryName}
+                      status={node.status}
+                      lastLocalTraining={node.lastLocalTraining}
+                      lastModelUpload={node.lastModelUpload}
+                      healthIndicator={node.healthIndicator}
+                      lastRoundParticipation={lastSubmitted}
+                      onClick={() => navigate(`/nodes?country=${node.countryCode}`)}
+                    />
+                  </div>
+                );
+              })}
           </div>
         )}
       </section>

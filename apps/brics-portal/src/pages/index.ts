@@ -5,3 +5,4 @@ export { default as RoundReviewPage } from './RoundReviewPage';
 export { default as LineagePage } from './LineagePage';
 export { default as PrivacyPage } from './PrivacyPage';
 export { default as SettingsPage } from './SettingsPage';
+export { default as LoginPage } from './LoginPage';

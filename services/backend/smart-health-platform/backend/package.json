@@ -28,6 +28,7 @@
     "load-test:billing": "ts-node scripts/load_test_scale.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@types/ws": "^8.18.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

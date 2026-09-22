@@ -24,38 +24,12 @@ function CopilotChatContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') ?? '';
 
-  const [input, setInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [sessionOpen, setSessionOpen] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const initializedRef = useRef(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { status, send } = useWsSession<string, { text: string }>(
-    '/api/v1/governance/copilot/stream',
-    {
-      enabled: sessionOpen,
-      onMessage: (msg) => {
-        setChatHistory((prev) => [
-          ...prev,
-          {
-            id: `ai-${Date.now()}`,
-            role: 'assistant',
-            content: msg.payload.text,
-            timestamp: msg.timestamp,
-          },
-        ]);
-      },
-    },
-  );
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory]);
-
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const raw = textToSend !== undefined ? textToSend : input;
     const trimmed = raw.trim();
-    if (!trimmed) return;
+    if (!trimmed || isLoading) return;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -65,6 +39,7 @@ function CopilotChatContent() {
     };
     setChatHistory((prev) => [...prev, userMsg]);
     setInput('');
+    setIsLoading(true);
 
     if (!sessionOpen) {
       setSessionOpen(true);
@@ -73,29 +48,52 @@ function CopilotChatContent() {
       send('chat', trimmed);
     }
 
-    // Mock response in dev / if ws stream is simulated
-    setTimeout(() => {
-      let aiExplanation = `Based on current supply chain data, here is my root-cause analysis for: "${trimmed}".\n\n`;
-      if (trimmed.toLowerCase().includes('paracetamol') || trimmed.toLowerCase().includes('fever')) {
-        aiExplanation += `• Root Cause: Epidemiological cluster analysis shows a 3.4σ spike in acute febrile illness cases reported within Kothrud catchment over the last 96 hours.\n• Stock Impact: Buffer fell below 14-day threshold. Neighboring Hadapsar PHC has 12,000 units surplus available for inter-facility redistribution.\n• Recommended Action: Approve Redistribution REC-001 or dispatch emergency kit.`;
-      } else if (trimmed.toLowerCase().includes('hadapsar') || trimmed.toLowerCase().includes('power') || trimmed.toLowerCase().includes('generator')) {
-        aiExplanation += `• Root Cause: PHC Hadapsar reported a phase failure on the 11kV rural feeder. Backup diesel generator fuel is under 15%.\n• Cold Chain Risk: ILR (Ice Lined Refrigerator) temperature is currently 4.2°C (safe range: 2°C - 8°C), but holdover time is estimated at 6 hours.\n• Recommended Action: MSEDCL emergency maintenance dispatched; priority fuel tanker notified.`;
-      } else if (trimmed.toLowerCase().includes('baramati') || trimmed.toLowerCase().includes('bed')) {
-        aiExplanation += `• Root Cause: Inflow of dengue and respiratory admissions exceeded normal discharge rate. Utilization reached 96.5%.\n• Surge Mitigation: 6 step-down beds activated in community hall; non-critical post-op patients scheduled for home recovery monitoring.`;
+    // Add loading placeholder
+    const loadingId = `ai-loading-${Date.now()}`;
+    setChatHistory((prev) => [
+      ...prev,
+      { id: loadingId, role: 'assistant', content: '…', timestamp: new Date().toISOString() },
+    ]);
+
+    try {
+      const res = await fetch('/api/v1/governance/copilot/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phcId: 'phc-001', message: trimmed }),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      let replyText: string;
+      if (res.ok) {
+        const data = await res.json();
+        replyText = data.message ?? data.answer ?? 'No response from AI engine.';
       } else {
-        aiExplanation += `The governance intelligence model indicates that this metric deviation is statistically significant. Surrounding health facilities maintain balanced inventory, and no secondary facility contagion has been recorded.`;
+        replyText = `Backend error (HTTP ${res.status}). Please ensure the server is running on port 8000.`;
       }
 
-      setChatHistory((prev) => [
-        ...prev,
-        {
-          id: `ai-resp-${Date.now()}`,
-          role: 'assistant',
-          content: aiExplanation,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-    }, 700);
+      setChatHistory((prev) =>
+        prev.map((m) =>
+          m.id === loadingId
+            ? { id: `ai-${Date.now()}`, role: 'assistant', content: replyText, timestamp: new Date().toISOString() }
+            : m,
+        ),
+      );
+    } catch (err) {
+      setChatHistory((prev) =>
+        prev.map((m) =>
+          m.id === loadingId
+            ? {
+                id: `ai-err-${Date.now()}`,
+                role: 'assistant',
+                content: 'Unable to reach the backend. Ensure `npm run dev:backend` is running.',
+                timestamp: new Date().toISOString(),
+              }
+            : m,
+        ),
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle URL query parameter auto-trigger

@@ -91,4 +91,7 @@ export interface CurrentUser {
   name: string;
   email: string;
   role: 'national_admin';
+  countryCode?: string;
+  countryName?: string;
+  flag?: string;
 }

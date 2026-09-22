@@ -1,48 +1,66 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // SSE Route Handler for live KPI ticks: /governance/kpi/stream
+// Fetches real data from the backend and streams KPI updates to the UI.
+// Falls back to a static tick if the backend is unavailable.
 // ─────────────────────────────────────────────────────────────────────────────
 export const dynamic = 'force-dynamic';
+
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'http://localhost:8000';
+
+async function fetchBackendKpis(): Promise<Record<string, number>> {
+  try {
+    // Fetch national overview via GraphQL
+    const res = await fetch(`${BACKEND}/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `{ nationalOverview { totalPhcs activePhcs criticalPhcs totalBeds occupiedBeds bedOccupancyRate oxygenCylindersAvailable openAlertsCount criticalAlertsCount staffShortagePhcCount pendingRedistributionsCount } }`,
+      }),
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return {};
+    const json = await res.json();
+    return json?.data?.nationalOverview ?? {};
+  } catch {
+    return {};
+  }
+}
 
 export async function GET() {
   const encoder = new TextEncoder();
 
-  const metrics = [
-    { metric: 'Critical PHCs', unit: 'PHCs', min: 72, max: 82, sev: 'critical' as const },
-    { metric: 'Medicine Alerts', unit: 'Alerts', min: 228, max: 242, sev: 'warn' as const },
-    { metric: 'Bed Utilization', unit: '%', min: 72, max: 78, sev: 'ok' as const },
-    { metric: 'Oxygen Status', unit: '%', min: 95, max: 98, sev: 'ok' as const },
-    { metric: 'Staff Availability', unit: '%', min: 83, max: 88, sev: 'warn' as const },
-    { metric: 'Patient Load', unit: '/day', min: 308000, max: 316000, sev: 'ok' as const },
-    { metric: 'Pending Requests', unit: 'Reqs', min: 150, max: 162, sev: 'warn' as const },
-  ];
-
   const stream = new ReadableStream({
     start(controller) {
-      // Send initial keep-alive
       controller.enqueue(encoder.encode(': connected\n\n'));
 
-      const interval = setInterval(() => {
-        const target = metrics[Math.floor(Math.random() * metrics.length)];
-        const delta = Math.floor(Math.random() * 5) - 2;
-        const value = Math.floor(Math.random() * (target.max - target.min + 1)) + target.min;
+      const sendTick = async () => {
+        const data = await fetchBackendKpis();
 
-        const tick = {
-          metric: target.metric,
-          value,
-          unit: target.unit,
-          delta,
-          severity: target.sev,
-          timestamp: new Date().toISOString(),
-        };
+        const ticks = [
+          { metric: 'Critical PHCs',      value: data.criticalPhcs              ?? 0, unit: 'PHCs',   severity: 'critical' },
+          { metric: 'Medicine Alerts',     value: data.openAlertsCount           ?? 0, unit: 'Alerts', severity: 'warn' },
+          { metric: 'Bed Utilization',     value: Math.round(data.bedOccupancyRate ?? 0), unit: '%', severity: data.bedOccupancyRate > 90 ? 'critical' : 'ok' },
+          { metric: 'Oxygen Status',       value: data.oxygenCylindersAvailable  ?? 0, unit: 'cyl',   severity: data.oxygenCylindersAvailable < 20 ? 'warn' : 'ok' },
+          { metric: 'Pending Requests',    value: data.pendingRedistributionsCount ?? 0, unit: 'Reqs', severity: 'warn' },
+          { metric: 'Active PHCs',         value: data.activePhcs                ?? 0, unit: 'PHCs',  severity: 'ok' },
+          { metric: 'Critical Alerts',     value: data.criticalAlertsCount       ?? 0, unit: 'Alerts', severity: 'critical' },
+        ];
 
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(tick)}\n\n`));
-        } catch {
-          clearInterval(interval);
+        for (const tick of ticks) {
+          const payload = { ...tick, delta: 0, timestamp: new Date().toISOString() };
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+          } catch {
+            return;
+          }
         }
-      }, 4000);
+      };
 
-      // Clean up when client disconnects
+      // First tick immediately
+      sendTick();
+      // Then every 8 seconds
+      const interval = setInterval(() => sendTick(), 8000);
+
       return () => {
         clearInterval(interval);
       };
