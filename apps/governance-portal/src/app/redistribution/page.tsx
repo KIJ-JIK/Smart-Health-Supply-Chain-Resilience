@@ -75,7 +75,7 @@ export default function RedistributionPage() {
 
   const currentDistrict = enforcedScope.districtId ?? 'dist-pune';
 
-  const [recommendations, setRecommendations] = useState<RedistributionRecommendation[]>(MOCK_RECOMMENDATIONS);
+  const [recommendations, setRecommendations] = useState<RedistributionRecommendation[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'decided'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState<string>('all');
@@ -97,25 +97,13 @@ export default function RedistributionPage() {
   // Approve state
   const [approveNotes, setApproveNotes] = useState<Record<string, string>>({});
 
-  // GraphQL query fallback
+  // GraphQL query against real backend
   const { data: gqlData, refetch } = useQuery(REDISTRIBUTION_RECOMMENDATIONS, {
     variables: { district: currentDistrict },
     fetchPolicy: 'cache-and-network',
   });
 
-  useEffect(() => {
-    let isMounted = true;
-    fetchRedistributionRecommendations(currentDistrict).then((recs) => {
-      if (isMounted && recs.length > 0) {
-        setRecommendations(recs);
-      }
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, [currentDistrict]);
-
-  // Synchronize if GraphQL returns items
+  // Synchronize when real database records return
   useEffect(() => {
     if (gqlData?.redistributionRecommendations && gqlData.redistributionRecommendations.length > 0) {
       setRecommendations(gqlData.redistributionRecommendations);

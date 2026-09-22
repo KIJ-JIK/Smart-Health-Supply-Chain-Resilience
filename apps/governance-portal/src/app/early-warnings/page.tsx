@@ -81,14 +81,12 @@ export default function EarlyWarningsPage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  // Hydrate store from GraphQL or mock seed if empty
+  // Hydrate store from live GraphQL
   useEffect(() => {
     if (gqlData?.alertsHistory && gqlData.alertsHistory.length > 0) {
       setAlerts(gqlData.alertsHistory);
-    } else if (alerts.length === 0) {
-      setAlerts(MOCK_SEED_ALERTS);
     }
-  }, [gqlData, setAlerts, alerts.length]);
+  }, [gqlData, setAlerts]);
 
   // Format relative timestamp
   const timeAgo = (iso: string) => {

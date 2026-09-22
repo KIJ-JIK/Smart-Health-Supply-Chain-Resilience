@@ -92,9 +92,7 @@ export default function SupplyChainPage() {
   });
 
   const shipments: Shipment[] = useMemo(() => {
-    const rawShipments = gqlData?.supplyChainShipments && gqlData.supplyChainShipments.length > 0
-      ? gqlData.supplyChainShipments
-      : MOCK_SHIPMENTS;
+    const rawShipments = gqlData?.supplyChainShipments || [];
 
     // Filter to strictly enforced scope on the client side as well
     return rawShipments.filter((s: Shipment) => {
