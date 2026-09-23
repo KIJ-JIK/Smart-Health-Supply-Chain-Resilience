@@ -1,12 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
+      colors: {
+        obsidian: {
+          950: '#05070e',
+          900: '#080d19',
+          800: '#0d1428',
+          700: '#131d36',
+        },
+      },
       keyframes: {
         shimmer: {
           '0%': { transform: 'translateX(-100%)' },

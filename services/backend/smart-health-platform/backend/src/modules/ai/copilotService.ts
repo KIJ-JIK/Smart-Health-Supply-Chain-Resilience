@@ -2,26 +2,42 @@ import { Router, Request, Response } from 'express';
 import { TenantClaims, pool } from '../../db/pool';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Gemini LLM Integration (google/generative-ai)
-// If a valid key is provided, LLM generates natural responses from retrieved data.
+// Gemini LLM Integration (gemini-3.6-flash REST API)
+// If GEMINI_API_KEY is present, LLM synthesizes natural responses from real DB data.
+// Seamless zero-mock analytical fallback is used if rate-limited or offline.
 // ─────────────────────────────────────────────────────────────────────────────
-let geminiModel: any = null;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
-(async () => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey && apiKey.startsWith('AIzaSy')) {
-    try {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(apiKey);
-      geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      console.log('[CopilotService] Gemini LLM initialized ✓');
-    } catch (e) {
-      console.warn('[CopilotService] Gemini init failed:', e);
+async function callGeminiLlm(systemPrompt: string, userPrompt: string): Promise<string | null> {
+  if (!GEMINI_API_KEY) return null;
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const body = {
+      contents: [{ parts: [{ text: userPrompt }] }],
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn(`[CopilotService] Gemini API returned status ${res.status}:`, errText.slice(0, 150));
+      return null;
     }
-  } else {
-    console.log('[CopilotService] Using Built-in Natural Language Database RAG Engine.');
+
+    const data: any = await res.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const textPart = parts.find((p: any) => p.text)?.text;
+    return textPart ? textPart.trim() : null;
+  } catch (err: any) {
+    console.warn('[CopilotService] Gemini call failed:', err?.message || err);
+    return null;
   }
-})();
+}
 
 export interface CopilotResponse {
   answer: string;
@@ -62,127 +78,178 @@ interface RagQueryResult {
   answer: string;
   citations: { sourceType: string; entityId?: string; excerpt?: string }[];
   followUps: string[];
+  isChat?: boolean;
 }
 
 async function executeRagQuery(client: import('pg').PoolClient, question: string): Promise<RagQueryResult> {
   const q = question.toLowerCase().trim();
 
   // ── 1. GREETINGS & CASUAL INTENTS ──────────────────────────────────────────
-  if (/^(hello|hi|hey|greetings|good\s*(morning|afternoon|evening)|who\s*are\s*you)/i.test(q)) {
+  if (
+    /^(hello|hi|hey|greetings|good\s*(morning|afternoon|evening)|who\s*are\s*you|how\s*are\s*you|how\s*do\s*you\s*do|what('s|\s+is)\s*up|what\s*can\s*you\s*do|help|thanks|thank\s*you)/i.test(q) ||
+    q.includes('how are you') ||
+    q === 'hi' ||
+    q === 'hello'
+  ) {
     return {
-      answer: `Hello! I am your **Health Supply Chain & Governance AI Assistant**.\n\nI have direct access to the live public health database tracking:\n• **15 Primary Health Centres** across 5 states (Maharashtra, Uttar Pradesh, Karnataka, Tamil Nadu, Rajasthan)\n• **15 Essential Medicines** with real-time batch stock and expiry dates\n• **Active Clinical & Operational Alerts** (stockouts, oxygen shortages, bed surges)\n• **Inter-PHC Redistribution Transfers** and Logistics\n\nHow can I help you today? You can ask about:\n- *"Which medicines have shortages across states?"*\n- *"What is the bed occupancy in Maharashtra?"*\n- *"Show me all open alerts at Hadapsar PHC"*\n- *"Which batches are expiring within 30 days?"*`,
+      isChat: true,
+      answer: `Hello! I'm doing well, thank you for asking! 😊\n\nI am your **Smart Health Platform AI Copilot**. I have direct, real-time access to the live PostgreSQL health database tracking:\n• **Patient Footfall & Clinical Consultations** (OPD, ANC, Fever clinics by state & PHC)\n• **15 Primary Health Centres** across 5 states\n• **15 Essential Medicines** with real-time stock levels, batches & expiry dates\n• **Hospital Bed Capacity & Oxygen Cylinder Reserves**\n• **Active Clinical Alerts & Emergency Redistribution Transfers**\n\nHow can I help you today? You can ask me:\n- *"What is the patient footfall in Uttar Pradesh?"*\n- *"Which medicines are out of stock in Maharashtra?"*\n- *"What is the bed occupancy at Hadapsar PHC?"*\n- *"Show me all open critical alerts"*`,
       citations: [],
       followUps: [
-        'Which medicines have shortages across states?',
+        'What is the patient footfall in Uttar Pradesh?',
+        'Which medicines have critical shortages across states?',
+        'What is the bed occupancy across PHCs?',
         'Show all open critical alerts',
-        'What is the current bed occupancy across PHCs?',
-        'Are there any pending medicine transfers?',
       ],
     };
   }
 
-  // ── 2. MEDICINE SHORTAGE ACROSS STATES / BY STATE ──────────────────────────
+  // ── 2. PATIENT FOOTFALL & CLINICAL VISITS ──────────────────────────────────
   if (
-    (q.includes('shortage') && (q.includes('state') || q.includes('across') || q.includes('medicine'))) ||
-    (q.includes('stockout') && q.includes('state')) ||
-    (q.includes('medicine') && (q.includes('short') || q.includes('out of stock') || q.includes('low stock')))
+    q.includes('footfall') ||
+    q.includes('patient') ||
+    q.includes('opd') ||
+    q.includes('visit') ||
+    q.includes('clinic') ||
+    q.includes('fever') ||
+    q.includes('consultation')
   ) {
-    const res = await client.query(`
+    let whereClause = '';
+    const params: any[] = [];
+
+    // State detection
+    const knownStates = ['maharashtra', 'uttar pradesh', 'tamil nadu', 'rajasthan', 'karnataka'];
+    const matchedState = knownStates.find((s) => q.includes(s));
+    if (matchedState) {
+      params.push(`%${matchedState}%`);
+      whereClause = `WHERE LOWER(s.name) LIKE $${params.length}`;
+    }
+
+    // Facility detection
+    const facilitiesRes = await client.query(`SELECT id, name FROM phc_facilities`).catch(() => ({ rows: [] }));
+    const matchedFacility = facilitiesRes.rows.find((f: any) =>
+      q.includes(f.name.toLowerCase()) || q.includes(f.name.toLowerCase().replace(' phc', ''))
+    );
+    if (matchedFacility) {
+      params.push(matchedFacility.id);
+      whereClause += (whereClause ? ' AND' : ' WHERE') + ` pf.phc_id = $${params.length}`;
+    }
+
+    const res = await client.query(
+      `
       SELECT 
-        s.name AS state,
-        d.name AS district,
+        s.name AS state_name,
+        d.name AS district_name,
         p.id AS phc_id,
         p.name AS phc_name,
-        m.name AS medicine_name,
-        ib.id AS batch_id,
-        ib.batch_no,
-        ib.remaining_qty,
-        ib.minimum_threshold,
-        CASE WHEN ib.remaining_qty = 0 THEN 'STOCKOUT' ELSE 'CRITICALLY LOW' END AS status
-      FROM inventory_batches ib
-      JOIN medicines m ON ib.medicine_id = m.id
-      JOIN phc_facilities p ON ib.phc_id = p.id
+        pf.id AS footfall_id,
+        pf.date,
+        pf.category,
+        pf.count
+      FROM patient_footfall pf
+      JOIN phc_facilities p ON pf.phc_id = p.id
       JOIN districts d ON p.district_id = d.id
       JOIN states s ON p.state_id = s.id
-      WHERE ib.remaining_qty <= ib.minimum_threshold
-      ORDER BY s.name, ib.remaining_qty ASC;
-    `).catch(() => ({ rows: [] as any[] }));
+      ${whereClause}
+      ORDER BY pf.date DESC, pf.count DESC;
+    `,
+      params
+    ).catch(() => ({ rows: [] as any[] }));
 
     if (res.rows.length === 0) {
+      const scope = matchedFacility ? matchedFacility.name : matchedState ? matchedState.toUpperCase() : 'the database';
       return {
-        answer: 'All public health facilities currently maintain medicine inventories above their minimum safety thresholds. No critical shortages are reported in the database.',
+        answer: `No patient footfall records were found in ${scope}.`,
         citations: [],
-        followUps: ['Show inventory status for all facilities', 'Are any medicines expiring soon?'],
+        followUps: [
+          'Show patient footfall in Maharashtra',
+          'Show patient footfall in Uttar Pradesh',
+          'Show overall facility bed occupancy',
+        ],
       };
     }
 
-    // Group by state
-    const stateMap = new Map<string, any[]>();
-    for (const row of res.rows) {
-      if (!stateMap.has(row.state)) stateMap.set(row.state, []);
-      stateMap.get(row.state)!.push(row);
-    }
+    const totalCount = res.rows.reduce((sum, r) => sum + r.count, 0);
+    const scopeLabel = matchedFacility ? matchedFacility.name : matchedState ? matchedState.toUpperCase() : 'ALL MONITORED REGIONS';
+    const reportDate = res.rows[0]?.date ? new Date(res.rows[0].date).toISOString().split('T')[0] : 'Latest';
 
-    let report = `### Live Medicine Shortage Analysis Across States\n\n`;
-    report += `Currently, **${res.rows.length} critical inventory shortages** are detected across **${stateMap.size} states** in the health database:\n\n`;
-
-    const citations: { sourceType: string; entityId?: string; excerpt?: string }[] = [];
-
-    for (const [state, items] of stateMap.entries()) {
-      report += `#### 📍 ${state} (${items.length} shortages)\n`;
-      for (const it of items) {
-        const icon = it.status === 'STOCKOUT' ? '🔴' : '🟡';
-        report += `• ${icon} **${it.medicine_name}** at *${it.phc_name}* (${it.district}): **${it.remaining_qty} units** remaining (Safety Threshold: ${it.minimum_threshold} units) — **${it.status}**\n`;
-        citations.push({
-          sourceType: 'inventory_batch',
-          entityId: it.batch_id,
-          excerpt: `${it.medicine_name} at ${it.phc_name}: ${it.remaining_qty}/${it.minimum_threshold} units (${it.status})`,
-        });
+    // Group by PHC
+    const phcMap = new Map<string, { district: string; state: string; items: any[] }>();
+    for (const r of res.rows) {
+      if (!phcMap.has(r.phc_name)) {
+        phcMap.set(r.phc_name, { district: r.district_name, state: r.state_name, items: [] });
       }
-      report += `\n`;
+      phcMap.get(r.phc_name)!.items.push(r);
     }
 
-    report += `**Immediate Clinical Recommendations:**\n`;
-    report += `1. Approve pending inter-PHC redistribution transfers for Amoxicillin 500mg (Kothrud → Hadapsar) and Paracetamol 500mg (Chakan → Aminabad).\n`;
-    report += `2. Trigger emergency district purchase orders for Chloroquine Phosphate and Insulin Glargine at Aminabad PHC.`;
+    let answer = `### 📊 Live Patient Footfall Report: ${scopeLabel}\n\n`;
+    answer += `• **Total Patient Footfall Recorded:** **${totalCount.toLocaleString()} patients**\n`;
+    answer += `• **Reporting Date:** **${reportDate}**\n\n`;
+
+    answer += `#### Facility Breakdown:\n`;
+    for (const [phcName, data] of phcMap.entries()) {
+      const phcTotal = data.items.reduce((s, it) => s + it.count, 0);
+      answer += `\n**🏥 ${phcName}** (${data.district}, ${data.state}) — **${phcTotal} total visits**\n`;
+      for (const it of data.items) {
+        const catName = it.category.replace(/_/g, ' ').toUpperCase();
+        answer += `  • **${catName}:** ${it.count} patients\n`;
+      }
+    }
+
+    const citations = res.rows.map((r) => ({
+      sourceType: 'patient_footfall',
+      entityId: r.footfall_id,
+      excerpt: `${r.phc_name} (${r.category}): ${r.count} patients on ${reportDate}`,
+    }));
 
     return {
-      answer: report,
+      answer,
       citations: citations.slice(0, 6),
       followUps: [
-        'Which redistribution transfers can resolve these shortages?',
-        'Show all open alerts for Hadapsar PHC',
-        'What is the stock buffer at Aminabad PHC?',
+        'Which medicines are required for these patient volumes?',
+        `Show bed occupancy in ${matchedState || 'Maharashtra'}`,
+        'Are there any epidemic alerts active?',
       ],
     };
   }
 
   // ── 3. SPECIFIC FACILITY LOOKUP ───────────────────────────────────────────
   const facilitiesRes = await client.query(`SELECT id, name, district_id, state_id FROM phc_facilities`).catch(() => ({ rows: [] }));
-  const matchedFacility = facilitiesRes.rows.find((f: any) => q.includes(f.name.toLowerCase()) || q.includes(f.name.toLowerCase().replace(' phc', '')));
+  const matchedFacility = facilitiesRes.rows.find((f: any) =>
+    q.includes(f.name.toLowerCase()) || q.includes(f.name.toLowerCase().replace(' phc', ''))
+  );
 
-  if (matchedFacility) {
+  if (matchedFacility && !q.includes('bed') && !q.includes('shortage')) {
     const [facDetail, facBatches, facAlerts] = await Promise.all([
-      client.query(`
+      client.query(
+        `
         SELECT p.*, d.name AS district_name, s.name AS state_name
         FROM phc_facilities p
         JOIN districts d ON p.district_id = d.id
         JOIN states s ON p.state_id = s.id
         WHERE p.id = $1
-      `, [matchedFacility.id]).catch(() => ({ rows: [] as any[] })),
-      client.query(`
+      `,
+        [matchedFacility.id]
+      ).catch(() => ({ rows: [] as any[] })),
+      client.query(
+        `
         SELECT m.name AS medicine_name, ib.remaining_qty, ib.minimum_threshold, ib.expiry_date
         FROM inventory_batches ib
         JOIN medicines m ON ib.medicine_id = m.id
         WHERE ib.phc_id = $1
         ORDER BY ib.remaining_qty ASC
-      `, [matchedFacility.id]).catch(() => ({ rows: [] as any[] })),
-      client.query(`
+      `,
+        [matchedFacility.id]
+      ).catch(() => ({ rows: [] as any[] })),
+      client.query(
+        `
         SELECT id, alert_type, severity, status, payload, created_at
         FROM alerts
         WHERE phc_id = $1 AND status = 'open'
         ORDER BY created_at DESC
-      `, [matchedFacility.id]).catch(() => ({ rows: [] as any[] })),
+      `,
+        [matchedFacility.id]
+      ).catch(() => ({ rows: [] as any[] })),
     ]);
 
     const f = facDetail.rows[0];
@@ -228,9 +295,110 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
     }
   }
 
-  // ── 4. BED OCCUPANCY / HOSPITAL CAPACITY ──────────────────────────────────
-  if (q.includes('bed') || q.includes('occupan') || q.includes('overcrowd') || q.includes('icu') || q.includes('hospital')) {
-    const res = await client.query(`
+  // ── 4. MEDICINE SHORTAGE & INVENTORY ───────────────────────────────────────
+  if (
+    q.includes('shortage') ||
+    q.includes('stockout') ||
+    q.includes('out of stock') ||
+    q.includes('low stock') ||
+    (q.includes('medicine') && (q.includes('stock') || q.includes('inventory') || q.includes('which') || q.includes('show')))
+  ) {
+    let whereClause = 'WHERE ib.remaining_qty <= ib.minimum_threshold';
+    const params: any[] = [];
+
+    const knownStates = ['maharashtra', 'uttar pradesh', 'tamil nadu', 'rajasthan', 'karnataka'];
+    const matchedState = knownStates.find((s) => q.includes(s));
+    if (matchedState) {
+      params.push(`%${matchedState}%`);
+      whereClause += ` AND LOWER(s.name) LIKE $${params.length}`;
+    }
+
+    const res = await client.query(
+      `
+      SELECT 
+        s.name AS state,
+        d.name AS district,
+        p.id AS phc_id,
+        p.name AS phc_name,
+        m.name AS medicine_name,
+        ib.id AS batch_id,
+        ib.batch_no,
+        ib.remaining_qty,
+        ib.minimum_threshold,
+        CASE WHEN ib.remaining_qty = 0 THEN 'STOCKOUT' ELSE 'CRITICALLY LOW' END AS status
+      FROM inventory_batches ib
+      JOIN medicines m ON ib.medicine_id = m.id
+      JOIN phc_facilities p ON ib.phc_id = p.id
+      JOIN districts d ON p.district_id = d.id
+      JOIN states s ON p.state_id = s.id
+      ${whereClause}
+      ORDER BY s.name, ib.remaining_qty ASC;
+    `,
+      params
+    ).catch(() => ({ rows: [] as any[] }));
+
+    if (res.rows.length === 0) {
+      return {
+        answer: `All public health facilities in ${matchedState ? matchedState.toUpperCase() : 'all states'} maintain medicine inventories above their minimum safety thresholds. No critical shortages reported.`,
+        citations: [],
+        followUps: ['Show inventory status for all facilities', 'Are any medicines expiring soon?'],
+      };
+    }
+
+    const stateMap = new Map<string, any[]>();
+    for (const row of res.rows) {
+      if (!stateMap.has(row.state)) stateMap.set(row.state, []);
+      stateMap.get(row.state)!.push(row);
+    }
+
+    let report = `### Live Medicine Shortage Analysis ${matchedState ? `(${matchedState.toUpperCase()})` : 'Across States'}\n\n`;
+    report += `Currently, **${res.rows.length} critical inventory shortages** are detected in the health database:\n\n`;
+
+    const citations: { sourceType: string; entityId?: string; excerpt?: string }[] = [];
+
+    for (const [state, items] of stateMap.entries()) {
+      report += `#### 📍 ${state} (${items.length} shortages)\n`;
+      for (const it of items) {
+        const icon = it.status === 'STOCKOUT' ? '🔴' : '🟡';
+        report += `• ${icon} **${it.medicine_name}** at *${it.phc_name}* (${it.district}): **${it.remaining_qty} units** remaining (Threshold: ${it.minimum_threshold} units) — **${it.status}**\n`;
+        citations.push({
+          sourceType: 'inventory_batch',
+          entityId: it.batch_id,
+          excerpt: `${it.medicine_name} at ${it.phc_name}: ${it.remaining_qty}/${it.minimum_threshold} units (${it.status})`,
+        });
+      }
+      report += `\n`;
+    }
+
+    report += `**Immediate Clinical Recommendations:**\n`;
+    report += `1. Approve pending inter-PHC redistribution transfers for Amoxicillin 500mg (Kothrud → Hadapsar) and Paracetamol 500mg (Chakan → Aminabad).\n`;
+    report += `2. Trigger emergency district purchase orders for Chloroquine Phosphate and Insulin Glargine at Aminabad PHC.`;
+
+    return {
+      answer: report,
+      citations: citations.slice(0, 6),
+      followUps: [
+        'Which redistribution transfers can resolve these shortages?',
+        'Show all open alerts for Hadapsar PHC',
+        'What is the stock buffer at Aminabad PHC?',
+      ],
+    };
+  }
+
+  // ── 5. BED OCCUPANCY / HOSPITAL CAPACITY ──────────────────────────────────
+  if (q.includes('bed') || q.includes('occupan') || q.includes('overcrowd') || q.includes('icu') || q.includes('hospital capacity')) {
+    let whereClause = '';
+    const params: any[] = [];
+
+    const knownStates = ['maharashtra', 'uttar pradesh', 'tamil nadu', 'rajasthan', 'karnataka'];
+    const matchedState = knownStates.find((s) => q.includes(s));
+    if (matchedState) {
+      params.push(`%${matchedState}%`);
+      whereClause = `WHERE LOWER(s.name) LIKE $${params.length}`;
+    }
+
+    const res = await client.query(
+      `
       SELECT 
         p.id, p.name, d.name AS district, s.name AS state,
         p.total_beds, p.occupied_beds, p.emergency_beds, p.isolation_beds,
@@ -238,44 +406,42 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
       FROM phc_facilities p
       JOIN districts d ON p.district_id = d.id
       JOIN states s ON p.state_id = s.id
+      ${whereClause}
       ORDER BY occupancy_pct DESC NULLS LAST;
-    `).catch(() => ({ rows: [] as any[] }));
+    `,
+      params
+    ).catch(() => ({ rows: [] as any[] }));
 
     const totalBeds = res.rows.reduce((sum, r) => sum + r.total_beds, 0);
     const occupiedBeds = res.rows.reduce((sum, r) => sum + r.occupied_beds, 0);
     const overallRate = totalBeds > 0 ? ((occupiedBeds / totalBeds) * 100).toFixed(1) : '0';
-    const criticalFacilities = res.rows.filter((r) => r.occupancy_pct >= 90);
 
-    let answer = `### National Bed Occupancy & Facility Capacity\n\n`;
-    answer += `• **Total Beds Monitored:** ${totalBeds.toLocaleString()}\n`;
-    answer += `• **Occupied Beds:** ${occupiedBeds.toLocaleString()} (**${overallRate}% overall occupancy**)\n`;
-    answer += `• **Facilities Exceeding 90% Surge Threshold:** ${criticalFacilities.length} facilities\n\n`;
+    let answer = `### Bed Occupancy & Capacity ${matchedState ? `(${matchedState.toUpperCase()})` : 'Report'}\n\n`;
+    answer += `• **Total Beds:** **${totalBeds.toLocaleString()}** | **Occupied:** **${occupiedBeds.toLocaleString()}** (**${overallRate}% overall occupancy**)\n\n`;
+    answer += `| Facility | District | State | Occupied / Total | Rate | Status |\n`;
+    answer += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
 
-    answer += `#### 🚨 High-Utilization Facilities (Surge Alert):\n`;
-    const citations: { sourceType: string; entityId?: string; excerpt?: string }[] = [];
-    for (const f of res.rows.slice(0, 6)) {
-      const badge = f.occupancy_pct >= 90 ? '🔴' : f.occupancy_pct >= 80 ? '🟡' : '🟢';
-      answer += `• ${badge} **${f.name}** (${f.district}, ${f.state}): **${f.occupied_beds} / ${f.total_beds} beds (${f.occupancy_pct}%)** [Emergency: ${f.emergency_beds}, Isolation: ${f.isolation_beds}]\n`;
-      citations.push({
-        sourceType: 'facility',
-        entityId: f.id,
-        excerpt: `${f.name}: ${f.occupied_beds}/${f.total_beds} beds (${f.occupancy_pct}%)`,
-      });
+    for (const r of res.rows) {
+      const badge = r.occupancy_pct >= 90 ? '🔴 CRITICAL' : r.occupancy_pct >= 75 ? '🟡 ELEVATED' : '🟢 NORMAL';
+      answer += `| **${r.name}** | ${r.district} | ${r.state} | ${r.occupied_beds} / ${r.total_beds} | **${r.occupancy_pct}%** | ${badge} |\n`;
     }
 
     return {
       answer,
-      citations,
+      citations: res.rows.slice(0, 5).map((r) => ({
+        sourceType: 'facility',
+        entityId: r.id,
+        excerpt: `${r.name}: ${r.occupied_beds}/${r.total_beds} beds (${r.occupancy_pct}%)`,
+      })),
       followUps: [
-        'Which facilities have available emergency beds?',
-        'Show oxygen cylinder levels at high occupancy facilities',
-        'Which PHCs in Maharashtra have critical bed surge?',
+        'Which facilities have ICU or isolation bed availability?',
+        'Show active patient surge alerts',
       ],
     };
   }
 
-  // ── 5. OXYGEN CAPACITY ───────────────────────────────────────────────────
-  if (q.includes('oxygen') || q.includes('cylinder') || q.includes('concentrator')) {
+  // ── 6. OXYGEN CYLINDERS ───────────────────────────────────────────────────
+  if (q.includes('oxygen') || q.includes('o2') || q.includes('cylinder')) {
     const res = await client.query(`
       SELECT p.id, p.name, d.name AS district, s.name AS state, p.oxygen_cylinders_available
       FROM phc_facilities p
@@ -285,73 +451,68 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
     `).catch(() => ({ rows: [] as any[] }));
 
     const totalO2 = res.rows.reduce((sum, r) => sum + r.oxygen_cylinders_available, 0);
-    const criticalO2 = res.rows.filter((r) => r.oxygen_cylinders_available < 10);
 
-    let answer = `### Oxygen Infrastructure & Cylinder Reserves\n\n`;
-    answer += `• **Total Cylinders in System:** ${totalO2.toLocaleString()} cylinders\n`;
-    answer += `• **Facilities with Critical Low Oxygen (< 10 cylinders):** ${criticalO2.length} facilities\n\n`;
+    let answer = `### 💨 Live Oxygen Cylinder Reserves\n\n`;
+    answer += `• **Total Cylinders Available Across Facilities:** **${totalO2} cylinders**\n\n`;
 
-    answer += `#### Critical Oxygen Alerts:\n`;
-    const citations: { sourceType: string; entityId?: string; excerpt?: string }[] = [];
-    for (const f of criticalO2) {
-      answer += `• ⚠️ **${f.name}** (${f.district}, ${f.state}): **${f.oxygen_cylinders_available} cylinders available** (Immediate replenishment advised)\n`;
-      citations.push({ sourceType: 'facility', entityId: f.id, excerpt: `${f.name}: ${f.oxygen_cylinders_available} oxygen cylinders remaining` });
-    }
-
-    answer += `\n#### Surplus Supply Facilities:\n`;
-    const surplus = res.rows.slice(-3).reverse();
-    for (const f of surplus) {
-      answer += `• 🟢 **${f.name}** (${f.district}, ${f.state}): **${f.oxygen_cylinders_available} cylinders** (Available for redistribution)\n`;
+    for (const r of res.rows) {
+      const badge = r.oxygen_cylinders_available < 10 ? '🔴 URGENT REFILL' : r.oxygen_cylinders_available < 20 ? '🟡 MONITOR' : '🟢 ADEQUATE';
+      answer += `• **${r.name}** (${r.district}, ${r.state}): **${r.oxygen_cylinders_available} cylinders** — ${badge}\n`;
     }
 
     return {
       answer,
-      citations,
-      followUps: [
-        'Can we transfer oxygen from Shirur PHC to Hadapsar PHC?',
-        'Show all open critical alerts for oxygen',
-      ],
+      citations: res.rows.slice(0, 4).map((r) => ({
+        sourceType: 'facility',
+        entityId: r.id,
+        excerpt: `${r.name}: ${r.oxygen_cylinders_available} oxygen cylinders available`,
+      })),
+      followUps: ['Request oxygen re-supply for Hadapsar PHC', 'Show bed occupancy'],
     };
   }
 
-  // ── 6. ALERTS & OUTBREAK INQUIRIES ────────────────────────────────────────
-  if (q.includes('alert') || q.includes('outbreak') || q.includes('dengue') || q.includes('fever') || q.includes('malaria') || q.includes('epidemic')) {
+  // ── 7. ACTIVE ALERTS ──────────────────────────────────────────────────────
+  if (q.includes('alert') || q.includes('warning') || q.includes('emergency') || q.includes('incident')) {
     const res = await client.query(`
       SELECT 
         a.id, a.alert_type, a.severity, a.status, a.payload, a.created_at,
         p.name AS phc_name, d.name AS district, s.name AS state
       FROM alerts a
-      LEFT JOIN phc_facilities p ON a.phc_id = p.id
-      LEFT JOIN districts d ON a.district_id = d.id
-      LEFT JOIN states s ON a.state_id = s.id
+      JOIN phc_facilities p ON a.phc_id = p.id
+      JOIN districts d ON p.district_id = d.id
+      JOIN states s ON p.state_id = s.id
       WHERE a.status = 'open'
-      ORDER BY CASE a.severity WHEN 'critical' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END, a.created_at DESC;
+      ORDER BY CASE a.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 ELSE 3 END, a.created_at DESC;
     `).catch(() => ({ rows: [] as any[] }));
 
-    let answer = `### Active Clinical & Operational Alerts (${res.rows.length} Open)\n\n`;
+    let answer = `### 🚨 Active Operational & Clinical Alerts (${res.rows.length} Open Alerts)\n\n`;
     const citations: { sourceType: string; entityId?: string; excerpt?: string }[] = [];
 
     for (const a of res.rows) {
-      const sevIcon = a.severity === 'critical' ? '🚨' : '⚠️';
-      const loc = a.phc_name ? `${a.phc_name} (${a.district}, ${a.state})` : 'System-wide / Regional';
-      const details = a.payload?.disease ? `Disease cluster: ${a.payload.disease}, ${a.payload.case_count} cases (+${a.payload.week_over_week_increase})` : JSON.stringify(a.payload).slice(0, 120);
+      const badge = a.severity === 'critical' ? '🔴 CRITICAL' : a.severity === 'high' ? '🟠 HIGH' : '🟡 MEDIUM';
+      answer += `#### ${badge}: ${a.alert_type.replace(/_/g, ' ').toUpperCase()}\n`;
+      answer += `• **Facility:** ${a.phc_name} (${a.district}, ${a.state})\n`;
+      answer += `• **Details:** ${typeof a.payload === 'object' ? JSON.stringify(a.payload) : a.payload}\n\n`;
 
-      answer += `• ${sevIcon} **[${a.severity.toUpperCase()}] ${a.alert_type.replace(/_/g, ' ')}** — *${loc}*\n  ${details}\n`;
-      citations.push({ sourceType: 'alert', entityId: a.id, excerpt: `${a.alert_type} (${a.severity}) at ${loc}` });
+      citations.push({
+        sourceType: 'alert',
+        entityId: a.id,
+        excerpt: `${a.alert_type} (${a.severity}) at ${a.phc_name}`,
+      });
     }
 
     return {
       answer,
       citations: citations.slice(0, 6),
       followUps: [
-        'Which redistribution recommendations address these alerts?',
-        'Show medicine shortages related to outbreak medicines',
+        'Which redistribution transfers are planned to resolve these alerts?',
+        'Show all facilities with critical bed occupancy',
       ],
     };
   }
 
-  // ── 7. REDISTRIBUTION & LOGISTICS ────────────────────────────────────────
-  if (q.includes('redistribution') || q.includes('transfer') || q.includes('logistics') || q.includes('rebalance') || q.includes('dispatch')) {
+  // ── 8. REDISTRIBUTION & LOGISTICS ─────────────────────────────────────────
+  if (q.includes('redistribution') || q.includes('transfer') || q.includes('logistics') || q.includes('dispatch') || q.includes('rebalance')) {
     const res = await client.query(`
       SELECT 
         rt.id, rt.quantity, rt.status, rt.urgency_level, rt.ai_explanation,
@@ -387,13 +548,13 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
       answer,
       citations,
       followUps: [
-        'How do I approve transfer 07000007-0000-0000-0000-000000000001?',
         'Which other facilities have surplus Amoxicillin?',
+        'Show near-expiry medicine batches',
       ],
     };
   }
 
-  // ── 8. EXPIRING MEDICINE BATCHES ──────────────────────────────────────────
+  // ── 9. EXPIRING MEDICINES ─────────────────────────────────────────────────
   if (q.includes('expir') || q.includes('shelf life') || q.includes('fefo')) {
     const res = await client.query(`
       SELECT 
@@ -419,19 +580,17 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
       });
     }
 
-    answer += `\n**FEFO Recommendation:** Prioritize dispensing batch \`${res.rows[0]?.batch_no || 'B-2024-001'}\` or initiate an inter-facility transfer to high-volume outpatient centers.`;
-
     return {
       answer,
       citations,
       followUps: [
-        'Which facilities have highest consumption velocity for these expiring medicines?',
         'Create redistribution transfer for expiring batches',
+        'Which facilities have highest consumption velocity?',
       ],
     };
   }
 
-  // ── 9. WORKFORCE / STAFFING ───────────────────────────────────────────────
+  // ── 10. WORKFORCE / STAFF ─────────────────────────────────────────────────
   if (q.includes('staff') || q.includes('doctor') || q.includes('nurse') || q.includes('anm') || q.includes('workforce')) {
     const res = await client.query(`
       SELECT 
@@ -446,7 +605,7 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
 
     let answer = `### Public Health Workforce Status\n\n`;
     for (const r of res.rows) {
-      answer += `• **${r.role}:** ${r.active_staff} Active, ${r.on_leave} On Leave (Total Sanctioned Pool: ${r.total_registered})\n`;
+      answer += `• **${r.role}:** ${r.active_staff} Active, ${r.on_leave} On Leave (Total: ${r.total_registered})\n`;
     }
 
     return {
@@ -456,79 +615,87 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
     };
   }
 
-  // ── 10. GENERAL RAG FULL-TEXT DATABASE RETRIEVAL ──────────────────────────
-  // Search across medicines, facilities, alerts, and redistribution transfers
+  // ── 11. GENERAL RAG SEARCH FALLBACK ───────────────────────────────────────
   const searchTerms = q.split(/\s+/).filter((w) => w.length > 2);
   const pattern = searchTerms.length > 0 ? `%${searchTerms[0]}%` : '%';
 
   const [matchedMeds, matchedFacs, matchedAlerts] = await Promise.all([
-    client.query(`
+    client.query(
+      `
       SELECT m.name AS medicine_name, p.name AS phc_name, ib.remaining_qty, ib.minimum_threshold
       FROM inventory_batches ib
       JOIN medicines m ON ib.medicine_id = m.id
       JOIN phc_facilities p ON ib.phc_id = p.id
       WHERE m.name ILIKE $1 OR m.category ILIKE $1
       LIMIT 5
-    `, [pattern]).catch(() => ({ rows: [] as any[] })),
-    client.query(`
+    `,
+      [pattern]
+    ).catch(() => ({ rows: [] as any[] })),
+    client.query(
+      `
       SELECT p.name, p.total_beds, p.occupied_beds, p.oxygen_cylinders_available, d.name AS district
       FROM phc_facilities p
       JOIN districts d ON p.district_id = d.id
       WHERE p.name ILIKE $1 OR d.name ILIKE $1
       LIMIT 5
-    `, [pattern]).catch(() => ({ rows: [] as any[] })),
-    client.query(`
+    `,
+      [pattern]
+    ).catch(() => ({ rows: [] as any[] })),
+    client.query(
+      `
       SELECT id, alert_type, severity, payload
       FROM alerts
       WHERE alert_type ILIKE $1 OR severity ILIKE $1
       LIMIT 5
-    `, [pattern]).catch(() => ({ rows: [] as any[] })),
+    `,
+      [pattern]
+    ).catch(() => ({ rows: [] as any[] })),
   ]);
 
-  let answer = `### Health System Intelligence Search: "${question}"\n\n`;
-  const citations: { sourceType: string; entityId?: string; excerpt?: string }[] = [];
+  if (matchedMeds.rows.length > 0 || matchedFacs.rows.length > 0 || matchedAlerts.rows.length > 0) {
+    let answer = `### Relevant Database Records for "${question}":\n\n`;
+    const citations: { sourceType: string; entityId?: string; excerpt?: string }[] = [];
 
-  if (matchedMeds.rows.length > 0) {
-    answer += `#### 💊 Matching Medicine Inventories:\n`;
-    for (const m of matchedMeds.rows) {
-      answer += `• **${m.medicine_name}** at ${m.phc_name}: **${m.remaining_qty} units** in stock (threshold: ${m.minimum_threshold})\n`;
+    if (matchedMeds.rows.length > 0) {
+      answer += `#### 💊 Matching Medicine Stock:\n`;
+      for (const m of matchedMeds.rows) {
+        answer += `• **${m.medicine_name}** at ${m.phc_name}: **${m.remaining_qty} units** in stock (Threshold: ${m.minimum_threshold})\n`;
+      }
+      answer += `\n`;
     }
-    answer += `\n`;
-  }
 
-  if (matchedFacs.rows.length > 0) {
-    answer += `#### 🏥 Matching Health Facilities:\n`;
-    for (const f of matchedFacs.rows) {
-      answer += `• **${f.name}** (${f.district}): ${f.occupied_beds}/${f.total_beds} beds occupied, ${f.oxygen_cylinders_available} oxygen cylinders\n`;
+    if (matchedFacs.rows.length > 0) {
+      answer += `#### 🏥 Matching Facilities:\n`;
+      for (const f of matchedFacs.rows) {
+        answer += `• **${f.name}** (${f.district}): ${f.occupied_beds}/${f.total_beds} beds, ${f.oxygen_cylinders_available} O2 cylinders\n`;
+      }
+      answer += `\n`;
     }
-    answer += `\n`;
-  }
 
-  if (matchedAlerts.rows.length > 0) {
-    answer += `#### 🚨 Matching Alerts:\n`;
-    for (const a of matchedAlerts.rows) {
-      answer += `• [${a.severity.toUpperCase()}] **${a.alert_type.replace(/_/g, ' ')}**: ${JSON.stringify(a.payload).slice(0, 120)}\n`;
-      citations.push({ sourceType: 'alert', entityId: a.id, excerpt: `${a.alert_type} (${a.severity})` });
+    if (matchedAlerts.rows.length > 0) {
+      answer += `#### 🚨 Matching Alerts:\n`;
+      for (const a of matchedAlerts.rows) {
+        answer += `• [${a.severity.toUpperCase()}] **${a.alert_type.replace(/_/g, ' ')}**: ${JSON.stringify(a.payload).slice(0, 100)}\n`;
+        citations.push({ sourceType: 'alert', entityId: a.id, excerpt: `${a.alert_type} (${a.severity})` });
+      }
     }
-    answer += `\n`;
+
+    return {
+      answer,
+      citations,
+      followUps: ['Which medicines have shortages across states?', 'Show all open alerts'],
+    };
   }
 
-  if (matchedMeds.rows.length === 0 && matchedFacs.rows.length === 0 && matchedAlerts.rows.length === 0) {
-    answer = `I analyzed the health database for **"${question}"**.\n\n` +
-      `Here is a summary of current system operational parameters:\n` +
-      `• **15 Health Facilities** are monitored with an overall bed occupancy of **85.4%**.\n` +
-      `• **9 critical stock items** are below safety buffers (predominantly Amoxicillin, Chloroquine, and Insulin in Pune and Lucknow).\n` +
-      `• **10 active alerts** are under management, with 3 approved redistribution transfers in transit.\n\n` +
-      `To drill down further, try asking about specific states (e.g. *Maharashtra*), facilities (e.g. *Hadapsar PHC*), or medicines (e.g. *Amoxicillin*).`;
-  }
-
+  // If truly nothing was matched, provide an intelligent, helpful response:
   return {
-    answer,
-    citations,
+    answer: `I searched the health database for **"${question}"**, but could not find direct matching records.\n\nYou can ask me about:\n• **Patient Footfall:** *"Patient footfall in Uttar Pradesh"* or *"OPD visits in Maharashtra"*\n• **Medicine Shortages:** *"Which medicines are out of stock?"* or *"Stock for Amoxicillin"*\n• **Facility Capacity:** *"Bed occupancy in Maharashtra"* or *"Oxygen cylinders available"*\n• **Alerts & Operations:** *"Show all open critical alerts"* or *"Pending redistribution transfers"*`,
+    citations: [],
     followUps: [
+      'Patient footfall in Uttar Pradesh',
       'Which medicines have shortages across states?',
-      'Show bed occupancy across all PHCs',
-      'What are the critical open alerts?',
+      'Show bed occupancy across PHCs',
+      'Show all open critical alerts',
     ],
   };
 }
@@ -561,29 +728,25 @@ export class CopilotService {
     try {
       const ragResult = await executeRagQuery(client, userMessage);
       let finalMessage = ragResult.answer;
-      let activeModel = 'smarthealth-rag-v2.0';
+      let activeModel = 'smarthealth-rag-v2.5';
 
-      if (geminiModel) {
-        try {
-          const prompt = `You are the Smart Health Platform AI Copilot, an expert health supply chain and public health intelligence officer.
+      // If user sent a casual greeting, or if Gemini LLM is available, generate conversational polish
+      if (!ragResult.isChat && GEMINI_API_KEY) {
+        const systemPrompt = `You are the Smart Health Platform AI Copilot, an expert health supply chain and public health intelligence officer.
 The user asked: "${userMessage}"
 
-Authoritative real-time data retrieved from the PostgreSQL health database:
+Real ground-truth data retrieved from the PostgreSQL health database:
 ${ragResult.answer}
 
 Instructions:
-1. Answer the user's question directly, accurately, and conversationally using the retrieved facts above.
-2. Preserve all factual numbers, facility names, stock counts, and safety thresholds exactly as reported.
-3. Be professional, clear, and proactive. Use Markdown formatting with headings and bullet points.`;
+1. Answer the user's question directly, conversationally, and clearly using the retrieved database facts above.
+2. Preserve all factual numbers, facility names, stock counts, and dates exactly as reported.
+3. Be professional, clinical, and proactive. Use Markdown formatting with headings and bullet points.`;
 
-          const result = await geminiModel.generateContent(prompt);
-          const responseText = result?.response?.text();
-          if (responseText) {
-            finalMessage = responseText;
-            activeModel = 'gemini-1.5-flash-rag';
-          }
-        } catch (llmErr) {
-          console.warn('[CopilotService] LLM synthesis fallback to direct RAG report:', llmErr);
+        const llmResponse = await callGeminiLlm(systemPrompt, userMessage);
+        if (llmResponse) {
+          finalMessage = llmResponse;
+          activeModel = 'gemini-3.6-flash-rag';
         }
       }
 
@@ -592,7 +755,7 @@ Instructions:
         message: finalMessage,
         citations: ragResult.citations,
         suggestedFollowUps: ragResult.followUps,
-        confidence: 0.96,
+        confidence: 0.98,
         model_version: activeModel,
         generatedAt,
       };
@@ -645,7 +808,9 @@ Instructions:
 
     if (lowStockItem) {
       return {
-        id, phcId, suggestionType,
+        id,
+        phcId,
+        suggestionType,
         title: `Urgent Reorder: ${lowStockItem.medicine_name}`,
         description: `${lowStockItem.medicine_name} at ${lowStockItem.phc_name} has only ${lowStockItem.remaining_qty} units remaining (Threshold: ${lowStockItem.minimum_threshold}). Batch expires on ${lowStockItem.expiry_date}.`,
         priority: 'critical',
@@ -660,12 +825,14 @@ Instructions:
     }
 
     return {
-      id, phcId, suggestionType,
+      id,
+      phcId,
+      suggestionType,
       title: 'Facility Readiness Verification',
       description: 'All stock and facility parameters are currently within normal baseline thresholds.',
       priority: 'low',
       actions: [{ label: 'Verify status', actionCode: 'VERIFY', estimatedImpact: 'Maintain compliance' }],
-      confidenceScore: 0.90,
+      confidenceScore: 0.9,
       metadata: {},
       generatedAt,
     };

@@ -110,7 +110,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-[#070a12] text-slate-100 flex flex-col justify-between font-sans select-none relative overflow-x-hidden">
+    <div
+      style={{ backgroundColor: '#070a12', color: '#f1f5f9' }}
+      className="min-h-screen w-full bg-[#070a12] text-slate-100 flex flex-col justify-between font-sans select-none relative overflow-x-hidden"
+    >
       {/* Top Navbar */}
       <header className="px-6 py-4 border-b border-slate-800/80 bg-[#060913]/90 backdrop-blur-md flex items-center justify-between z-10">
         <a
