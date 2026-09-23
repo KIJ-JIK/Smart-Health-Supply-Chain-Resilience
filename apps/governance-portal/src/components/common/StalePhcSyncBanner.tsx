@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { useSyncMonitoringStore } from '@/store/syncMonitoringStore';
@@ -19,6 +19,8 @@ export function StalePhcSyncBanner() {
   } = useSyncMonitoringStore();
 
   const isDismissed = Boolean(bannerDismissedUntil && Date.now() < bannerDismissedUntil);
+const [mounted, setMounted] = useState(false);
+useEffect(() => { setMounted(true); }, []);
 
   // Compute scoped PHCs
   const scopedPhcs = useMemo(() => {
@@ -51,6 +53,7 @@ export function StalePhcSyncBanner() {
   const stalePct = totalCount > 0 ? Math.round((staleCount / totalCount) * 100) : 0;
 
   // Banner is triggered SPARINGLY: only when stale share exceeds alertThresholdPct and not dismissed
+if (!mounted) return null;
   if (isDismissed || totalCount === 0 || stalePct < alertThresholdPct) {
     return null;
   }

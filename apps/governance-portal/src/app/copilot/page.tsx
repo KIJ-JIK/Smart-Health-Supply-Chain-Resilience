@@ -25,6 +25,13 @@ function CopilotChatContent() {
   const initialQuery = searchParams.get('q') ?? '';
 
   const [isLoading, setIsLoading] = useState(false);
+const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+// Initialize WebSocket session for Copilot
+const { status, send } = useWsSession('ws://localhost:8000/ws');
+const bottomRef = useRef<HTMLDivElement>(null);
+const initializedRef = useRef<boolean>(false);
+const sessionOpen = status === 'open' || status === 'reconnecting';
 
   const handleSend = async (textToSend?: string) => {
     const raw = textToSend !== undefined ? textToSend : input;
@@ -42,10 +49,10 @@ function CopilotChatContent() {
     setIsLoading(true);
 
     if (!sessionOpen) {
-      setSessionOpen(true);
-      setTimeout(() => send('chat', trimmed), 600);
+        // Wait briefly before sending the first message when socket not open
+        setTimeout(() => send('chat', trimmed), 600);
     } else {
-      send('chat', trimmed);
+        send('chat', trimmed);
     }
 
     // Add loading placeholder
