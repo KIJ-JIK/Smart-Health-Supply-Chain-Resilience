@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
@@ -29,8 +29,22 @@ export const AppShell: React.FC = () => {
   const { activeTab, toasts, removeToast } = useUIStore();
   const { isDark } = useThemeStore();
   const { isAuthenticated } = usePhcAuthStore();
+  const [isLoginRoute, setIsLoginRoute] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !isAuthenticated || window.location.pathname === '/login' || window.location.hash === '#login';
+    }
+    return !isAuthenticated;
+  });
 
-  const isLoginRoute = typeof window !== 'undefined' && (window.location.pathname === '/login' || window.location.hash === '#login');
+  useEffect(() => {
+    const handleUrlChange = () => {
+      if (typeof window !== 'undefined') {
+        setIsLoginRoute(!isAuthenticated || window.location.pathname === '/login' || window.location.hash === '#login');
+      }
+    };
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
+  }, [isAuthenticated]);
 
   // Sync dark class to <html> on every render
   useEffect(() => {
@@ -41,8 +55,17 @@ export const AppShell: React.FC = () => {
     }
   }, [isDark]);
 
-  if (!isAuthenticated) {
-    return <LoginView />;
+  if (!isAuthenticated || isLoginRoute) {
+    return (
+      <LoginView
+        onLoginSuccess={() => {
+          setIsLoginRoute(false);
+          if (typeof window !== 'undefined') {
+            window.history.pushState({}, '', '/');
+          }
+        }}
+      />
+    );
   }
 
   const renderActiveView = () => {

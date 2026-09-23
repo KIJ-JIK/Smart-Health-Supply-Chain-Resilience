@@ -20,20 +20,26 @@ import {
   PhcStaffPersona,
 } from '../../stores/authStore';
 
-export const LoginView: React.FC = () => {
+interface LoginViewProps {
+  onLoginSuccess?: () => void;
+}
+
+export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const { login } = usePhcAuthStore();
 
   const [selectedFacilityId, setSelectedFacilityId] = useState<string>('PHC-001');
   const [selectedRole, setSelectedRole] = useState<'medical_officer' | 'pharmacist' | 'staff_nurse'>('medical_officer');
   const [staffId, setStaffId] = useState<string>('dr.sharma@phc.gov.in');
-  const [pin, setPin] = useState<string>('••••••••');
+  const [pin, setPin] = useState<string>('clinic@2026');
   const [showPin, setShowPin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
   const selectedFacility = PHC_FACILITY_PRESETS.find((f) => f.id === selectedFacilityId) || PHC_FACILITY_PRESETS[0];
 
   const handleRoleChange = (role: 'medical_officer' | 'pharmacist' | 'staff_nurse') => {
     setSelectedRole(role);
+    setErrorMsg('');
     const persona = PHC_PERSONAS.find((p) => p.role === role);
     if (persona) {
       setStaffId(persona.role === 'medical_officer' ? 'dr.sharma@phc.gov.in' : `${persona.id}@phc.gov.in`);
@@ -42,11 +48,13 @@ export const LoginView: React.FC = () => {
 
   const performLogin = (persona: PhcStaffPersona, facId?: string) => {
     setIsLoading(true);
+    setErrorMsg('');
     setTimeout(() => {
       login(
         {
           ...persona,
-          id: persona.role === 'medical_officer' ? 'dr.sharma@phc.gov.in' : `${persona.id}@phc.gov.in`,
+          id: staffId.trim() || (persona.role === 'medical_officer' ? 'dr.sharma@phc.gov.in' : `${persona.id}@phc.gov.in`),
+          role: selectedRole,
           facilityId: facId || selectedFacility.id,
           facilityName: selectedFacility.name,
           district: selectedFacility.district,
@@ -57,21 +65,37 @@ export const LoginView: React.FC = () => {
       setIsLoading(false);
       if (typeof window !== 'undefined') {
         if (window.location.pathname === '/login' || window.location.hash === '#login') {
-          window.location.assign('/');
+          window.history.pushState({}, '', '/');
         }
       }
-    }, 200);
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+    }, 250);
   };
 
   const applyPreset = (persona: PhcStaffPersona) => {
     setSelectedRole(persona.role);
     setSelectedFacilityId(persona.facilityId);
     setStaffId(persona.role === 'medical_officer' ? 'dr.sharma@phc.gov.in' : `${persona.id}@phc.gov.in`);
-    performLogin(persona, persona.facilityId);
+    setPin('clinic@2026');
+    setErrorMsg('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
+
+    if (!staffId.trim()) {
+      setErrorMsg('Please enter your Staff ID or official email address.');
+      return;
+    }
+
+    if (!pin || pin.trim().length < 4) {
+      setErrorMsg('Please enter a valid Security PIN / Password (minimum 4 characters).');
+      return;
+    }
+
     const persona = PHC_PERSONAS.find((p) => p.role === selectedRole) || PHC_PERSONAS[0];
     performLogin(persona, selectedFacility.id);
   };
@@ -235,6 +259,13 @@ export const LoginView: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-300 text-xs flex items-center gap-2 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
 
             {/* Submit Button */}
             <button

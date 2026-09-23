@@ -88,7 +88,7 @@ interface PhcAuthState {
 export const usePhcAuthStore = create<PhcAuthState>()(
   persist(
     (set, get) => ({
-      isAuthenticated: true, // Default active for development, can be toggled by user or logout
+      isAuthenticated: false, // Default false so portal asks for login details
       currentStaff: PHC_PERSONAS[0],
       selectedFacility: PHC_FACILITY_PRESETS[0],
 
