@@ -199,7 +199,7 @@ export default function PlatformHomePage() {
 
               <div className="mt-6 pt-4 border-t border-neutral-100">
                 <a
-                  href="http://localhost:5173/login"
+                  href="http://localhost:5173"
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-colors shadow-xs"
                 >
                   <span>Launch Clinic Portal</span>
