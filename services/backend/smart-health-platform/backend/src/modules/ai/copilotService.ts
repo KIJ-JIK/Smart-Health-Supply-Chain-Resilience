@@ -560,13 +560,40 @@ export class CopilotService {
 
     try {
       const ragResult = await executeRagQuery(client, userMessage);
+      let finalMessage = ragResult.answer;
+      let activeModel = 'smarthealth-rag-v2.0';
+
+      if (geminiModel) {
+        try {
+          const prompt = `You are the Smart Health Platform AI Copilot, an expert health supply chain and public health intelligence officer.
+The user asked: "${userMessage}"
+
+Authoritative real-time data retrieved from the PostgreSQL health database:
+${ragResult.answer}
+
+Instructions:
+1. Answer the user's question directly, accurately, and conversationally using the retrieved facts above.
+2. Preserve all factual numbers, facility names, stock counts, and safety thresholds exactly as reported.
+3. Be professional, clear, and proactive. Use Markdown formatting with headings and bullet points.`;
+
+          const result = await geminiModel.generateContent(prompt);
+          const responseText = result?.response?.text();
+          if (responseText) {
+            finalMessage = responseText;
+            activeModel = 'gemini-1.5-flash-rag';
+          }
+        } catch (llmErr) {
+          console.warn('[CopilotService] LLM synthesis fallback to direct RAG report:', llmErr);
+        }
+      }
+
       return {
         sessionId,
-        message: ragResult.answer,
+        message: finalMessage,
         citations: ragResult.citations,
         suggestedFollowUps: ragResult.followUps,
         confidence: 0.96,
-        model_version: geminiModel ? 'gemini-1.5-flash-rag' : 'smarthealth-rag-v2.0',
+        model_version: activeModel,
         generatedAt,
       };
     } finally {

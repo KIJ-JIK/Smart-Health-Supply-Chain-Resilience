@@ -15,9 +15,8 @@ export function useSyncEngine(isOnline: boolean) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [lastSuccessfulSync, setLastSuccessfulSync] = useState<string | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [useLiveServer, setUseLiveServer] = useState(false);
-  const [backendUrl, setBackendUrl] = useState('http://localhost:8000');
+  const [useLiveServer, setUseLiveServer] = useState(true);
+  const [backendUrl, setBackendUrl] = useState(import.meta.env?.VITE_BACKEND_URL || 'http://localhost:8000');
 
   const backoffDelayRef = useRef(1000); // Start at 1s
   const retryTimerRef = useRef<number | null>(null);

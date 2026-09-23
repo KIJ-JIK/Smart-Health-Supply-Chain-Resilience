@@ -39,7 +39,7 @@ const httpLink = new HttpLink({ uri: BACKEND_URL });
 const mockSchema = makeExecutableSchema({ typeDefs, resolvers });
 const mockLink = new SchemaLink({ schema: mockSchema });
 
-const useMock = import.meta.env?.VITE_USE_MOCK !== 'false';
+const useMock = import.meta.env?.VITE_USE_MOCK === 'true';
 
 export const apolloClient = new ApolloClient({
   link: useMock ? mockLink : from([errorLink, authLink, httpLink]),
