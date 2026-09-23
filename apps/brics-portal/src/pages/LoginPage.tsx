@@ -15,6 +15,8 @@ import {
   Cpu,
 } from 'lucide-react';
 import { useBricsAuthStore, BRICS_COUNTRIES, BRICS_PERSONAS } from '@/store/auth-store';
+import { SpotlightCard } from '@/components/ui/SpotlightCard';
+import { ShimmerBadge } from '@/components/ui/ShimmerBadge';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -54,13 +56,13 @@ export function LoginPage() {
       });
       setIsLoading(false);
       navigate('/');
-    }, 400);
+    }, 350);
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#080d1a] text-slate-100 flex flex-col justify-between font-sans select-none">
+    <div className="min-h-screen w-full bg-[#070a12] text-slate-100 flex flex-col justify-between font-sans select-none relative overflow-x-hidden">
       {/* Top Navbar */}
-      <header className="px-6 py-4 border-b border-slate-800/80 bg-[#060913]/80 backdrop-blur-md flex items-center justify-between">
+      <header className="px-6 py-4 border-b border-slate-800/80 bg-[#060913]/90 backdrop-blur-md flex items-center justify-between z-10">
         <a
           href="http://localhost:3000"
           className="inline-flex items-center gap-2 text-xs font-mono text-slate-400 hover:text-amber-400 transition-colors"
@@ -68,21 +70,22 @@ export function LoginPage() {
           <ArrowLeft className="w-4 h-4" />
           <span>BACK TO PLATFORM HUB</span>
         </a>
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-          <span className="text-xs font-mono text-slate-400">NODE 3001 · BRICS FEDERATED AI MESH</span>
+        <div className="flex items-center gap-3">
+          <ShimmerBadge className="border-amber-500/30 text-amber-300 text-[11px] font-mono">
+            NODE 3001 · BRICS FEDERATED AI MESH
+          </ShimmerBadge>
         </div>
       </header>
 
       {/* Main Login Container */}
-      <main className="my-auto py-10 px-4 flex items-center justify-center">
-        <div className="w-full max-w-xl bg-slate-900/80 border border-slate-800 backdrop-blur-xl rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
-          {/* Subtle Ambient Gradient */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
-
+      <main className="my-auto py-10 px-4 flex items-center justify-center z-10">
+        <SpotlightCard
+          spotlightColor="rgba(245, 158, 11, 0.14)"
+          className="w-full max-w-xl bg-slate-900/80 border-slate-800/90 shadow-2xl p-6 sm:p-10"
+        >
           {/* Header */}
           <div className="flex items-center gap-3.5 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)] shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)] shrink-0">
               <Globe2 className="w-6 h-6" />
             </div>
             <div>
@@ -111,8 +114,8 @@ export function LoginPage() {
                       onClick={() => handleCountrySelect(country.code)}
                       className={`py-3 px-2 rounded-xl text-center transition-all flex flex-col items-center gap-1.5 border cursor-pointer ${
                         isSelected
-                          ? 'bg-amber-500/20 border-amber-500 shadow-md shadow-amber-500/20 text-white'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900'
+                          ? 'bg-amber-500/20 border-amber-500/80 shadow-md shadow-amber-500/20 text-white scale-[1.02]'
+                          : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900/80 hover:border-slate-700'
                       }`}
                     >
                       <span className="text-2xl">{country.flag}</span>
@@ -131,7 +134,7 @@ export function LoginPage() {
                   <span>{selectedCountry.flag}</span>
                   <span>{selectedCountry.organization}</span>
                 </span>
-                <span className="px-2 py-0.5 rounded bg-amber-900/60 text-amber-300 text-[10px]">
+                <span className="px-2 py-0.5 rounded bg-amber-900/60 text-amber-300 text-[10px] border border-amber-700/50">
                   ACTIVE NODE
                 </span>
               </div>
@@ -153,7 +156,7 @@ export function LoginPage() {
                     required
                     value={delegateId}
                     onChange={(e) => setDelegateId(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
                   />
                 </div>
               </div>
@@ -169,12 +172,12 @@ export function LoginPage() {
                     required
                     value={passphrase}
                     onChange={(e) => setPassphrase(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassphrase(!showPassphrase)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
                   >
                     {showPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -193,7 +196,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-semibold text-sm shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-600 text-white font-semibold text-sm shadow-lg shadow-amber-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 hover:scale-[1.01]"
             >
               {isLoading ? (
                 <span>Validating Sovereign Node Token…</span>
@@ -216,64 +219,64 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => applyPreset('IN')}
-                className="p-2 rounded-lg bg-slate-950/60 hover:bg-slate-800 border border-slate-800 text-left transition-all group cursor-pointer"
+                className="p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-amber-500/40 text-left transition-all group cursor-pointer"
               >
                 <div className="text-[11px] font-bold text-slate-200 group-hover:text-amber-300 truncate">
                   🇮🇳 Sumaiya Khan
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">India Coordinator</div>
+                <div className="text-[10px] text-slate-400 font-mono truncate">India Coordinator</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => applyPreset('BR')}
-                className="p-2 rounded-lg bg-slate-950/60 hover:bg-slate-800 border border-slate-800 text-left transition-all group cursor-pointer"
+                className="p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-amber-500/40 text-left transition-all group cursor-pointer"
               >
                 <div className="text-[11px] font-bold text-slate-200 group-hover:text-amber-300 truncate">
                   🇧🇷 Dr. Carlos Silva
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">Brazil (SUS Lead)</div>
+                <div className="text-[10px] text-slate-400 font-mono truncate">Brazil (SUS Lead)</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => applyPreset('RU')}
-                className="p-2 rounded-lg bg-slate-950/60 hover:bg-slate-800 border border-slate-800 text-left transition-all group cursor-pointer"
+                className="p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-amber-500/40 text-left transition-all group cursor-pointer"
               >
                 <div className="text-[11px] font-bold text-slate-200 group-hover:text-amber-300 truncate">
                   🇷🇺 Dr. Elena Rostova
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">Russia (Rospotrebnadzor)</div>
+                <div className="text-[10px] text-slate-400 font-mono truncate">Russia (Rospotrebnadzor)</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => applyPreset('CN')}
-                className="p-2 rounded-lg bg-slate-950/60 hover:bg-slate-800 border border-slate-800 text-left transition-all group cursor-pointer"
+                className="p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-amber-500/40 text-left transition-all group cursor-pointer"
               >
                 <div className="text-[11px] font-bold text-slate-200 group-hover:text-amber-300 truncate">
                   🇨🇳 Prof. Wei Zhang
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">China (CCDC)</div>
+                <div className="text-[10px] text-slate-400 font-mono truncate">China (CCDC)</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => applyPreset('ZA')}
-                className="p-2 rounded-lg bg-slate-950/60 hover:bg-slate-800 border border-slate-800 text-left transition-all group cursor-pointer"
+                className="p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-amber-500/40 text-left transition-all group cursor-pointer"
               >
                 <div className="text-[11px] font-bold text-slate-200 group-hover:text-amber-300 truncate">
                   🇿🇦 Thabo Mthembu
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">South Africa (NICD)</div>
+                <div className="text-[10px] text-slate-400 font-mono truncate">South Africa (NICD)</div>
               </button>
             </div>
           </div>
-        </div>
+        </SpotlightCard>
       </main>
 
       {/* Footer */}
-      <footer className="px-6 py-4 border-t border-slate-800/80 text-center text-xs font-mono text-slate-500">
+      <footer className="px-6 py-4 border-t border-slate-800/80 text-center text-xs font-mono text-slate-500 z-10">
         BRICS FEDERATED CONSENSUS NETWORK · DIFFERENTIAL PRIVACY ε=0.50 · SHA-256 HASH CHAIN PROTECTED
       </footer>
     </div>

@@ -24,7 +24,14 @@ function CopilotChatContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') ?? '';
 
+  const [input, setInput] = useState('');
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionOpen, setSessionOpen] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
+
+  const { status, send } = useWsSession('governance-copilot');
 
   const handleSend = async (textToSend?: string) => {
     const raw = textToSend !== undefined ? textToSend : input;
