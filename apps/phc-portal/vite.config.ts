@@ -30,6 +30,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        navigateFallback: '/index.html',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
@@ -47,10 +48,13 @@ export default defineConfig({
             }
           }
         ]
+      },
+      devOptions: {
+        enabled: false
       }
     })
   ],
   server: {
-    port: 3000
+    port: 5173
   }
 });
