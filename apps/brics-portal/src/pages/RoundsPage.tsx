@@ -1,21 +1,20 @@
 // ---------------------------------------------------------------------------
-// Training Rounds Page — BRICS Federated Intelligence Portal
-//
-// Features (Prompt 3):
-// - Table / timeline of federated learning rounds:
-//     - Round number / ID
-//     - Start time (DataFreshnessLabel / timestamp)
-//     - Participating node count (X/5)
-//     - Status badge (collecting_updates / aggregating / awaiting_review / approved / rejected)
-//     - Duration (e.g. 48h 0m, or "Active")
-// - Interactive round selection opening RoundDetailDrawer:
-//     - Per-node contribution status (submitted / pending / failed)
-// - "Start New Round" action calling `startFederatedRound(config)`
-//     - Gated behind configuration modal and mandatory confirmation summary.
+// Training Rounds Page — BRICS Federated Intelligence & Governance
 // ---------------------------------------------------------------------------
 
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
+import {
+  Activity,
+  Play,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Layers,
+  Cpu,
+  RefreshCw,
+  Eye,
+} from 'lucide-react';
 import {
   GET_FEDERATED_ROUNDS,
   START_FEDERATED_ROUND,
@@ -24,14 +23,12 @@ import {
   StatusBadge,
   DataFreshnessLabel,
   TableSkeleton,
-  EmptyState,
   ErrorState,
 } from '@/components/common';
 import {
   RoundDetailDrawer,
   StartRoundModal,
 } from '@/components/rounds';
-import { colors, typography } from '@/styles/theme';
 import type { FederatedRound, StartRoundInput } from '@/types/federated';
 
 function calculateDuration(startedAt: string, completedAt: string | null): string {
@@ -72,7 +69,7 @@ export default function RoundsPage() {
     }
   );
 
-  const rounds = [...(data?.federatedRounds || [])].reverse(); // newest first
+  const rounds = [...(data?.federatedRounds || [])].reverse();
 
   const handleRowClick = (round: FederatedRound) => {
     setSelectedRound(round);
@@ -87,246 +84,135 @@ export default function RoundsPage() {
     });
   };
 
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto py-6">
+        <ErrorState
+          title="Failed to Load Training Rounds"
+          message={error.message}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1400 }}>
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Page Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}
-      >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2 style={{ ...typography.titleLarge, color: colors.text.primary, margin: 0 }}>
-              Training Round Lifecycle View
-            </h2>
-            <StatusBadge tone="green" label="Synchronous FedAvg" size="sm" />
-          </div>
-          <p style={{ ...typography.body, color: colors.text.secondary, marginTop: 4 }}>
-            Timeline surveillance and contribution tracking of cross-border federated learning iterations.
+          <h2 className="text-lg md:text-xl font-black text-white flex items-center gap-2">
+            <Activity className="w-5 h-5 text-teal-400" />
+            Federated Training Rounds &amp; Aggregation Pipeline
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Audit FedAvg training rounds, gradient norms, convergence checkpoints, and participating sovereign nations.
           </p>
         </div>
 
-        {/* Start New Round Button */}
-        <button
-          type="button"
-          onClick={() => setIsStartModalOpen(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            backgroundColor: colors.brand.primary,
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: 6,
-            padding: '10px 18px',
-            ...typography.bodySmall,
-            fontWeight: 600,
-            cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
-            transition: 'background-color 0.15s ease',
-          }}
-        >
-          <span>＋</span>
-          <span>Start New Round</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-all"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Sync Rounds</span>
+          </button>
+          <button
+            onClick={() => setIsStartModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-teal-500 hover:bg-teal-400 text-slate-950 transition-all shadow-md shadow-teal-500/20 active:scale-95"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>Start Training Round</span>
+          </button>
+        </div>
       </div>
 
+      {/* Success Notification */}
       {successBanner && (
-        <div
-          style={{
-            backgroundColor: colors.status.green.bg,
-            border: `1px solid ${colors.status.green.border}`,
-            color: colors.status.green.text,
-            padding: '12px 16px',
-            borderRadius: 6,
-            ...typography.body,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <span>✓</span>
-          <span>{successBanner}</span>
+        <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/60 text-emerald-300 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2 font-medium">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{successBanner}</span>
+          </div>
+          <button
+            onClick={() => setSuccessBanner(null)}
+            className="text-emerald-400 hover:text-emerald-200 font-bold"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* Rounds Table / Timeline */}
-      <div
-        style={{
-          backgroundColor: colors.bg.surface,
-          border: `1px solid ${colors.bg.border}`,
-          borderRadius: 8,
-          overflow: 'hidden',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25)',
-        }}
-      >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: `1px solid ${colors.bg.border}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <h3 style={{ ...typography.titleMedium, color: colors.text.primary, margin: 0 }}>
-              Federated Training Rounds Ledger
-            </h3>
-            <span style={{ ...typography.bodySmall, color: colors.text.muted }}>
-              ({rounds.length} recorded rounds)
+      {/* Training Rounds Table */}
+      {loading ? (
+        <TableSkeleton rows={5} />
+      ) : (
+        <div className="p-5 rounded-2xl bg-[#111827] border border-slate-800 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-teal-400" />
+              <h3 className="text-sm font-bold text-white">Federation Execution Log</h3>
+            </div>
+            <span className="text-xs font-mono text-slate-400">
+              {rounds.length} Total Rounds Recorded
             </span>
           </div>
 
-          <span style={{ ...typography.bodySmall, color: colors.text.muted }}>
-            Click any row to open the per-node contribution drawer
-          </span>
-        </div>
-
-        {error ? (
-          <div style={{ padding: 20 }}>
-            <ErrorState
-              title="Failed to Load Training Rounds"
-              error={error}
-              onRetry={() => refetch()}
-            />
-          </div>
-        ) : loading ? (
-          <div style={{ padding: 20 }}>
-            <TableSkeleton rows={6} columns={7} />
-          </div>
-        ) : rounds.length === 0 ? (
-          <div style={{ padding: 20 }}>
-            <EmptyState
-              title="No rounds yet — start your first federated round"
-              description="No federated learning iterations have been executed yet. Initiate the inaugural round across the 5 sovereign member nodes."
-              actionLabel="Start First Round"
-              onAction={() => setIsStartModalOpen(true)}
-            />
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', ...typography.body }}>
-              <thead>
-                <tr
-                  style={{
-                    backgroundColor: colors.bg.surfaceHover,
-                    borderBottom: `1px solid ${colors.bg.border}`,
-                    color: colors.text.secondary,
-                    textAlign: 'left',
-                    fontSize: '0.75rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  <th style={{ padding: '12px 20px' }}>Round ID</th>
-                  <th style={{ padding: '12px 16px' }}>Target Model</th>
-                  <th style={{ padding: '12px 16px' }}>Start Time</th>
-                  <th style={{ padding: '12px 16px' }}>Participating Nodes</th>
-                  <th style={{ padding: '12px 16px' }}>Status</th>
-                  <th style={{ padding: '12px 16px' }}>Duration</th>
-                  <th style={{ padding: '12px 20px', textAlign: 'right' }}>Action</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800 font-mono">
+                <tr>
+                  <th className="py-2.5 px-3">Round ID</th>
+                  <th className="py-2.5 px-3">Target Model</th>
+                  <th className="py-2.5 px-3">Start Timestamp</th>
+                  <th className="py-2.5 px-3">Consensus Quorum</th>
+                  <th className="py-2.5 px-3">Duration</th>
+                  <th className="py-2.5 px-3">Stage Status</th>
+                  <th className="py-2.5 px-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-800/60 text-slate-300 font-mono text-[11px]">
                 {rounds.map((round) => {
-                  const submittedCount = round.submittedCountries.length;
-                  const totalCount = round.participatingCountries.length;
+                  const submittedCount = round.submittedCountries?.length || 0;
+                  const totalCount = round.participatingCountries?.length || 5;
+                  const isCurrent = round.status === 'aggregating' || round.status === 'collecting_updates';
 
                   return (
                     <tr
-                      key={round.id}
+                      key={round.roundId}
                       onClick={() => handleRowClick(round)}
-                      style={{
-                        borderBottom: `1px solid ${colors.bg.borderSubtle}`,
-                        cursor: 'pointer',
-                        transition: 'background-color 0.12s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = colors.bg.surfaceHover;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
+                      className="hover:bg-slate-800/30 cursor-pointer transition-colors group"
                     >
-                      <td style={{ padding: '14px 20px' }}>
-                        <div style={{ fontWeight: 600, color: colors.text.primary }}>
-                          {round.roundId}
-                        </div>
-                        <div style={{ ...typography.mono, color: colors.text.muted, fontSize: '0.6875rem' }}>
-                          ID: {round.id.slice(0, 8)}...
-                        </div>
+                      <td className="py-3 px-3 font-semibold text-white font-sans flex items-center gap-2">
+                        {isCurrent && <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />}
+                        <span className="group-hover:text-teal-300 transition-colors">{round.roundId}</span>
                       </td>
-
-                      <td style={{ padding: '14px 16px' }}>
-                        <span
-                          style={{
-                            ...typography.mono,
-                            color: colors.brand.primary,
-                            backgroundColor: colors.brand.primaryBg,
-                            padding: '2px 6px',
-                            borderRadius: 4,
-                            fontSize: '0.75rem',
-                          }}
-                        >
-                          {round.modelVersion}
-                        </span>
+                      <td className="py-3 px-3 text-cyan-300">{round.modelVersion}</td>
+                      <td className="py-3 px-3">
+                        <DataFreshnessLabel timestamp={round.startedAt} />
                       </td>
-
-                      <td style={{ padding: '14px 16px' }}>
-                        <DataFreshnessLabel timestamp={round.startedAt} prefix="Started" />
+                      <td className="py-3 px-3">
+                        <span className="text-teal-300 font-bold">{submittedCount}</span>
+                        <span className="text-slate-500"> / {totalCount} Nations</span>
                       </td>
-
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span
-                            style={{
-                              fontVariantNumeric: 'tabular-nums',
-                              fontWeight: 600,
-                              color:
-                                submittedCount >= round.quorumRequired
-                                  ? colors.status.green.text
-                                  : colors.text.primary,
-                            }}
-                          >
-                            {submittedCount} / {totalCount}
-                          </span>
-                          <span style={{ fontSize: '0.75rem', color: colors.text.muted }}>
-                            (Quorum: {round.quorumRequired})
-                          </span>
-                        </div>
-                      </td>
-
-                      <td style={{ padding: '14px 16px' }}>
-                        <StatusBadge status={round.status} size="sm" />
-                      </td>
-
-                      <td
-                        style={{
-                          padding: '14px 16px',
-                          color: colors.text.secondary,
-                          fontVariantNumeric: 'tabular-nums',
-                          ...typography.bodySmall,
-                        }}
-                      >
+                      <td className="py-3 px-3 text-slate-400">
                         {calculateDuration(round.startedAt, round.completedAt)}
                       </td>
-
-                      <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                        <span
-                          style={{
-                            color: colors.brand.primary,
-                            ...typography.bodySmall,
-                            fontWeight: 600,
+                      <td className="py-3 px-3">
+                        <StatusBadge status={round.status} size="sm" pulse={isCurrent} />
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowClick(round);
                           }}
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-all inline-flex items-center gap-1"
                         >
-                          Inspect Drawer &rarr;
-                        </span>
+                          <Eye className="w-3 h-3 text-teal-400" />
+                          <span>Inspect</span>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -334,24 +220,25 @@ export default function RoundsPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Drawer for Selected Round Details */}
+      {/* Start Round Modal */}
+      {isStartModalOpen && (
+        <StartRoundModal
+          isOpen={isStartModalOpen}
+          onClose={() => setIsStartModalOpen(false)}
+          onSubmit={handleStartRoundSubmit}
+          isSubmitting={startingRound}
+        />
+      )}
+
+      {/* Round Detail Drawer */}
       <RoundDetailDrawer
         round={selectedRound}
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
       />
-
-      {/* Modal for Starting a New Round */}
-      <StartRoundModal
-        isOpen={isStartModalOpen}
-        onClose={() => setIsStartModalOpen(false)}
-        onSubmit={handleStartRoundSubmit}
-        isSubmitting={startingRound}
-      />
     </div>
   );
 }
-

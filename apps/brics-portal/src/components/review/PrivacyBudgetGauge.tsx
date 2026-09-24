@@ -1,14 +1,12 @@
-'use client';
-
 import React from 'react';
-import { colors, typography } from '@/styles/theme';
+import { ShieldCheck, ShieldAlert, AlertTriangle } from 'lucide-react';
 
 export interface PrivacyBudgetGaugeProps {
-  /** Cumulative epsilon consumed so far (e.g. 2.45) */
+  /** Cumulative epsilon consumed so far */
   consumedEpsilon: number;
-  /** Total maximum allowed budget limit (e.g. 10.0 from CHECK constraint) */
+  /** Total maximum allowed budget limit */
   budgetLimit?: number;
-  /** Epsilon consumed in this current round (e.g. 0.35) */
+  /** Epsilon consumed in this current round */
   thisRoundEpsilon?: number;
   /** Height in pixels */
   height?: number;
@@ -18,102 +16,68 @@ export const PrivacyBudgetGauge: React.FC<PrivacyBudgetGaugeProps> = ({
   consumedEpsilon,
   budgetLimit = 10.0,
   thisRoundEpsilon = 0,
-  height = 16,
+  height = 14,
 }) => {
   const percentUsed = Math.min(100, Math.max(0, (consumedEpsilon / budgetLimit) * 100));
   const remainingPercent = Math.max(0, 100 - percentUsed);
   const remainingEpsilon = Math.max(0, budgetLimit - consumedEpsilon);
 
-  // Status tone based on remaining percentage
-  const isCritical = remainingPercent <= 15; // less than 15% left
+  const isCritical = remainingPercent <= 15;
   const isWarning = remainingPercent <= 30 && !isCritical;
 
-  const barColor = isCritical
-    ? colors.status.red.dot
-    : isWarning
-    ? colors.status.amber.dot
-    : colors.status.green.dot;
+  const barColor = isCritical ? 'bg-rose-500' : isWarning ? 'bg-amber-400' : 'bg-teal-400';
+  const textColor = isCritical ? 'text-rose-400' : isWarning ? 'text-amber-400' : 'text-teal-300';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-      {/* Top Header: Plain-language summary */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-        }}
-      >
-        <span style={{ ...typography.body, fontWeight: 600, color: colors.text.primary }}>
-          Privacy Budget Remaining
+    <div className="w-full flex flex-col gap-2.5">
+      {/* Top Header */}
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+          {isCritical ? (
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+          ) : isWarning ? (
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+          ) : (
+            <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+          )}
+          Sovereign DP Privacy Budget Remaining
         </span>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span
-            style={{
-              ...typography.kpiSmall,
-              color: barColor,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+        <div className="flex items-baseline gap-2 font-mono">
+          <span className={`text-base font-black ${textColor}`}>
             {remainingPercent.toFixed(1)}%
           </span>
-          <span style={{ ...typography.bodySmall, color: colors.text.muted }}>
-            ({remainingEpsilon.toFixed(2)} / {budgetLimit.toFixed(1)} ε units remaining)
+          <span className="text-[11px] text-slate-400">
+            ({remainingEpsilon.toFixed(2)} / {budgetLimit.toFixed(1)} ε remaining)
           </span>
         </div>
       </div>
 
       {/* Progress Bar Gauge */}
       <div
-        style={{
-          width: '100%',
-          height,
-          backgroundColor: colors.bg.surfaceHover,
-          borderRadius: height / 2,
-          overflow: 'hidden',
-          border: `1px solid ${colors.bg.borderSubtle}`,
-          position: 'relative',
-        }}
+        className="w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5"
+        style={{ height }}
         role="progressbar"
         aria-valuenow={remainingPercent}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <div
-          style={{
-            height: '100%',
-            width: `${remainingPercent}%`,
-            backgroundColor: barColor,
-            borderRadius: height / 2,
-            transition: 'width 0.4s ease',
-          }}
+          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${remainingPercent}%` }}
         />
       </div>
 
-      {/* Context caption */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          ...typography.bodySmall,
-          fontSize: '0.6875rem',
-          color: colors.text.muted,
-        }}
-      >
-        <span>
-          Current round consumption:{' '}
-          <strong style={{ color: colors.text.secondary }}>
-            ~{thisRoundEpsilon.toFixed(3)} ε
-          </strong>
-        </span>
-        <span>
-          Safety Ceiling:{' '}
-          <strong style={{ color: colors.text.secondary }}>
-            {budgetLimit.toFixed(1)} ε limit
-          </strong>
-        </span>
+      {/* Footer Info */}
+      <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+        <span>Consumed (Total): ε = {consumedEpsilon.toFixed(2)}</span>
+        {thisRoundEpsilon > 0 && (
+          <span className="text-teal-400 font-semibold">
+            +ε = {thisRoundEpsilon.toFixed(2)} in this round
+          </span>
+        )}
       </div>
     </div>
   );
 };
+
+export default PrivacyBudgetGauge;

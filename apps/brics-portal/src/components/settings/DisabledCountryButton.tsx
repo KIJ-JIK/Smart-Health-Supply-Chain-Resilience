@@ -1,100 +1,47 @@
-'use client';
-
 import React, { useState } from 'react';
-import { colors, typography } from '@/styles/theme';
+import { Plus, Lock, ShieldAlert } from 'lucide-react';
 
 export interface DisabledCountryButtonProps {
   tooltipText?: string;
 }
 
 export const DisabledCountryButton: React.FC<DisabledCountryButtonProps> = ({
-  tooltipText = 'Onboarding a new federation participant is an out-of-scope, Phase-5+ operational process requiring legal/data-sovereignty review, not a self-service UI action for this build.',
+  tooltipText = 'Onboarding a new federation participant requires bilateral treaty and legal data-sovereignty review, not a self-service UI action.',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div
-      style={{ position: 'relative', display: 'inline-block' }}
+      className="relative inline-block"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <button
         type="button"
         disabled
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          backgroundColor: colors.bg.surfaceHover,
-          color: colors.text.muted,
-          border: `1px solid ${colors.bg.border}`,
-          borderRadius: 6,
-          padding: '9px 16px',
-          ...typography.bodySmall,
-          fontWeight: 600,
-          cursor: 'not-allowed',
-          opacity: 0.6,
-        }}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-500 text-xs font-semibold cursor-not-allowed opacity-60"
         aria-describedby="add-country-tooltip"
       >
-        <span>Add Sovereign Country Node</span>
+        <Lock className="w-3.5 h-3.5" />
+        <span>Add Sovereign Member Enclave</span>
       </button>
 
       {isHovered && (
         <div
           id="add-country-tooltip"
           role="tooltip"
-          style={{
-            position: 'absolute',
-            bottom: 'calc(100% + 10px)',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 320,
-            padding: '12px 14px',
-            backgroundColor: '#1f2328',
-            border: `1px solid ${colors.bg.border}`,
-            borderRadius: 6,
-            color: '#ffffff',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
-            zIndex: 100,
-            pointerEvents: 'none',
-          }}
+          className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-80 p-3.5 rounded-xl bg-[#0d1523] border border-slate-700 text-white shadow-2xl z-50 pointer-events-none space-y-1"
         >
-          <div
-            style={{
-              ...typography.bodySmall,
-              fontWeight: 700,
-              color: '#58a6ff',
-              marginBottom: 4,
-            }}
-          >
-            Consortium Membership Restricted
+          <div className="flex items-center gap-1.5 text-xs font-bold text-teal-400">
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>Consortium Membership Governed</span>
           </div>
-          <p
-            style={{
-              ...typography.bodySmall,
-              fontSize: '0.6875rem',
-              color: '#d0d7de',
-              lineHeight: 1.4,
-              margin: 0,
-            }}
-          >
-            {tooltipText}
-          </p>
-          {/* Arrow */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              borderWidth: 6,
-              borderStyle: 'solid',
-              borderColor: `#1f2328 transparent transparent transparent`,
-            }}
-          />
+          <p className="text-[11px] text-slate-300 leading-tight">{tooltipText}</p>
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-solid border-[#0d1523] border-b-transparent border-x-transparent" />
         </div>
       )}
     </div>
   );
 };
+
+export default DisabledCountryButton;

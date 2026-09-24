@@ -1,7 +1,5 @@
-'use client';
-
 import React from 'react';
-import { colors, typography } from '@/styles/theme';
+import { X, CheckCircle2, Clock, AlertTriangle, ShieldCheck, Activity, Cpu, ArrowRight } from 'lucide-react';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { DataFreshnessLabel } from '@/components/common/DataFreshnessLabel';
 import type { FederatedRound } from '@/types/federated';
@@ -42,286 +40,116 @@ export const RoundDetailDrawer: React.FC<RoundDetailDrawerProps> = ({
     if (submittedSet.has(countryCode)) {
       return 'submitted';
     }
-    // If the round is finished (approved/rejected/completed) and not submitted -> failed
     if (['approved', 'rejected', 'completed', 'voided'].includes(round.status)) {
       return 'failed';
     }
-    // If round is still collecting/aggregating -> pending
     return 'pending';
   };
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
-        backdropFilter: 'blur(2px)',
-        zIndex: 999,
-        display: 'flex',
-        justifyContent: 'flex-end',
-      }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-end animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        style={{
-          width: '100%',
-          maxWidth: 520,
-          height: '100%',
-          backgroundColor: colors.bg.surface,
-          borderLeft: `1px solid ${colors.bg.border}`,
-          padding: 28,
-          boxShadow: '-8px 0 24px rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 20,
-          overflowY: 'auto',
-        }}
+        className="w-full max-w-lg h-full bg-[#0d1523] border-l border-slate-800 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto space-y-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            borderBottom: `1px solid ${colors.bg.borderSubtle}`,
-            paddingBottom: 16,
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <h3 style={{ ...typography.titleMedium, color: colors.text.primary, margin: 0 }}>
-                {round.roundId}
-              </h3>
-              <StatusBadge status={round.status} size="sm" />
+        <div className="space-y-4">
+          <div className="flex items-start justify-between border-b border-slate-800 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-white">{round.roundId}</h3>
+                <StatusBadge status={round.status} size="sm" pulse={round.status === 'aggregating'} />
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Target Model: <span className="text-slate-200 font-mono font-semibold">{round.modelVersion}</span> • Quorum: {round.quorumRequired}/5
+              </p>
             </div>
-            <div style={{ ...typography.bodySmall, color: colors.text.muted, marginTop: 4 }}>
-              Target Model: <strong>{round.modelVersion}</strong> | Quorum Required: {round.quorumRequired}/5
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: colors.text.muted,
-              fontSize: '1.25rem',
-              cursor: 'pointer',
-              padding: 4,
-            }}
-            aria-label="Close drawer"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Round Parameters */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 12,
-            backgroundColor: colors.bg.surfaceHover,
-            padding: 14,
-            borderRadius: 6,
-            border: `1px solid ${colors.bg.borderSubtle}`,
-          }}
-        >
-          <div>
-            <div style={{ ...typography.bodySmall, color: colors.text.muted }}>Started At</div>
-            <div style={{ ...typography.bodySmall, color: colors.text.primary, marginTop: 2 }}>
-              <DataFreshnessLabel timestamp={round.startedAt} prefix="Started" />
-            </div>
-          </div>
-
-          <div>
-            <div style={{ ...typography.bodySmall, color: colors.text.muted }}>Round Deadline</div>
-            <div style={{ ...typography.bodySmall, color: colors.text.primary, marginTop: 2 }}>
-              {round.roundDeadline ? new Date(round.roundDeadline).toLocaleTimeString() : 'N/A'}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ ...typography.bodySmall, color: colors.text.muted }}>Completed At</div>
-            <div style={{ ...typography.bodySmall, color: colors.text.primary, marginTop: 2 }}>
-              {round.completedAt ? (
-                <DataFreshnessLabel timestamp={round.completedAt} prefix="Completed" />
-              ) : (
-                'In Flight'
-              )}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ ...typography.bodySmall, color: colors.text.muted }}>Quorum Progress</div>
-            <div
-              style={{
-                ...typography.bodySmall,
-                fontWeight: 600,
-                color:
-                  round.submittedCountries.length >= round.quorumRequired
-                    ? colors.status.green.text
-                    : colors.status.amber.text,
-                marginTop: 2,
-              }}
+            <button
+              onClick={onClose}
+              className="text-slate-500 hover:text-slate-300 p-1 rounded-lg hover:bg-slate-800 transition-colors"
             >
-              {round.submittedCountries.length} of {round.quorumRequired} submitted
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Metric Summary */}
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-[#111827] border border-slate-800">
+              <span className="text-slate-400 text-[10px] uppercase font-semibold">Started At</span>
+              <p className="text-slate-200 font-mono font-bold mt-1">
+                <DataFreshnessLabel timestamp={round.startedAt} />
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-[#111827] border border-slate-800">
+              <span className="text-slate-400 text-[10px] uppercase font-semibold">Consensus Quorum</span>
+              <p className="text-teal-400 font-mono font-bold mt-1">
+                {round.submittedCountries?.length || 0} / 5 Enclaves Verified
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Cryptographic Hash Verification Notice */}
-        {round.aggregationSignature && (
-          <div
-            style={{
-              backgroundColor: colors.bg.surfaceHover,
-              padding: 12,
-              borderRadius: 6,
-              border: `1px solid ${colors.bg.borderSubtle}`,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-            }}
-          >
-            <span style={{ ...typography.bodySmall, color: colors.text.muted }}>
-              Aggregation Signature (SHA-256):
-            </span>
-            <span
-              style={{
-                ...typography.mono,
-                color: colors.status.green.text,
-                fontSize: '0.75rem',
-                wordBreak: 'break-all',
-              }}
-            >
-              {round.aggregationSignature}
-            </span>
-          </div>
-        )}
-
-        {/* Per-Node Contribution Status */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h4 style={{ ...typography.body, fontWeight: 600, color: colors.text.primary, margin: 0 }}>
-              Per-Node Contribution Status
+          {/* Enclave Submissions List */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              Sovereign Node Gradient Status
             </h4>
-            <span style={{ ...typography.bodySmall, color: colors.text.muted }}>
-              {round.submittedCountries.length}/5 Submitted
-            </span>
-          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {allCountries.map((countryCode) => {
-              const nodeStatus = getNodeStatus(countryCode);
-              const flag = COUNTRY_FLAGS[countryCode] || '';
-              const name = COUNTRY_NAMES[countryCode] || countryCode;
+            <div className="space-y-2">
+              {allCountries.map((code) => {
+                const nodeStatus = getNodeStatus(code);
+                const flag = COUNTRY_FLAGS[code] || '🌐';
+                const name = COUNTRY_NAMES[code] || code;
 
-              return (
-                <div
-                  key={countryCode}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 14px',
-                    borderRadius: 6,
-                    backgroundColor: colors.bg.surfaceHover,
-                    border: `1px solid ${colors.bg.borderSubtle}`,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {flag && <span style={{ fontSize: '1.25rem' }}>{flag}</span>}
-                    <div>
-                      <div style={{ ...typography.bodySmall, fontWeight: 600, color: colors.text.primary }}>
-                        {name} ({countryCode})
-                      </div>
-                      <div style={{ fontSize: '0.6875rem', color: colors.text.muted }}>
-                        {nodeStatus === 'submitted' && 'Encrypted weight update received'}
-                        {nodeStatus === 'pending' && 'Awaiting local gradient submission'}
-                        {nodeStatus === 'failed' && 'Missed submission deadline'}
+                return (
+                  <div
+                    key={code}
+                    className="p-3 rounded-xl bg-[#111827] border border-slate-800/80 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl">{flag}</span>
+                      <div>
+                        <p className="text-xs font-bold text-white leading-tight">{name}</p>
+                        <span className="text-[10px] font-mono text-slate-400">Node: BRICS-{code}</span>
                       </div>
                     </div>
-                  </div>
 
-                  <StatusBadge
-                    status={nodeStatus}
-                    label={
-                      nodeStatus === 'submitted'
-                        ? 'Submitted'
-                        : nodeStatus === 'pending'
-                        ? 'Pending'
-                        : 'Failed'
-                    }
-                    size="sm"
-                  />
-                </div>
-              );
-            })}
+                    <div className="flex items-center gap-2">
+                      {nodeStatus === 'submitted' ? (
+                        <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded border border-emerald-500/20 font-mono">
+                          <CheckCircle2 className="w-3 h-3" /> Submitted
+                        </span>
+                      ) : nodeStatus === 'pending' ? (
+                        <span className="flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20 font-mono">
+                          <Clock className="w-3 h-3 animate-spin" /> Training...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded border border-rose-500/20 font-mono">
+                          <AlertTriangle className="w-3 h-3" /> Excluded
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Awaiting Review Action Banner */}
-        {round.status === 'awaiting_review' && (
-          <div
-            style={{
-              padding: 14,
-              borderRadius: 6,
-              backgroundColor: colors.status.amber.bg,
-              border: `1px solid ${colors.status.amber.border}`,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}
+        {/* Footer Actions */}
+        <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all"
           >
-            <div style={{ ...typography.bodySmall, fontWeight: 600, color: colors.status.amber.text }}>
-              Human-in-the-Loop Review Required
-            </div>
-            <p style={{ ...typography.bodySmall, color: colors.text.secondary, margin: 0 }}>
-              Aggregation is complete. An authorized national admin must review accuracy deltas and
-              differential privacy consumption before publication.
-            </p>
-            <a
-              href={`/rounds/review?roundId=${round.id}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '8px 14px',
-                borderRadius: 6,
-                backgroundColor: colors.brand.primary,
-                color: '#ffffff',
-                ...typography.bodySmall,
-                textDecoration: 'none',
-                fontWeight: 600,
-                marginTop: 4,
-              }}
-            >
-              Open Aggregation Review Screen
-            </a>
-          </div>
-        )}
-
-        {/* DP-SGD Privacy Boundary Notice */}
-        <div
-          style={{
-            marginTop: 'auto',
-            padding: 12,
-            borderRadius: 6,
-            backgroundColor: colors.brand.primaryBg,
-            border: `1px solid ${colors.brand.primary}30`,
-            fontSize: '0.75rem',
-            color: colors.text.secondary,
-            lineHeight: 1.4,
-          }}
-        >
-          <strong>Differential Privacy Guarantee:</strong> The central coordinator only aggregates masked
-          weight vectors. Individual participant PHC records and local gradient matrices never leave national
-          jurisdiction.
+            Close Inspector
+          </button>
         </div>
       </div>
     </div>
   );
 };
+
+export default RoundDetailDrawer;

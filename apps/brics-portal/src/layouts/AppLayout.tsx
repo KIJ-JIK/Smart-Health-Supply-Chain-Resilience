@@ -1,31 +1,24 @@
 // ---------------------------------------------------------------------------
-// AppLayout — the sidebar + header + content area layout wrapper for Vite.
-// Uses React Router's <Outlet /> for nested route rendering.
+// AppLayout — Sidebar + Header + Content Area Layout Wrapper
+// Aligned with dark Command Center design system.
 // ---------------------------------------------------------------------------
 
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar, Header } from '@/components/layout';
-import { colors } from '@/styles/theme';
 
 export function AppLayout() {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: colors.bg.base }}>
+    <div className="min-h-screen bg-[#0a0f1a] text-slate-100 flex flex-row font-sans selection:bg-teal-500 selection:text-slate-950">
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-hidden">
         <Header />
-        <main
-          style={{
-            flex: 1,
-            padding: 24,
-            backgroundColor: colors.bg.base,
-            color: colors.text.primary,
-            overflowY: 'auto',
-          }}
-        >
+        <main className="flex-1 p-4 md:p-6 lg:p-8 bg-[#0a0f1a] overflow-y-auto max-w-[1600px] w-full mx-auto space-y-6">
           <Outlet />
         </main>
       </div>
     </div>
   );
 }
+
+export default AppLayout;

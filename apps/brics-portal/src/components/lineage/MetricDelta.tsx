@@ -1,16 +1,10 @@
-'use client';
-
 import React from 'react';
-import { colors, typography } from '@/styles/theme';
+import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
 
 export interface MetricDeltaProps {
   label: string;
   currentValue: number;
   previousValue?: number;
-  /**
-   * If true, a lower value is better (e.g. Loss, MAE, RMSE).
-   * If false, a higher value is better (e.g. Accuracy).
-   */
   lowerIsBetter?: boolean;
   unit?: string;
   formatDecimals?: number;
@@ -28,79 +22,48 @@ export const MetricDelta: React.FC<MetricDeltaProps> = ({
   const delta = hasDiff ? currentValue - previousValue : 0;
   const percentDelta = hasDiff && previousValue !== 0 ? (delta / previousValue) * 100 : 0;
 
-  // An improvement occurs if:
-  // - lowerIsBetter && delta < 0 (e.g. MAE dropped from 0.10 to 0.08)
-  // - !lowerIsBetter && delta > 0 (e.g. Accuracy rose from 0.85 to 0.89)
   const isImproved = lowerIsBetter ? delta < -0.00001 : delta > 0.00001;
   const isRegressed = lowerIsBetter ? delta > 0.00001 : delta < -0.00001;
 
   const toneColor = isImproved
-    ? colors.status.green.text
+    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
     : isRegressed
-    ? colors.status.red.text
-    : colors.text.secondary;
-
-  const arrow = isImproved ? 'Improvement' : isRegressed ? 'Regression' : 'Neutral';
+    ? 'text-rose-400 bg-rose-500/10 border-rose-500/30'
+    : 'text-slate-400 bg-slate-800 border-slate-700';
 
   return (
-    <div
-      style={{
-        backgroundColor: colors.bg.surfaceHover,
-        padding: '10px 14px',
-        borderRadius: 6,
-        border: `1px solid ${colors.bg.borderSubtle}`,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-        minWidth: 140,
-      }}
-    >
-      <div style={{ ...typography.bodySmall, color: colors.text.muted }}>{label}</div>
+    <div className="p-4 rounded-xl bg-[#0d1523] border border-slate-800 space-y-2">
+      <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider block">
+        {label}
+      </span>
 
-      <div
-        style={{
-          ...typography.kpiSmall,
-          color: colors.text.primary,
-          display: 'flex',
-          alignItems: 'baseline',
-          gap: 4,
-        }}
-      >
-        <span>{currentValue.toFixed(formatDecimals)}</span>
-        {unit && <span style={{ fontSize: '0.75rem', color: colors.text.muted }}>{unit}</span>}
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl font-black text-white font-mono">
+          {currentValue.toFixed(formatDecimals)}
+        </span>
+        {unit && <span className="text-xs text-slate-400 font-mono">{unit}</span>}
       </div>
 
       {hasDiff ? (
-        <div
-          style={{
-            ...typography.bodySmall,
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            color: toneColor,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
+        <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[11px] font-mono font-bold ${toneColor}`}>
+          {isImproved ? (
+            <TrendingDown className="w-3.5 h-3.5" />
+          ) : isRegressed ? (
+            <TrendingUp className="w-3.5 h-3.5" />
+          ) : (
+            <Minus className="w-3.5 h-3.5" />
+          )}
           <span>
             {delta > 0 ? '+' : ''}
             {delta.toFixed(formatDecimals)} ({percentDelta > 0 ? '+' : ''}
             {percentDelta.toFixed(1)}%)
           </span>
-          <span style={{ fontSize: '0.625rem', opacity: 0.85 }}>({arrow})</span>
         </div>
       ) : (
-        <div
-          style={{
-            ...typography.bodySmall,
-            fontSize: '0.6875rem',
-            color: colors.text.muted,
-            fontStyle: 'italic',
-          }}
-        >
-          Baseline Model
-        </div>
+        <span className="text-[11px] text-slate-500 font-mono italic">Baseline Model</span>
       )}
     </div>
   );
 };
+
+export default MetricDelta;
