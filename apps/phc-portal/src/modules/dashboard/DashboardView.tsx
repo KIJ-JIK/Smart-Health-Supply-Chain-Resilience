@@ -70,25 +70,47 @@ export const DashboardView: React.FC = () => {
     else medNormal++;
   });
 
-  // Footfall
-  const opdCount       = footfallToday.find(f => f.category === 'opd')?.count       || 125;
-  const emergencyCount = footfallToday.find(f => f.category === 'emergency')?.count || 9;
-  const admissionCount = footfallToday.find(f => f.category === 'admission')?.count || 4;
-  const referralCount  = footfallToday.find(f => f.category === 'referral')?.count  || 3;
+  const allFootfall   = useLiveQuery(() => db.patient_footfall.toArray()) || [];
+
+  // Footfall (Real DB counts)
+  const latestDate = footfallToday.length > 0
+    ? today
+    : allFootfall.length > 0
+      ? [...allFootfall].sort((a, b) => b.date.localeCompare(a.date))[0]?.date
+      : today;
+  const activeFootfall = footfallToday.length > 0
+    ? footfallToday
+    : allFootfall.filter((f) => f.date === latestDate);
+
+  const opdCount       = activeFootfall.find(f => f.category === 'opd')?.count       || 0;
+  const emergencyCount = activeFootfall.find(f => f.category === 'emergency')?.count || 0;
+  const admissionCount = activeFootfall.find(f => f.category === 'admission')?.count || 0;
+  const referralCount  = activeFootfall.find(f => f.category === 'referral')?.count  || 0;
   const totalPatientsToday = opdCount + emergencyCount + admissionCount + referralCount;
 
-  // Chart data
+  // Chart data from real IndexedDB records
   const dayLabels = lastNDays(7);
-  const footfallChartData = useMemo(() => dayLabels.map((name, i) => {
-    const isToday = i === 6;
-    return {
-      name,
-      OPD:       isToday ? opdCount       : Math.round(80  + Math.random() * 60),
-      Emergency: isToday ? emergencyCount : Math.round(3   + Math.random() * 10),
-      Admission: isToday ? admissionCount : Math.round(2   + Math.random() * 6),
-      Referral:  isToday ? referralCount  : Math.round(1   + Math.random() * 4),
-    };
-  }), [opdCount, emergencyCount, admissionCount, referralCount]);
+  const footfallChartData = useMemo(() => {
+    return dayLabels.map((name, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const dtStr = d.toISOString().split('T')[0];
+      const dayRecords = allFootfall.filter(f => f.date === dtStr);
+
+      const opd = dayRecords.find(f => f.category === 'opd')?.count;
+      const emg = dayRecords.find(f => f.category === 'emergency')?.count;
+      const adm = dayRecords.find(f => f.category === 'admission')?.count;
+      const ref = dayRecords.find(f => f.category === 'referral')?.count;
+
+      return {
+        name,
+        OPD:       opd !== undefined ? opd : (i === 6 ? opdCount : 0),
+        Emergency: emg !== undefined ? emg : (i === 6 ? emergencyCount : 0),
+        Admission: adm !== undefined ? adm : (i === 6 ? admissionCount : 0),
+        Referral:  ref !== undefined ? ref : (i === 6 ? referralCount : 0),
+      };
+    });
+  }, [allFootfall, dayLabels, opdCount, emergencyCount, admissionCount, referralCount]);
 
   // Attention items
   const attentionItems: { id: string; title: string; subtitle: string; severity: 'critical' | 'high' | 'medium'; targetTab: any; subTab?: any }[] = [];

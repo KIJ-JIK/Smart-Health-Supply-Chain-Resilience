@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Wind,
   AlertTriangle,
@@ -8,20 +8,31 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { useMutationQueue } from '../../hooks/useMutationQueue';
 import { useUIStore } from '../../stores/uiStore';
+import { usePhcAuthStore } from '../../stores/authStore';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button } from '../../components/common/Button';
 
 export const OxygenView: React.FC = () => {
   const facility = useLiveQuery(() => db.phc_facilities.toCollection().first());
+  const { selectedFacility } = usePhcAuthStore();
   const systemConfigs = useLiveQuery(() => db.system_config.toArray()) || [];
   const { enqueue } = useMutationQueue();
   const { addToast, setNewRequestModalOpen } = useUIStore();
 
-  const [cylinders, setCylinders] = useState(facility?.oxygen_cylinders || 12);
+  const [cylinders, setCylinders] = useState(facility?.oxygen_cylinders || selectedFacility?.oxygen_cylinders || 15);
   const [concentrators, setConcentrators] = useState(facility?.oxygen_concentrators || 4);
   const [inUseCylinders, setInUseCylinders] = useState(4);
   const [emptyCylinders, setEmptyCylinders] = useState(2);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (facility) {
+      setCylinders(facility.oxygen_cylinders);
+      setConcentrators(facility.oxygen_concentrators);
+    } else if (selectedFacility) {
+      setCylinders(selectedFacility.oxygen_cylinders ?? 15);
+    }
+  }, [facility, selectedFacility]);
 
   // Critical threshold from synced system_config
   const criticalThreshold =

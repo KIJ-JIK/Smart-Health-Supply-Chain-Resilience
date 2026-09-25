@@ -21,6 +21,7 @@ import { formatDate, getDaysUntil } from '../../utils/date';
 import { getMedicineStockStatus } from '../../utils/fefo';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
+import { usePhcAuthStore } from '../../stores/authStore';
 
 export const InventoryView: React.FC = () => {
   const {
@@ -35,6 +36,7 @@ export const InventoryView: React.FC = () => {
 
   const { enqueue } = useMutationQueue();
   const { addToast } = useUIStore();
+  const { currentStaff } = usePhcAuthStore();
 
   const medicines = useLiveQuery(() => db.medicines.toArray()) || [];
   const batches = useLiveQuery(() => db.inventory_batches.toArray()) || [];
@@ -61,7 +63,7 @@ export const InventoryView: React.FC = () => {
   const [adjBatchId, setAdjBatchId] = useState('');
   const [adjNewQty, setAdjNewQty] = useState<number>(0);
   const [adjReason, setAdjReason] = useState('');
-  const [adjUser, setAdjUser] = useState('Dr. Rajesh Sharma (In-charge)');
+  const [adjUser, setAdjUser] = useState(currentStaff?.name || 'Pharmacist (In-charge)');
 
   const selectedBatchForAdjust = batches.find((b) => b.id === adjBatchId);
 

@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { PhcFacilityBackendItem } from '../services/phcBackendService';
 
 export interface PhcStaffPersona {
   id: string;
   name: string;
-  role: 'medical_officer' | 'pharmacist' | 'staff_nurse';
+  role: 'medical_officer' | 'pharmacist' | 'staff_nurse' | string;
   roleLabel: string;
   facilityId: string;
   facilityName: string;
@@ -12,124 +13,98 @@ export interface PhcStaffPersona {
   state: string;
 }
 
-export const PHC_FACILITY_PRESETS = [
-  {
-    id: 'PHC-001',
-    name: 'PHC Rampur',
-    district: 'Varanasi',
-    state: 'Uttar Pradesh',
-    type: '24x7_PHC',
-  },
-  {
-    id: 'PHC-MH-PUN-001',
-    name: 'Hadapsar PHC',
-    district: 'Pune',
-    state: 'Maharashtra',
-    type: '24x7_PHC',
-  },
-  {
-    id: 'PHC-MH-PUN-002',
-    name: 'Shirur Rural PHC',
-    district: 'Pune',
-    state: 'Maharashtra',
-    type: '24x7_PHC',
-  },
-  {
-    id: 'PHC-MH-PUN-003',
-    name: 'Baramati Model PHC',
-    district: 'Pune',
-    state: 'Maharashtra',
-    type: 'CHC',
-  },
-];
+const DEFAULT_FACILITY: PhcFacilityBackendItem = {
+  id: 'c0000003-0000-0000-0000-000000000001',
+  name: 'Kothrud PHC',
+  district: 'Pune',
+  state: 'Maharashtra',
+  total_beds: 30,
+  occupied_beds: 27,
+  emergency_beds: 5,
+  isolation_beds: 3,
+  oxygen_cylinders: 12,
+  operational_status: 'active',
+};
 
-export const PHC_PERSONAS: PhcStaffPersona[] = [
-  {
-    id: 'staff-mo-001',
-    name: 'Dr. Sharma',
-    role: 'medical_officer',
-    roleLabel: 'Primary Medical Officer (MO)',
-    facilityId: 'PHC-001',
-    facilityName: 'PHC Rampur',
-    district: 'Varanasi',
-    state: 'Uttar Pradesh',
-  },
-  {
-    id: 'staff-ph-002',
-    name: 'Anil Verma',
-    role: 'pharmacist',
-    roleLabel: 'Chief Pharmacist',
-    facilityId: 'PHC-001',
-    facilityName: 'PHC Rampur',
-    district: 'Varanasi',
-    state: 'Uttar Pradesh',
-  },
-  {
-    id: 'staff-nr-003',
-    name: 'Sister Sunita',
-    role: 'staff_nurse',
-    roleLabel: 'In-Charge Staff Nurse',
-    facilityId: 'PHC-001',
-    facilityName: 'PHC Rampur',
-    district: 'Varanasi',
-    state: 'Uttar Pradesh',
-  },
-];
+const DEFAULT_STAFF: PhcStaffPersona = {
+  id: 'dr.anjali@phc.gov.in',
+  name: 'Dr. Anjali Sharma',
+  role: 'medical_officer',
+  roleLabel: 'Primary Medical Officer (MO)',
+  facilityId: DEFAULT_FACILITY.id,
+  facilityName: DEFAULT_FACILITY.name,
+  district: DEFAULT_FACILITY.district,
+  state: DEFAULT_FACILITY.state,
+};
 
 interface PhcAuthState {
   isAuthenticated: boolean;
+  token: string | null;
   currentStaff: PhcStaffPersona;
-  selectedFacility: typeof PHC_FACILITY_PRESETS[0];
-  login: (staff: PhcStaffPersona, facilityId?: string) => void;
+  selectedFacility: PhcFacilityBackendItem;
+  login: (staff: PhcStaffPersona, facility: PhcFacilityBackendItem, token?: string) => void;
   logout: () => void;
-  setFacility: (facilityId: string) => void;
+  setFacility: (facility: PhcFacilityBackendItem) => void;
 }
 
 export const usePhcAuthStore = create<PhcAuthState>()(
   persist(
-    (set, get) => ({
-      isAuthenticated: false, // Default false so portal asks for login details
-      currentStaff: PHC_PERSONAS[0],
-      selectedFacility: PHC_FACILITY_PRESETS[0],
+    (set) => ({
+      isAuthenticated: false, // Default false so portal requires verification
+      token: null,
+      currentStaff: DEFAULT_STAFF,
+      selectedFacility: DEFAULT_FACILITY,
 
-      login: (staff, facilityId) => {
-        const fac = PHC_FACILITY_PRESETS.find((f) => f.id === (facilityId || staff.facilityId)) || PHC_FACILITY_PRESETS[0];
+      login: (staff, facility, token) => {
         set({
           isAuthenticated: true,
+          token: token || null,
           currentStaff: {
             ...staff,
-            facilityId: fac.id,
-            facilityName: fac.name,
-            district: fac.district,
-            state: fac.state,
+            facilityId: facility.id,
+            facilityName: facility.name,
+            district: facility.district,
+            state: facility.state,
           },
-          selectedFacility: fac,
+          selectedFacility: facility,
         });
       },
 
       logout: () => {
-        set({ isAuthenticated: false });
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('phc_auth_token');
+          localStorage.removeItem('current_phc_id');
+        }
+        set({
+          isAuthenticated: false,
+          token: null,
+        });
       },
 
-      setFacility: (facilityId) => {
-        const fac = PHC_FACILITY_PRESETS.find((f) => f.id === facilityId);
-        if (fac) {
-          const { currentStaff } = get();
-          set({
-            selectedFacility: fac,
-            currentStaff: {
-              ...currentStaff,
-              facilityId: fac.id,
-              facilityName: fac.name,
-              district: fac.district,
-              state: fac.state,
-            },
-          });
-        }
+      setFacility: (facility) => {
+        set((state) => ({
+          selectedFacility: facility,
+          currentStaff: {
+            ...state.currentStaff,
+            facilityId: facility.id,
+            facilityName: facility.name,
+            district: facility.district,
+            state: facility.state,
+          },
+        }));
       },
     }),
     {
       name: 'phc-portal-auth',
+      onRehydrateStorage: () => (state) => {
+        // If rehydrated without a valid token or facility, force login state
+        if (state) {
+          if (!state.token || !state.selectedFacility?.id) {
+            state.isAuthenticated = false;
+            state.token = null;
+          }
+        }
+      },
     }
   )
 );

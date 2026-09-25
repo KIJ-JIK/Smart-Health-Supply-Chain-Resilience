@@ -18,15 +18,29 @@ export const FootfallView: React.FC = () => {
   const { addToast } = useUIStore();
 
   const [date, setDate] = useState(today);
-  const [opdCount, setOpdCount] = useState<number>(125);
-  const [emergencyCount, setEmergencyCount] = useState<number>(9);
-  const [admissionCount, setAdmissionCount] = useState<number>(4);
-  const [referralCount, setReferralCount] = useState<number>(3);
-  const [infectiousCount, setInfectiousCount] = useState<number>(38);
-  const [chronicCount, setChronicCount] = useState<number>(45);
-  const [maternalCount, setMaternalCount] = useState<number>(18);
-  const [otherCount, setOtherCount] = useState<number>(11);
+  const [opdCount, setOpdCount] = useState<number>(0);
+  const [emergencyCount, setEmergencyCount] = useState<number>(0);
+  const [admissionCount, setAdmissionCount] = useState<number>(0);
+  const [referralCount, setReferralCount] = useState<number>(0);
+  const [infectiousCount, setInfectiousCount] = useState<number>(0);
+  const [chronicCount, setChronicCount] = useState<number>(0);
+  const [maternalCount, setMaternalCount] = useState<number>(0);
+  const [otherCount, setOtherCount] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
+
+  React.useEffect(() => {
+    const dayRecords = footfallRecords.filter((r) => r.date === date);
+    if (dayRecords.length > 0) {
+      setOpdCount(dayRecords.find((r) => r.category === 'opd')?.count || 0);
+      setEmergencyCount(dayRecords.find((r) => r.category === 'emergency')?.count || 0);
+      setAdmissionCount(dayRecords.find((r) => r.category === 'admission')?.count || 0);
+      setReferralCount(dayRecords.find((r) => r.category === 'referral')?.count || 0);
+      setInfectiousCount(dayRecords.find((r) => r.category === 'disease_infectious')?.count || 0);
+      setChronicCount(dayRecords.find((r) => r.category === 'disease_chronic')?.count || 0);
+      setMaternalCount(dayRecords.find((r) => r.category === 'disease_maternal')?.count || 0);
+      setOtherCount(dayRecords.find((r) => r.category === 'other')?.count || 0);
+    }
+  }, [date, footfallRecords]);
 
   const categoriesConfig: { key: FootfallCategory; label: string; count: number; setter: (val: number) => void }[] = [
     { key: 'opd', label: 'OPD General Outpatients', count: opdCount, setter: setOpdCount },

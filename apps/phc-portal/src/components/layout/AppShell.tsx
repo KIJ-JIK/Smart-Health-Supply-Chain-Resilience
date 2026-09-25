@@ -28,23 +28,23 @@ import { X, CheckCircle2, AlertTriangle, Info, AlertOctagon } from 'lucide-react
 export const AppShell: React.FC = () => {
   const { activeTab, toasts, removeToast } = useUIStore();
   const { isDark } = useThemeStore();
-  const { isAuthenticated } = usePhcAuthStore();
+  const { isAuthenticated, token } = usePhcAuthStore();
   const [isLoginRoute, setIsLoginRoute] = useState(() => {
     if (typeof window !== 'undefined') {
-      return !isAuthenticated || window.location.pathname === '/login' || window.location.hash === '#login';
+      return !isAuthenticated || !token || window.location.pathname === '/login' || window.location.hash === '#login';
     }
-    return !isAuthenticated;
+    return !isAuthenticated || !token;
   });
 
   useEffect(() => {
     const handleUrlChange = () => {
       if (typeof window !== 'undefined') {
-        setIsLoginRoute(!isAuthenticated || window.location.pathname === '/login' || window.location.hash === '#login');
+        setIsLoginRoute(!isAuthenticated || !token || window.location.pathname === '/login' || window.location.hash === '#login');
       }
     };
     window.addEventListener('popstate', handleUrlChange);
     return () => window.removeEventListener('popstate', handleUrlChange);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, token]);
 
   // Sync dark class to <html> on every render
   useEffect(() => {
@@ -55,7 +55,7 @@ export const AppShell: React.FC = () => {
     }
   }, [isDark]);
 
-  if (!isAuthenticated || isLoginRoute) {
+  if (!isAuthenticated || !token || isLoginRoute) {
     return (
       <LoginView
         onLoginSuccess={() => {

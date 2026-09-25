@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BedDouble,
   Activity,
@@ -8,19 +8,35 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { useMutationQueue } from '../../hooks/useMutationQueue';
 import { useUIStore } from '../../stores/uiStore';
+import { usePhcAuthStore } from '../../stores/authStore';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button } from '../../components/common/Button';
 
 export const BedsView: React.FC = () => {
   const facility = useLiveQuery(() => db.phc_facilities.toCollection().first());
+  const { selectedFacility } = usePhcAuthStore();
   const { enqueue } = useMutationQueue();
   const { addToast } = useUIStore();
 
-  const [occupiedBeds, setOccupiedBeds] = useState(facility?.occupied_beds || 19);
-  const [totalBeds, setTotalBeds] = useState(facility?.total_beds || 24);
-  const [emergencyBeds, setEmergencyBeds] = useState(facility?.emergency_beds || 6);
-  const [isolationBeds, setIsolationBeds] = useState(facility?.isolation_beds || 4);
+  const [occupiedBeds, setOccupiedBeds] = useState(facility?.occupied_beds || selectedFacility?.occupied_beds || 0);
+  const [totalBeds, setTotalBeds] = useState(facility?.total_beds || selectedFacility?.total_beds || 30);
+  const [emergencyBeds, setEmergencyBeds] = useState(facility?.emergency_beds || selectedFacility?.emergency_beds || 5);
+  const [isolationBeds, setIsolationBeds] = useState(facility?.isolation_beds || selectedFacility?.isolation_beds || 3);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (facility) {
+      setOccupiedBeds(facility.occupied_beds);
+      setTotalBeds(facility.total_beds);
+      setEmergencyBeds(facility.emergency_beds);
+      setIsolationBeds(facility.isolation_beds);
+    } else if (selectedFacility) {
+      setOccupiedBeds(selectedFacility.occupied_beds ?? 0);
+      setTotalBeds(selectedFacility.total_beds ?? 30);
+      setEmergencyBeds(selectedFacility.emergency_beds ?? 5);
+      setIsolationBeds(selectedFacility.isolation_beds ?? 3);
+    }
+  }, [facility, selectedFacility]);
 
   // Available beds is computed dynamically as total − occupied
   const availableBeds = Math.max(0, totalBeds - occupiedBeds);
@@ -46,12 +62,12 @@ export const BedsView: React.FC = () => {
   };
 
   const historyDays = [
-    { day: 'Mon', occ: 15, total: 24 },
-    { day: 'Tue', occ: 17, total: 24 },
-    { day: 'Wed', occ: 16, total: 24 },
-    { day: 'Thu', occ: 18, total: 24 },
-    { day: 'Fri', occ: 20, total: 24 },
-    { day: 'Sat', occ: 21, total: 24 },
+    { day: 'Mon', occ: Math.round(totalBeds * 0.65), total: totalBeds },
+    { day: 'Tue', occ: Math.round(totalBeds * 0.70), total: totalBeds },
+    { day: 'Wed', occ: Math.round(totalBeds * 0.68), total: totalBeds },
+    { day: 'Thu', occ: Math.round(totalBeds * 0.75), total: totalBeds },
+    { day: 'Fri', occ: Math.round(totalBeds * 0.80), total: totalBeds },
+    { day: 'Sat', occ: Math.round(totalBeds * 0.85), total: totalBeds },
     { day: 'Today', occ: occupiedBeds, total: totalBeds },
   ];
 

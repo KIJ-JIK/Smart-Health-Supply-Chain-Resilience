@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { db } from '../db';
-import { CURRENT_DEVICE_ID, CURRENT_PHC_ID } from '../db/seedData';
+import { CURRENT_DEVICE_ID, getCurrentPhcId } from '../db/seedData';
 import { useMutationQueue } from './useMutationQueue';
 import { mockBackendServer } from '../utils/mockBackend';
 import {
@@ -78,7 +78,7 @@ export function useSyncEngine(isOnline: boolean) {
   const executePush = async (mutations: any[]): Promise<SyncPushResponse> => {
     const reqBody: SyncPushRequest = {
       device_id: CURRENT_DEVICE_ID,
-      phc_id: CURRENT_PHC_ID,
+      phc_id: getCurrentPhcId(),
       client_clock: new Date().toISOString(),
       mutations: mutations.map((m) => ({
         id: m.id,

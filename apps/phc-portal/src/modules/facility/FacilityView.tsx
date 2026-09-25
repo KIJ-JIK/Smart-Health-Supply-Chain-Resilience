@@ -16,18 +16,20 @@ import { useMutationQueue } from '../../hooks/useMutationQueue';
 import { useUIStore } from '../../stores/uiStore';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button } from '../../components/common/Button';
+import { usePhcAuthStore } from '../../stores/authStore';
 
 export const FacilityView: React.FC = () => {
   const facility = useLiveQuery(() => db.phc_facilities.toCollection().first());
+  const { selectedFacility } = usePhcAuthStore();
   const { enqueue } = useMutationQueue();
   const { addToast } = useUIStore();
 
-  const [totalBeds, setTotalBeds] = useState(24);
-  const [occupiedBeds, setOccupiedBeds] = useState(19);
-  const [emergencyBeds, setEmergencyBeds] = useState(6);
-  const [isolationBeds, setIsolationBeds] = useState(4);
-  const [oxygenCylinders, setOxygenCylinders] = useState(12);
-  const [oxygenConcentrators, setOxygenConcentrators] = useState(4);
+  const [totalBeds, setTotalBeds] = useState(facility?.total_beds || selectedFacility?.total_beds || 30);
+  const [occupiedBeds, setOccupiedBeds] = useState(facility?.occupied_beds || selectedFacility?.occupied_beds || 0);
+  const [emergencyBeds, setEmergencyBeds] = useState(facility?.emergency_beds || selectedFacility?.emergency_beds || 5);
+  const [isolationBeds, setIsolationBeds] = useState(facility?.isolation_beds || selectedFacility?.isolation_beds || 3);
+  const [oxygenCylinders, setOxygenCylinders] = useState(facility?.oxygen_cylinders || selectedFacility?.oxygen_cylinders || 15);
+  const [oxygenConcentrators, setOxygenConcentrators] = useState(facility?.oxygen_concentrators || 4);
   const [operationalStatus, setOperationalStatus] = useState<'operational' | 'partial' | 'closed'>('operational');
   const [emergencyCapability, setEmergencyCapability] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,8 +44,14 @@ export const FacilityView: React.FC = () => {
       setOxygenConcentrators(facility.oxygen_concentrators);
       setOperationalStatus(facility.operational_status || 'operational');
       setEmergencyCapability(facility.emergency_capability ?? true);
+    } else if (selectedFacility) {
+      setTotalBeds(selectedFacility.total_beds ?? 30);
+      setOccupiedBeds(selectedFacility.occupied_beds ?? 0);
+      setEmergencyBeds(selectedFacility.emergency_beds ?? 5);
+      setIsolationBeds(selectedFacility.isolation_beds ?? 3);
+      setOxygenCylinders(selectedFacility.oxygen_cylinders ?? 15);
     }
-  }, [facility]);
+  }, [facility, selectedFacility]);
 
   const availableBeds = Math.max(0, totalBeds - occupiedBeds);
   const occupancyPct = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
@@ -80,7 +88,7 @@ export const FacilityView: React.FC = () => {
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{facility?.name || 'Primary Health Centre Rampur'}</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{facility?.name || selectedFacility?.name || 'Primary Health Centre'}</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">Facility Master Identity &amp; Operational Capacity Registry</p>
             </div>
           </div>
@@ -88,7 +96,7 @@ export const FacilityView: React.FC = () => {
         <div className="flex items-center gap-2">
           <StatusBadge status={facility?.operational_status || 'operational'} />
           <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-[#0d1929] text-slate-700 dark:text-slate-300">
-            ID: {facility?.id || 'PHC-001'}
+            ID: {facility?.id || selectedFacility?.id || 'PHC-LIVE'}
           </span>
         </div>
       </div>
@@ -106,12 +114,12 @@ export const FacilityView: React.FC = () => {
           <div className="space-y-3.5 text-xs">
             <div>
               <span className="text-slate-600 dark:text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">Facility Name</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">{facility?.name}</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{facility?.name || selectedFacility?.name}</span>
             </div>
             <div>
               <span className="text-slate-600 dark:text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">Jurisdiction</span>
               <span className="font-semibold text-slate-800 dark:text-slate-200">
-                District: {facility?.district_name || 'Varanasi'} • State: {facility?.state_name || 'Uttar Pradesh'}
+                District: {facility?.district_name || selectedFacility?.district || 'District'} • State: {facility?.state_name || selectedFacility?.state || 'State'}
               </span>
             </div>
             <div className="flex items-start gap-2 pt-1">

@@ -25,10 +25,15 @@ export const Header: React.FC = () => {
   const { isSyncing, triggerSync } = useSyncEngine(isOnline);
   const { setActiveTab, setEmergencyModalOpen } = useUIStore();
   const { isDark, toggleTheme } = useThemeStore();
-  const { currentStaff, logout } = usePhcAuthStore();
+  const { currentStaff, selectedFacility, logout } = usePhcAuthStore();
   const [portalMenuOpen, setPortalMenuOpen] = useState(false);
 
   const facility = useLiveQuery(() => db.phc_facilities.toCollection().first());
+
+  const activeFacName = facility?.name || selectedFacility?.name || 'Primary Health Centre';
+  const activeDistrict = facility?.district_name || selectedFacility?.district || 'District';
+  const activeState = facility?.state_name || selectedFacility?.state || 'State';
+  const activeId = facility?.id || selectedFacility?.id || 'PHC-ACTIVE';
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#0a0f1a]/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-[#1e2d3d]/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_12px_rgba(0,0,0,0.4)]">
@@ -44,7 +49,7 @@ export const Header: React.FC = () => {
           <div className="hidden sm:block min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-none truncate">
-                {facility?.name || 'PHC Rampur'}
+                {activeFacName}
               </h1>
               <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 live-dot" />
@@ -52,7 +57,7 @@ export const Header: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
-              {greeting()} · {facility?.district_name || 'Varanasi'}, {facility?.state_name || 'UP'} · <span className="font-mono">{facility?.id || 'PHC-001'}</span>
+              {greeting()} · {activeDistrict}, {activeState} · <span className="font-mono text-[10px]">{activeId}</span>
             </p>
           </div>
         </div>

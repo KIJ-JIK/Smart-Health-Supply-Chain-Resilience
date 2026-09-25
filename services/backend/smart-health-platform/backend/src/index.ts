@@ -441,6 +441,13 @@ app.use(metricsRouter);
 app.use('/api/v1', metricsRouter);
 
 // ---------------------------------------------------------------------------
+// Primary Healthcare Centre (PHC) Portal Ground-Truth & Auth Routes
+// ---------------------------------------------------------------------------
+import { phcPortalRouter } from './modules/phc/phcPortalRoutes';
+app.use('/api/v1', phcPortalRouter);
+app.use(phcPortalRouter);
+
+// ---------------------------------------------------------------------------
 // Crisis Simulator WebSocket (Prompt 17) & HTTP Server
 // ---------------------------------------------------------------------------
 import http from 'http';

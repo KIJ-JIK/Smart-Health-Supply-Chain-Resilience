@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
-import { CURRENT_DEVICE_ID, CURRENT_PHC_ID } from '../db/seedData';
+import { CURRENT_DEVICE_ID, getCurrentPhcId } from '../db/seedData';
 import {
   EntityType,
   MutationQueueEntry,
@@ -58,6 +58,7 @@ export function useMutationQueue() {
   ): Promise<MutationQueueEntry> => {
     const mutationId = explicitId || generateUUID();
     const now = new Date().toISOString();
+    const currentPhcId = getCurrentPhcId();
 
     // Get current max local_seq
     const lastEntry = await db.mutation_queue.orderBy('local_seq').last();
@@ -98,7 +99,7 @@ export function useMutationQueue() {
           const { client_txn_id, patient_ref, dispensed_by_staff_id, dispensed_by_staff_name, total_amount, items } = payload;
           const billingTxn: BillingTransaction = {
             id: client_txn_id || mutationId,
-            phc_id: CURRENT_PHC_ID,
+            phc_id: currentPhcId,
             client_txn_id: client_txn_id || mutationId,
             patient_ref: patient_ref || 'Walk-in',
             dispensed_by_staff_id: dispensed_by_staff_id || 'staff-05',
@@ -138,7 +139,7 @@ export function useMutationQueue() {
                   // Stock movement log
                   await db.stock_movements.put({
                     id: generateUUID(),
-                    phc_id: CURRENT_PHC_ID,
+                    phc_id: currentPhcId,
                     medicine_id: item.medicine_id,
                     batch_id: item.batch_id,
                     batch_no: batch.batch_no,
@@ -161,7 +162,7 @@ export function useMutationQueue() {
         case 'inventory_batch_create': {
           const batchData: InventoryBatch = {
             id: payload.id || mutationId,
-            phc_id: CURRENT_PHC_ID,
+            phc_id: currentPhcId,
             medicine_id: payload.medicine_id,
             batch_no: payload.batch_no,
             received_qty: Number(payload.received_qty),
@@ -175,7 +176,7 @@ export function useMutationQueue() {
 
           await db.stock_movements.put({
             id: generateUUID(),
-            phc_id: CURRENT_PHC_ID,
+            phc_id: currentPhcId,
             medicine_id: payload.medicine_id,
             batch_id: batchData.id,
             batch_no: batchData.batch_no,
@@ -201,7 +202,7 @@ export function useMutationQueue() {
             const batch = await db.inventory_batches.get(batch_id);
             await db.stock_movements.put({
               id: generateUUID(),
-              phc_id: CURRENT_PHC_ID,
+              phc_id: currentPhcId,
               medicine_id: medicine_id || batch?.medicine_id || '',
               batch_id,
               batch_no: batch?.batch_no || '',
@@ -219,9 +220,9 @@ export function useMutationQueue() {
         }
 
         case 'facility_update': {
-          const facility = await db.phc_facilities.get(CURRENT_PHC_ID);
-          if (facility) {
-            await db.phc_facilities.update(CURRENT_PHC_ID, {
+          const targetFacility = (await db.phc_facilities.get(currentPhcId)) || (await db.phc_facilities.toCollection().first());
+          if (targetFacility) {
+            await db.phc_facilities.update(targetFacility.id, {
               ...payload,
               updated_at: now,
             });
@@ -234,7 +235,7 @@ export function useMutationQueue() {
           const eqId = payload.id || mutationId;
           const eqRecord: Equipment = {
             id: eqId,
-            phc_id: CURRENT_PHC_ID,
+            phc_id: currentPhcId,
             equipment_type: payload.equipment_type,
             quantity: Number(payload.quantity || 1),
             working_qty: Number(payload.working_qty || 0),
@@ -253,7 +254,7 @@ export function useMutationQueue() {
           const attRecord: StaffAttendance = {
             id: attId,
             staff_id: payload.staff_id,
-            phc_id: CURRENT_PHC_ID,
+            phc_id: currentPhcId,
             attendance_date: payload.attendance_date || now.split('T')[0],
             status: payload.status,
             notes: payload.notes,
@@ -265,7 +266,7 @@ export function useMutationQueue() {
         case 'footfall_entry': {
           const footfallRecord: PatientFootfall = {
             id: payload.id || mutationId,
-            phc_id: CURRENT_PHC_ID,
+            phc_id: currentPhcId,
             category: payload.category,
             count: Number(payload.count),
             date: payload.date || now.split('T')[0],
@@ -279,7 +280,7 @@ export function useMutationQueue() {
         case 'resource_request': {
           const reqRecord: ResourceRequest = {
             id: payload.id || mutationId,
-            phc_id: CURRENT_PHC_ID,
+            phc_id: currentPhcId,
             request_type: payload.request_type,
             item_ref: payload.item_ref,
             item_name: payload.item_name,
@@ -298,7 +299,7 @@ export function useMutationQueue() {
         case 'alert_report': {
           const alertRecord: Alert = {
             id: payload.id || mutationId,
-            phc_id: CURRENT_PHC_ID,
+            phc_id: currentPhcId,
             alert_type: payload.alert_type,
             severity: payload.severity,
             title: payload.title,

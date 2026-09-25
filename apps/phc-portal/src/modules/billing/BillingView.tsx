@@ -19,6 +19,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { formatDate, formatDateTime } from '../../utils/date';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
+import { usePhcAuthStore } from '../../stores/authStore';
 
 interface CartItem {
   medicine: Medicine;
@@ -35,9 +36,17 @@ export const BillingView: React.FC = () => {
 
   const { enqueue } = useMutationQueue();
   const { addToast } = useUIStore();
+  const { currentStaff } = usePhcAuthStore();
 
   const [patientRef, setPatientRef] = useState('Walk-in');
-  const [selectedStaffId, setSelectedStaffId] = useState('staff-05');
+  const [selectedStaffId, setSelectedStaffId] = useState(currentStaff?.id || '');
+
+  React.useEffect(() => {
+    if (!selectedStaffId && staffMembers.length > 0) {
+      setSelectedStaffId(staffMembers[0].id);
+    }
+  }, [staffMembers, selectedStaffId]);
+
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // Item Picker State
