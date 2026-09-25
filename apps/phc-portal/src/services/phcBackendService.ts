@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { PHCFacility, Medicine, InventoryBatch, Alert, PatientFootfall, StaffRegistry } from '../types';
+import { PHCFacility, Medicine, InventoryBatch, Alert, PatientFootfall, StaffRegistry, Equipment, StaffAttendance } from '../types';
 
 export interface PhcFacilityBackendItem {
   id: string;
@@ -101,6 +101,8 @@ export class PhcBackendService {
       await db.patient_footfall.clear();
       await db.alerts.clear();
       await db.staff_registry.clear();
+      await db.equipment.clear();
+      await db.staff_attendance.clear();
 
       // 1. Facility record
       if (data.facility) {
@@ -206,7 +208,37 @@ export class PhcBackendService {
         await db.staff_registry.bulkPut(mappedStaff);
       }
 
-      // 7. System config
+      // 7. Equipment
+      if (data.equipment && data.equipment.length > 0) {
+        const mappedEquipment: Equipment[] = data.equipment.map((eq: any) => ({
+          id: eq.id,
+          phc_id: eq.phc_id,
+          equipment_type: eq.equipment_type,
+          quantity: eq.quantity || 1,
+          working_qty: eq.working_qty || 1,
+          non_working_qty: Math.max(0, (eq.quantity || 1) - (eq.working_qty || 1)),
+          maintenance_status: (eq.maintenance_status as any) || 'operational',
+          last_serviced_at: eq.last_serviced_at || new Date().toISOString(),
+          next_service_date: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0],
+          created_at: eq.created_at || new Date().toISOString(),
+        }));
+        await db.equipment.bulkPut(mappedEquipment);
+      }
+
+      // 8. Staff Attendance
+      if (data.attendance && data.attendance.length > 0) {
+        const mappedAttendance: StaffAttendance[] = data.attendance.map((att: any) => ({
+          id: att.id,
+          staff_id: att.staff_id,
+          phc_id: att.phc_id,
+          attendance_date: att.attendance_date,
+          status: att.status === 'on_leave' ? 'leave' : att.status,
+          notes: '',
+        }));
+        await db.staff_attendance.bulkPut(mappedAttendance);
+      }
+
+      // 9. System config
       await db.system_config.put({ key: 'current_phc_id', value: phcId, updated_at: new Date().toISOString() });
       await db.system_config.put({ key: 'last_successful_sync_time', value: new Date().toISOString(), updated_at: new Date().toISOString() });
 

@@ -267,6 +267,26 @@ phcPortalRouter.get('/phc/:phcId/live-data', async (req: Request, res: Response)
       [phcId]
     );
 
+    // Equipment
+    const eqRes = await pool.query(
+      `SELECT id, phc_id, equipment_type, quantity, working_qty, maintenance_status, last_serviced_at::text, created_at::text
+       FROM equipment
+       WHERE phc_id = $1
+       ORDER BY equipment_type ASC`,
+      [phcId]
+    );
+
+    // Staff Attendance (last 30 days)
+    const attRes = await pool.query(
+      `SELECT sa.id, sa.staff_id, sa.phc_id, sa.attendance_date::text AS attendance_date, sa.status, sa.created_at::text
+       FROM staff_attendance sa
+       JOIN staff_registry sr ON sa.staff_id = sr.id
+       WHERE sr.phc_id = $1
+       ORDER BY sa.attendance_date DESC, sa.created_at DESC
+       LIMIT 200`,
+      [phcId]
+    );
+
     return res.status(200).json({
       phcId,
       facility,
@@ -275,6 +295,8 @@ phcPortalRouter.get('/phc/:phcId/live-data', async (req: Request, res: Response)
       footfall: footRes.rows,
       alerts: alertsRes.rows,
       staff: staffRes.rows,
+      equipment: eqRes.rows,
+      attendance: attRes.rows,
       requests: reqRes.rows,
       billing: billRes.rows,
       movements: moveRes.rows,

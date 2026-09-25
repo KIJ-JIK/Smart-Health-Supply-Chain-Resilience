@@ -12,12 +12,12 @@ import { Button } from '../../components/common/Button';
 export const StaffView: React.FC = () => {
   const staffList = useLiveQuery(() => db.staff_registry.toArray()) || [];
   const today = new Date().toISOString().split('T')[0];
-  const attendanceRecords = useLiveQuery(() => db.staff_attendance.where('attendance_date').equals(today).toArray()) || [];
+  const [selectedDate, setSelectedDate] = useState(today);
+  const attendanceRecords = useLiveQuery(() => db.staff_attendance.where('attendance_date').equals(selectedDate).toArray(), [selectedDate]) || [];
 
   const { enqueue } = useMutationQueue();
   const { addToast } = useUIStore();
 
-  const [selectedDate, setSelectedDate] = useState(today);
   const [isSaving, setIsSaving] = useState(false);
 
   // Local attendance state for the date
