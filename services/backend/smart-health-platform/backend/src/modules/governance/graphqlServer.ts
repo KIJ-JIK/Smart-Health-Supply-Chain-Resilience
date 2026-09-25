@@ -966,8 +966,9 @@ graphqlRouter.post('/graphql', async (req: Request, res: Response) => {
       operationName,
     });
 
-    const statusCode = result.errors && !result.data ? 400 : 200;
-    return res.status(statusCode).json(result);
+    // Per the GraphQL-over-HTTP spec, resolver errors belong in result.errors
+    // at HTTP 200. Only return a non-200 for a completely invalid execution.
+    return res.status(200).json(result);
   } catch (err: any) {
     return res.status(500).json({ errors: [{ message: err.message }] });
   }
