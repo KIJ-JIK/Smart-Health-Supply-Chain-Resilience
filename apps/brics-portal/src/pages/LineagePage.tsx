@@ -71,18 +71,18 @@ export default function LineagePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg md:text-xl font-black text-white flex items-center gap-2">
-            <GitBranch className="w-5 h-5 text-teal-400" />
+          <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <GitBranch className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             Global Model Lineage &amp; Validation DAG
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">
             Immutable version tree of globally aggregated FedAvg model checkpoints, cryptographic weight signatures, and cross-border performance benchmarks.
           </p>
         </div>
 
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-all self-start sm:self-auto"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-[#152b4d] dark:hover:bg-[#1e3a5f] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#1e3a5f] text-xs font-semibold transition-all self-start sm:self-auto"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Refresh Lineage</span>
@@ -96,7 +96,7 @@ export default function LineagePage() {
           <CardSkeleton height={180} />
         </div>
       ) : (
-        <div className="space-y-6 relative before:absolute before:inset-0 before:left-6 before:w-0.5 before:bg-slate-800/80">
+        <div className="space-y-6 relative before:absolute before:inset-0 before:left-6 before:w-0.5 before:bg-slate-200 dark:before:bg-[#1e3a5f]">
           {timelineEntries.map(({ current, previous }, idx) => {
             const isReceived = current.status === 'received';
             const isActive = current.status === 'active';
@@ -110,41 +110,41 @@ export default function LineagePage() {
                 <div
                   className={`absolute left-4 top-5 w-4 h-4 rounded-full border-2 transform -translate-x-1/2 flex items-center justify-center transition-transform group-hover:scale-110 ${
                     isActive
-                      ? 'bg-emerald-500 border-white ring-4 ring-emerald-500/20 shadow-lg shadow-emerald-500/30'
+                      ? 'bg-emerald-500 border-white ring-4 ring-emerald-500/20 shadow-md shadow-emerald-500/30'
                       : isReceived
                       ? 'bg-amber-400 border-white ring-4 ring-amber-400/20 animate-pulse'
-                      : 'bg-slate-800 border-slate-600'
+                      : 'bg-slate-300 dark:bg-slate-700 border-slate-400 dark:border-slate-500'
                   }`}
                 />
 
                 {/* Card */}
                 <div
-                  className={`p-6 rounded-2xl border transition-all ${
+                  className={`card p-5 transition-all ${
                     isActive
-                      ? 'bg-[#0d1523] border-emerald-500/40 shadow-xl shadow-emerald-950/20'
+                      ? 'border-emerald-400 dark:border-emerald-500/60 shadow-md shadow-emerald-950/10'
                       : isReceived
-                      ? 'bg-[#0d1523] border-amber-500/40 shadow-xl shadow-amber-950/20'
-                      : 'bg-[#111827] border-slate-800'
+                      ? 'border-amber-400 dark:border-amber-500/60 shadow-md shadow-amber-950/10'
+                      : ''
                   }`}
                 >
                   {/* Top Row */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-[#1e3a5f] pb-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
-                        <span className="text-base font-black text-white font-mono">
+                        <span className="text-base font-bold text-slate-900 dark:text-white font-mono">
                           {current.modelVersion}
                         </span>
                         <StatusBadge status={current.status} size="sm" pulse={isReceived} />
                         {current.baseModelVersion && (
-                          <span className="text-xs text-slate-400 font-mono">
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                             (Derived from {current.baseModelVersion})
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 font-mono">
                         {current.federationRoundId && (
                           <>
-                            <span>Round: <strong className="text-slate-200">{current.federationRoundId}</strong></span>
+                            <span>Round: <strong className="text-slate-800 dark:text-slate-200">{current.federationRoundId}</strong></span>
                             <span>•</span>
                           </>
                         )}
@@ -154,8 +154,8 @@ export default function LineagePage() {
 
                     {/* Contributing Nations */}
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-slate-400">Contributors:</span>
-                      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Contributors:</span>
+                      <div className="flex items-center gap-1.5 p-1 rounded bg-slate-100 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]">
                         {(current.participatingCountries || ['IN', 'BR', 'RU', 'CN', 'ZA']).map((code: string) => (
                           <span key={code} className="text-base" title={`${code} Sovereign Node`}>
                             {COUNTRY_FLAGS[code] || code}
@@ -192,16 +192,16 @@ export default function LineagePage() {
                   </div>
 
                   {/* Checksum & Storage Signatures */}
-                  <div className="pt-3 border-t border-slate-800/60 grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] font-mono text-slate-400">
+                  <div className="pt-3 border-t border-slate-200 dark:border-[#1e3a5f] grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] font-mono text-slate-500 dark:text-slate-400">
                     <div className="flex items-center gap-2 truncate">
-                      <span className="text-slate-500 font-sans">Artifact:</span>
-                      <span className="text-teal-300 truncate" title={current.s3Uri}>
+                      <span className="text-slate-400 dark:text-slate-500 font-sans">Artifact:</span>
+                      <span className="text-teal-700 dark:text-teal-300 truncate" title={current.s3Uri}>
                         {current.s3Uri}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 truncate">
-                      <span className="text-slate-500 font-sans">SHA-256:</span>
-                      <span className="text-cyan-300 truncate" title={current.aggregationSignature || 'sha256:verified'}>
+                      <span className="text-slate-400 dark:text-slate-500 font-sans">SHA-256:</span>
+                      <span className="text-cyan-700 dark:text-cyan-300 truncate" title={current.aggregationSignature || 'sha256:verified'}>
                         {current.aggregationSignature || 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
                       </span>
                     </div>

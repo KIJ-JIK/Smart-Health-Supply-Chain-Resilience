@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------------------
 // Nodes Registry & Detail View — BRICS Federated Intelligence & Governance
+// Aligned with the Institutional Government & Healthcare theme of PHC Portal.
 // ---------------------------------------------------------------------------
 
 import React, { useState, useEffect, Suspense } from 'react';
@@ -44,7 +45,7 @@ const COUNTRY_STATS: Record<string, { samples: number; dpSpent: number; latency:
   IN: { samples: 1420000, dpSpent: 1.24, latency: 24, encryption: 'Paillier SMPC (2048-bit)' },
   BR: { samples: 890000, dpSpent: 1.45, latency: 142, encryption: 'Paillier SMPC (2048-bit)' },
   RU: { samples: 620000, dpSpent: 1.18, latency: 98, encryption: 'Paillier SMPC (2048-bit)' },
-  CN: { samples: 210000, dpSpent: 1.30, latency: 65, encryption: 'Paillier SMPC (2048-bit)' },
+  CN: { samples: 2100000, dpSpent: 1.30, latency: 65, encryption: 'Paillier SMPC (2048-bit)' },
   ZA: { samples: 410000, dpSpent: 1.50, latency: 185, encryption: 'Paillier SMPC (2048-bit)' },
 };
 
@@ -117,7 +118,7 @@ function NodesContent() {
 
   if (nodesError) {
     return (
-      <div className="max-w-7xl mx-auto py-6">
+      <div className="py-4">
         <ErrorState
           title="Node Telemetry Failed"
           message={nodesError.message}
@@ -130,39 +131,37 @@ function NodesContent() {
   const isParticipating = activeNode?.status === 'participating';
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg md:text-xl font-black text-white flex items-center gap-2">
-            <Server className="w-5 h-5 text-teal-400" />
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Server className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             Sovereign Enclave Registry &amp; Node Diagnostics
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Real-time diagnostics, local convergence curves, and cryptographic delta verification for member states.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-all"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh Enclaves</span>
-          </button>
-        </div>
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-slate-100 dark:bg-[#152b4d] dark:hover:bg-[#1c3864] text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-[#1e3a5f] transition-colors self-start sm:self-auto"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Refresh Enclaves</span>
+        </button>
       </div>
 
       {/* Success Notification */}
       {actionSuccessMessage && (
-        <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/60 text-emerald-300 text-xs flex items-center justify-between">
+        <div className="p-3.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2 font-medium">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>{actionSuccessMessage}</span>
           </div>
           <button
             onClick={() => setActionSuccessMessage(null)}
-            className="text-emerald-400 hover:text-emerald-200 font-bold"
+            className="text-emerald-700 dark:text-emerald-300 hover:underline font-bold"
           >
             Dismiss
           </button>
@@ -178,10 +177,10 @@ function NodesContent() {
             <button
               key={node.countryCode}
               onClick={() => handleSelectCountry(node.countryCode)}
-              className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 ${
+              className={`p-3.5 rounded-lg border text-left transition-colors flex flex-col justify-between gap-2.5 ${
                 isSelected
-                  ? 'bg-[#151f33] border-teal-500/60 shadow-lg shadow-teal-500/10 ring-1 ring-teal-500/40'
-                  : 'bg-[#111827] border-slate-800 hover:border-slate-700 hover:bg-[#131c2d]'
+                  ? 'bg-blue-50/80 dark:bg-[#152b4d] border-blue-500 dark:border-blue-400 shadow-sm ring-1 ring-blue-500/30'
+                  : 'bg-white dark:bg-[#0f1f38] border-slate-200 dark:border-[#1e3a5f] hover:border-slate-300 dark:hover:border-slate-600'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -189,8 +188,8 @@ function NodesContent() {
                 <StatusBadge status={node.status} size="sm" pulse={node.status === 'participating'} />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-white leading-tight">{node.countryName}</h3>
-                <span className="text-[10px] font-mono text-slate-400">Enclave: {node.countryCode}-01</span>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">{node.countryName}</h3>
+                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Enclave: {node.countryCode}-01</span>
               </div>
             </button>
           );
@@ -201,15 +200,15 @@ function NodesContent() {
       {nodesLoading || !activeNode ? (
         <CardSkeleton height={320} />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Left Column: Diagnostics & Controls */}
-          <div className="p-5 rounded-2xl bg-[#111827] border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="card p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1e3a5f] pb-3">
               <div className="flex items-center gap-2.5">
                 <span className="text-3xl">{COUNTRY_FLAGS[activeNode.countryCode]}</span>
                 <div>
-                  <h3 className="text-sm font-black text-white">{activeNode.countryName}</h3>
-                  <p className="text-[10px] font-mono text-slate-400">Node ID: BRICS-{activeNode.countryCode}-NODE-ALPHA</p>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{activeNode.countryName}</h3>
+                  <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Node ID: BRICS-{activeNode.countryCode}-NODE-ALPHA</p>
                 </div>
               </div>
               <StatusBadge status={activeNode.status} size="sm" />
@@ -217,49 +216,49 @@ function NodesContent() {
 
             {/* Spec Metrics */}
             <div className="space-y-2 text-xs">
-              <div className="p-3 rounded-xl bg-[#0d1523] border border-slate-800/80 flex items-center justify-between">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5 text-cyan-400" /> Ground Data Volume
+              <div className="p-3 rounded-md bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]/80 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Ground Data Volume
                 </span>
-                <span className="font-mono font-bold text-slate-200">
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
                   {stats.samples.toLocaleString()} Records
                 </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#0d1523] border border-slate-800/80 flex items-center justify-between">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-teal-400" /> DP Spent (Total)
+              <div className="p-3 rounded-md bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]/80 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> DP Spent (Total)
                 </span>
-                <span className="font-mono font-bold text-teal-300">
+                <span className="font-mono font-bold text-teal-700 dark:text-teal-300">
                   ε = {stats.dpSpent.toFixed(2)} / 5.0
                 </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#0d1523] border border-slate-800/80 flex items-center justify-between">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-amber-400" /> Encryption Protocol
+              <div className="p-3 rounded-md bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]/80 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Encryption Protocol
                 </span>
-                <span className="font-mono font-bold text-slate-200">
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
                   {stats.encryption}
                 </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#0d1523] border border-slate-800/80 flex items-center justify-between">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <Radio className="w-3.5 h-3.5 text-emerald-400" /> Latency to Coordinator
+              <div className="p-3 rounded-md bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]/80 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Radio className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Latency to Coordinator
                 </span>
-                <span className="font-mono font-bold text-emerald-400">
+                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
                   {stats.latency}ms
                 </span>
               </div>
             </div>
 
             {/* Sovereign Governance Controls */}
-            <div className="pt-3 border-t border-slate-800 space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            <div className="pt-3 border-t border-slate-100 dark:border-[#1e3a5f] space-y-2">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                 Sovereign Federation Governance
               </span>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 National administrators can toggle local gradient contribution or audit DP noise budgets.
               </p>
 
@@ -267,7 +266,7 @@ function NodesContent() {
                 <button
                   onClick={() => handleOpenToggleDialog(false)}
                   disabled={toggling}
-                  className="w-full py-2.5 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2 rounded-md text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 dark:text-rose-300 dark:border-rose-800 transition-colors flex items-center justify-center gap-2"
                 >
                   <ShieldAlert className="w-4 h-4" />
                   <span>Pause Node Participation</span>
@@ -276,7 +275,7 @@ function NodesContent() {
                 <button
                   onClick={() => handleOpenToggleDialog(true)}
                   disabled={toggling}
-                  className="w-full py-2.5 rounded-xl text-xs font-bold bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2 rounded-md text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800 transition-colors flex items-center justify-center gap-2"
                 >
                   <ShieldCheck className="w-4 h-4" />
                   <span>Resume Sovereign Contribution</span>
@@ -286,17 +285,17 @@ function NodesContent() {
           </div>
 
           {/* Right 2 Columns: Convergence Chart & Cryptographic Signatures */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-5">
             {/* Training Convergence */}
-            <div className="p-5 rounded-2xl bg-[#111827] border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="card p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1e3a5f] pb-3">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-teal-400" />
-                  <h3 className="text-sm font-bold text-white">
+                  <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     Local Model Convergence &amp; Loss Curve ({activeNode.countryName})
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#152b4d] px-2 py-0.5 rounded border border-slate-200 dark:border-[#1e3a5f]">
                   Last 5 Training Rounds
                 </span>
               </div>
@@ -309,22 +308,22 @@ function NodesContent() {
             </div>
 
             {/* Cryptographic Submissions Audit */}
-            <div className="p-5 rounded-2xl bg-[#111827] border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="card p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1e3a5f] pb-3">
                 <div className="flex items-center gap-2">
-                  <FileCode className="w-4 h-4 text-cyan-400" />
-                  <h3 className="text-sm font-bold text-white">
+                  <FileCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     Cryptographic Gradient Delta Signatures
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                  Zero Raw Samples
+                <span className="gov-badge bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800 text-[10px]">
+                  ZERO RAW SAMPLES
                 </span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs font-mono">
-                  <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
+                  <thead className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-[#1e3a5f] bg-slate-50 dark:bg-[#152b4d]">
                     <tr>
                       <th className="py-2 px-3">Round</th>
                       <th className="py-2 px-3">Timestamp</th>
@@ -333,17 +332,17 @@ function NodesContent() {
                       <th className="py-2 px-3">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-slate-300 text-[11px]">
+                  <tbody className="divide-y divide-slate-100 dark:divide-[#1e3a5f]/60 text-slate-700 dark:text-slate-300 text-[11px]">
                     {nodeDetails.submissions.map((sub: NodeSubmissionLog, idx: number) => (
-                      <tr key={idx} className="hover:bg-slate-800/20">
-                        <td className="py-2.5 px-3 font-sans font-semibold text-white">{sub.roundId}</td>
-                        <td className="py-2.5 px-3 text-slate-400">{sub.submittedAt.slice(0, 10)}</td>
-                        <td className="py-2.5 px-3 text-teal-400 truncate max-w-[140px]" title={sub.weightDeltaHash}>
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-[#152b4d]/40">
+                        <td className="py-2.5 px-3 font-sans font-semibold text-slate-900 dark:text-slate-100">{sub.roundId}</td>
+                        <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400">{sub.submittedAt.slice(0, 10)}</td>
+                        <td className="py-2.5 px-3 text-blue-600 dark:text-blue-400 truncate max-w-[140px]" title={sub.weightDeltaHash}>
                           {sub.weightDeltaHash}
                         </td>
-                        <td className="py-2.5 px-3 text-cyan-300">{sub.sampleCount.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-slate-800 dark:text-slate-200">{sub.sampleCount.toLocaleString()}</td>
                         <td className="py-2.5 px-3">
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase">
+                          <span className="gov-badge bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800 text-[10px] uppercase">
                             {sub.status}
                           </span>
                         </td>

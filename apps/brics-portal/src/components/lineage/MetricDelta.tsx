@@ -26,22 +26,22 @@ export const MetricDelta: React.FC<MetricDeltaProps> = ({
   const isRegressed = lowerIsBetter ? delta > 0.00001 : delta < -0.00001;
 
   const toneColor = isImproved
-    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+    ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30'
     : isRegressed
-    ? 'text-rose-400 bg-rose-500/10 border-rose-500/30'
-    : 'text-slate-400 bg-slate-800 border-slate-700';
+    ? 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30'
+    : 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-[#0a1628] border-slate-200 dark:border-[#1e3a5f]';
 
   return (
-    <div className="p-4 rounded-xl bg-[#0d1523] border border-slate-800 space-y-2">
-      <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider block">
+    <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-2">
+      <span className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold uppercase tracking-wider block font-mono">
         {label}
       </span>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-black text-white font-mono">
+        <span className="text-xl font-bold text-slate-900 dark:text-white font-mono">
           {currentValue.toFixed(formatDecimals)}
         </span>
-        {unit && <span className="text-xs text-slate-400 font-mono">{unit}</span>}
+        {unit && <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">{unit}</span>}
       </div>
 
       {hasDiff ? (
@@ -60,7 +60,7 @@ export const MetricDelta: React.FC<MetricDeltaProps> = ({
           </span>
         </div>
       ) : (
-        <span className="text-[11px] text-slate-500 font-mono italic">Baseline Model</span>
+        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono italic">Baseline Model</span>
       )}
     </div>
   );

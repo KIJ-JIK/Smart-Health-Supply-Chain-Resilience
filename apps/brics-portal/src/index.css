@@ -1,52 +1,97 @@
+/* ── Google Fonts: Clean, readable institutional typography ─────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-bg-base: #0a0f1a;
-  --color-bg-surface: #0d1523;
-  --color-bg-border: #1e293b;
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+@layer base {
+  :root {
+    /* Clean Institutional Light Mode Tokens */
+    --bg-base:        #f8fafc;
+    --bg-card:        #ffffff;
+    --bg-subcard:     #f1f5f9;
+    --border-card:    #e2e8f0;
+    --border-input:   #cbd5e1;
+    --text-primary:   #0f172a;
+    --text-secondary: #334155;
+    --text-muted:     #64748b;
+    --color-primary:  #1e3a8a;
+    --color-accent:   #0d9488;
+  }
+
+  .dark {
+    /* Professional Institutional Dark Slate — Exactly matching PHC Portal */
+    --bg-base:        #0a1628;
+    --bg-card:        #0f1f38;
+    --bg-subcard:     #152b4d;
+    --border-card:    #1e3a5f;
+    --border-input:   #254b7d;
+    --text-primary:   #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted:     #94a3b8;
+    --color-primary:  #3b82f6;
+    --color-accent:   #14b8a6;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  input, textarea, select {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Accessible Standard Focus Rings */
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #1d4ed8;
+    box-shadow: 0 0 0 1px #1d4ed8;
+  }
+
+  button:focus-visible, a:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #1d4ed8;
+  }
+
+  .dark button:focus-visible, .dark a:focus-visible {
+    box-shadow: 0 0 0 2px #0a1628, 0 0 0 4px #60a5fa;
+  }
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* ── Standard Institutional Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0a1628; }
+::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2e5584; }
 
-html, body {
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: #0a0f1a;
-  color: #f1f5f9;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* ── Clean Institutional Components ─────────────────────────────────────── */
+@layer components {
+  .card {
+    @apply bg-white dark:bg-[#0f1f38] border border-slate-200 dark:border-[#1e3a5f] rounded-lg shadow-sm;
+  }
 
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+  .card-hover {
+    @apply transition-colors duration-150 hover:border-slate-300 dark:hover:border-slate-600;
+  }
 
-/* Custom sleek dark scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+  .gov-badge {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-semibold tracking-wide border;
+  }
 
-::-webkit-scrollbar-track {
-  background: #0a0f1a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  .field {
+    @apply w-full px-3 py-2 text-xs border border-slate-300 dark:border-[#1e3a5f] rounded-md
+           bg-white dark:bg-[#0a1628] text-slate-900 dark:text-slate-100
+           placeholder:text-slate-400 dark:placeholder:text-slate-500
+           transition-colors duration-150;
+  }
 }

@@ -93,11 +93,11 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg md:text-xl font-black text-white flex items-center gap-2">
-            <Settings className="w-5 h-5 text-teal-400" />
+          <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <Settings className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             Federation Coordinator Settings &amp; Cryptography Configuration
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">
             Sovereign participant registry, mTLS encryption cipher suites, and multi-cloud sync endpoints.
           </p>
         </div>
@@ -108,59 +108,61 @@ export default function SettingsPage() {
       </div>
 
       {/* Coordinator Endpoints & Cluster Info */}
-      <div className="p-5 rounded-2xl bg-[#111827] border border-slate-800 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1e3a5f] pb-3">
           <div className="flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-teal-400" />
-            <h3 className="text-sm font-bold text-white">Central Federation Coordinator Topology</h3>
+            <Cpu className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+              Central Federation Coordinator Topology
+            </h3>
           </div>
-          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-bold">
+          <span className="gov-badge gov-badge-emerald">
             Cluster Online
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="p-4 rounded-xl bg-[#0d1523] border border-slate-800 space-y-1.5">
-            <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">
+          <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+            <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
               Central Sync Ingestion API
             </span>
-            <p className="font-mono text-teal-300 font-bold text-sm">http://localhost:8000</p>
-            <p className="text-[11px] text-slate-500">FastAPI &amp; Express Telemetry Ingestion</p>
+            <p className="font-mono text-teal-600 dark:text-teal-300 font-bold text-sm">http://localhost:8000</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">FastAPI &amp; Express Telemetry Ingestion</p>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#0d1523] border border-slate-800 space-y-1.5">
-            <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">
+          <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+            <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
               AI Demand &amp; Optimization Engine
             </span>
-            <p className="font-mono text-cyan-300 font-bold text-sm">http://localhost:5000</p>
-            <p className="text-[11px] text-slate-500">Prophet &amp; FedAvg Aggregator Service</p>
+            <p className="font-mono text-cyan-600 dark:text-cyan-300 font-bold text-sm">http://localhost:5000</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Prophet &amp; FedAvg Aggregator Service</p>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#0d1523] border border-slate-800 space-y-1.5">
-            <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">
+          <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+            <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
               District Command Bridge
             </span>
-            <p className="font-mono text-indigo-300 font-bold text-sm">http://localhost:3000</p>
-            <p className="text-[11px] text-slate-500">Varanasi UP Health Administration Portal</p>
+            <p className="font-mono text-indigo-600 dark:text-indigo-300 font-bold text-sm">http://localhost:3000</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Varanasi UP Health Administration Portal</p>
           </div>
         </div>
       </div>
 
       {/* Sovereign Nation Nodes Specification Table */}
-      <div className="p-5 rounded-2xl bg-[#111827] border border-slate-800 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1e3a5f] pb-3">
           <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-teal-400" />
-            <h3 className="text-sm font-bold text-white">
+            <Globe className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
               Sovereign Member State Enclaves (5 Member Consortium)
             </h3>
           </div>
-          <span className="text-xs text-slate-400 font-mono">Quorum Threshold: 4 of 5</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">Quorum Threshold: 4 of 5</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800 font-mono">
+            <thead className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-[#1e3a5f] bg-slate-50 dark:bg-[#152b4d] font-mono">
               <tr>
                 <th className="py-2.5 px-3">Sovereign Nation</th>
                 <th className="py-2.5 px-3">Node Status</th>
@@ -170,7 +172,7 @@ export default function SettingsPage() {
                 <th className="py-2.5 px-3">Legal &amp; Privacy Framework</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300 text-[11px]">
+            <tbody className="divide-y divide-slate-200 dark:divide-[#1e3a5f]/60 font-mono text-slate-700 dark:text-slate-300 text-[11px]">
               {nodes.map((node) => {
                 const conf = PROTOCOL_CONFIGS[node.countryCode] || {
                   grpcPort: 8443,
@@ -181,18 +183,18 @@ export default function SettingsPage() {
                 const flag = COUNTRY_FLAGS[node.countryCode];
 
                 return (
-                  <tr key={node.countryCode} className="hover:bg-slate-800/20">
-                    <td className="py-3 px-3 font-sans font-semibold text-white flex items-center gap-2">
+                  <tr key={node.countryCode} className="hover:bg-slate-50 dark:hover:bg-[#152b4d]/40">
+                    <td className="py-3 px-3 font-sans font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                       <span className="text-xl">{flag}</span>
                       <span>{node.countryName}</span>
                     </td>
                     <td className="py-3 px-3">
                       <StatusBadge status={node.status} size="sm" pulse={node.status === 'participating'} />
                     </td>
-                    <td className="py-3 px-3 text-cyan-300">{conf.grpcPort}</td>
-                    <td className="py-3 px-3 text-slate-300">{conf.tlsCipher}</td>
-                    <td className="py-3 px-3 text-emerald-400">{conf.authType}</td>
-                    <td className="py-3 px-3 font-sans text-slate-400">{conf.legalJurisdiction}</td>
+                    <td className="py-3 px-3 text-cyan-600 dark:text-cyan-300">{conf.grpcPort}</td>
+                    <td className="py-3 px-3 text-slate-600 dark:text-slate-300">{conf.tlsCipher}</td>
+                    <td className="py-3 px-3 text-emerald-600 dark:text-emerald-400">{conf.authType}</td>
+                    <td className="py-3 px-3 font-sans text-slate-500 dark:text-slate-400">{conf.legalJurisdiction}</td>
                   </tr>
                 );
               })}

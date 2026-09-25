@@ -1,27 +1,18 @@
 import React from 'react';
 import { StatusBadge } from './StatusBadge';
 import { DataFreshnessLabel } from './DataFreshnessLabel';
-import { Server, ShieldCheck, Activity, Database, ArrowRight } from 'lucide-react';
+import { Server, ShieldCheck, Database, ArrowRight } from 'lucide-react';
 import type { NodeParticipationStatus } from '@/types/federated';
 
 export interface CountryNodeCardProps {
-  /** Country code (ISO 2-letter: IN, BR, RU, CN, ZA) */
   countryCode: string;
-  /** Full country name */
   countryName: string;
-  /** Node participation status: participating | paused | excluded */
   status: NodeParticipationStatus;
-  /** ISO timestamp of last successful local training */
   lastLocalTraining?: string | null;
-  /** ISO timestamp of last successful model upload */
   lastModelUpload?: string | null;
-  /** Single line health indicator or status note */
   healthIndicator?: string;
-  /** Participation indicator for the last federated round */
   lastRoundParticipation?: boolean | string;
-  /** Optional click handler for navigating to node detail view */
   onClick?: () => void;
-  /** Compact card variation */
   compact?: boolean;
 }
 
@@ -61,67 +52,62 @@ export const CountryNodeCard: React.FC<CountryNodeCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`p-5 rounded-2xl bg-[#111827] border transition-all duration-200 flex flex-col justify-between group ${
-        onClick ? 'cursor-pointer hover:border-teal-500/60 hover:bg-[#151f33] shadow-md hover:shadow-teal-500/10' : 'border-slate-800'
+      className={`bg-white dark:bg-[#0f1f38] border rounded-lg shadow-sm p-4 flex flex-col justify-between transition-colors ${
+        onClick ? 'cursor-pointer hover:border-blue-500 dark:hover:border-blue-400' : ''
       } ${
-        isParticipating ? 'border-slate-800' : status === 'paused' ? 'border-amber-800/40 bg-amber-950/10' : 'border-rose-900/40 bg-rose-950/10'
+        isParticipating
+          ? 'border-slate-200 dark:border-[#1e3a5f]'
+          : status === 'paused'
+          ? 'border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20'
+          : 'border-rose-300 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/20'
       }`}
     >
-      {/* Top Header: Flag, Name & Status */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl filter drop-shadow select-none">{flag}</span>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-black text-white group-hover:text-teal-300 transition-colors">
+      {/* Header: Flag, Name & Badge */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-2xl shrink-0 select-none">{flag}</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
                 {countryName}
               </h3>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+              <span className="text-[10px] font-mono px-1 rounded bg-slate-100 dark:bg-[#152b4d] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#1e3a5f]">
                 {code}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Sovereign Data Enclave</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Sovereign Enclave</p>
           </div>
         </div>
 
         <StatusBadge status={status} size="sm" pulse={isParticipating} />
       </div>
 
-      {/* Node Metrics Grid */}
-      <div className="grid grid-cols-2 gap-2 my-3 p-2.5 rounded-xl bg-[#0d1523] border border-slate-800/80 text-[11px]">
+      {/* Metrics Subcard */}
+      <div className="my-3 p-2.5 rounded-md bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]/80 grid grid-cols-2 gap-2 text-xs">
         <div>
-          <span className="text-slate-400 text-[10px] uppercase font-semibold flex items-center gap-1">
-            <Database className="w-3 h-3 text-cyan-400" /> Local Dataset
+          <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold flex items-center gap-1">
+            <Database className="w-3 h-3 text-blue-500 dark:text-blue-400" /> Ground Rows
           </span>
-          <p className="font-mono text-slate-200 font-bold mt-0.5">{metrics.rows}</p>
+          <p className="font-mono text-slate-800 dark:text-slate-200 font-bold mt-0.5">{metrics.rows}</p>
         </div>
         <div>
-          <span className="text-slate-400 text-[10px] uppercase font-semibold flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3 text-teal-400" /> DP Budget Spent
+          <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3 text-teal-600 dark:text-teal-400" /> DP Spent
           </span>
-          <p className="font-mono text-teal-300 font-bold mt-0.5">ε = {metrics.dpEpsilon} / 5.0</p>
+          <p className="font-mono text-teal-700 dark:text-teal-300 font-bold mt-0.5">ε = {metrics.dpEpsilon}</p>
         </div>
       </div>
 
-      {/* Footer Info: Freshness & Round Status */}
-      <div className="space-y-1.5 pt-2 border-t border-slate-800/60 text-xs">
+      {/* Footer info */}
+      <div className="pt-2 border-t border-slate-100 dark:border-[#1e3a5f]/60 space-y-1 text-xs">
         <div className="flex items-center justify-between text-[11px]">
-          <span className="text-slate-400">Model Upload:</span>
+          <span className="text-slate-500 dark:text-slate-400">Last Sync:</span>
           <DataFreshnessLabel timestamp={lastModelUpload || lastLocalTraining} />
         </div>
 
-        {healthIndicator && (
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Health:</span>
-            <span className="text-slate-300 font-medium truncate max-w-[140px]" title={healthIndicator}>
-              {healthIndicator}
-            </span>
-          </div>
-        )}
-
         {onClick && (
-          <div className="pt-2 flex items-center justify-between text-teal-400 text-xs font-semibold group-hover:translate-x-0.5 transition-transform">
-            <span>Inspect Sovereign Node</span>
+          <div className="pt-1 flex items-center justify-between text-blue-600 dark:text-blue-400 text-xs font-semibold">
+            <span>Inspect Enclave</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </div>
         )}

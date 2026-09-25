@@ -28,13 +28,13 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   icon,
 }) => {
   return (
-    <div className="p-5 rounded-2xl bg-[#111827] border border-slate-800 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between group">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+    <div className="bg-white dark:bg-[#0f1f38] border border-slate-200 dark:border-[#1e3a5f] rounded-lg shadow-sm p-4 sm:p-5 flex flex-col justify-between hover:border-slate-300 dark:hover:border-[#2e5584] transition-colors group">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           {title}
         </span>
         {icon && (
-          <div className="w-8 h-8 rounded-xl bg-slate-800/80 text-teal-400 flex items-center justify-center border border-slate-700/50 group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-[#152b4d] text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-[#1e3a5f] shrink-0">
             {icon}
           </div>
         )}
@@ -43,8 +43,8 @@ export const KpiCard: React.FC<KpiCardProps> = ({
         )}
       </div>
 
-      <div className="mt-3 flex items-baseline justify-between gap-2">
-        <span className="text-2xl md:text-3xl font-black tracking-tight text-white font-sans">
+      <div className="mt-2.5 flex items-baseline justify-between gap-2">
+        <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
           {value}
         </span>
         {statusBadge && icon && (
@@ -53,23 +53,27 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       </div>
 
       {(subtitle || trendText) && (
-        <div className="mt-2.5 flex items-center gap-2 flex-wrap pt-2 border-t border-slate-800/60 text-xs">
+        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-[#1e3a5f]/60 flex items-center gap-2 flex-wrap text-xs">
           {trendText && (
             <span
               className={`font-semibold font-mono ${
                 statusTone === 'green'
-                  ? 'text-emerald-400'
+                  ? 'text-emerald-600 dark:text-emerald-400'
                   : statusTone === 'amber'
-                  ? 'text-amber-400'
+                  ? 'text-amber-600 dark:text-amber-400'
                   : statusTone === 'red'
-                  ? 'text-rose-400'
-                  : 'text-slate-400'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               {trendText}
             </span>
           )}
-          {subtitle && <span className="text-slate-400 text-[11px]">{subtitle}</span>}
+          {subtitle && (
+            <span className="text-slate-500 dark:text-slate-400 text-[11px] truncate">
+              {subtitle}
+            </span>
+          )}
         </div>
       )}
     </div>

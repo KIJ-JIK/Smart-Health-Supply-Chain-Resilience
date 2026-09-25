@@ -32,13 +32,13 @@ export const PrivacyBudgetGauge: React.FC<PrivacyBudgetGaugeProps> = ({
     <div className="w-full flex flex-col gap-2.5">
       {/* Top Header */}
       <div className="flex items-baseline justify-between">
-        <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
           {isCritical ? (
-            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
           ) : isWarning ? (
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
           ) : (
-            <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+            <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
           )}
           Sovereign DP Privacy Budget Remaining
         </span>
@@ -46,7 +46,7 @@ export const PrivacyBudgetGauge: React.FC<PrivacyBudgetGaugeProps> = ({
           <span className={`text-base font-black ${textColor}`}>
             {remainingPercent.toFixed(1)}%
           </span>
-          <span className="text-[11px] text-slate-400">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400">
             ({remainingEpsilon.toFixed(2)} / {budgetLimit.toFixed(1)} ε remaining)
           </span>
         </div>
@@ -54,7 +54,7 @@ export const PrivacyBudgetGauge: React.FC<PrivacyBudgetGaugeProps> = ({
 
       {/* Progress Bar Gauge */}
       <div
-        className="w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5"
+        className="w-full bg-slate-100 dark:bg-[#0a1628] rounded-full overflow-hidden border border-slate-200 dark:border-[#1e3a5f] p-0.5"
         style={{ height }}
         role="progressbar"
         aria-valuenow={remainingPercent}
@@ -68,10 +68,10 @@ export const PrivacyBudgetGauge: React.FC<PrivacyBudgetGaugeProps> = ({
       </div>
 
       {/* Footer Info */}
-      <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+      <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono">
         <span>Consumed (Total): ε = {consumedEpsilon.toFixed(2)}</span>
         {thisRoundEpsilon > 0 && (
-          <span className="text-teal-400 font-semibold">
+          <span className="text-teal-600 dark:text-teal-400 font-semibold">
             +ε = {thisRoundEpsilon.toFixed(2)} in this round
           </span>
         )}

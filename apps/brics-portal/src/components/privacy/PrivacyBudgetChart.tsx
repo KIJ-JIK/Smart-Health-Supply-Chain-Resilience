@@ -80,14 +80,14 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
           {countries.map((c) => (
             <div key={c} className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COUNTRY_COLORS[c] }} />
-              <span className="text-slate-300">{COUNTRY_FLAGS[c]}</span>
+              <span className="text-slate-700 dark:text-slate-300">{COUNTRY_FLAGS[c]}</span>
             </div>
           ))}
         </div>
 
         <div className="flex items-center gap-2 text-[11px]">
           <span className="w-3 h-0.5 bg-rose-500" />
-          <span className="text-rose-400 font-bold">Hard Limit: ε = {budgetLimit.toFixed(1)}</span>
+          <span className="text-rose-600 dark:text-rose-400 font-bold">Hard Limit: ε = {budgetLimit.toFixed(1)}</span>
         </div>
       </div>
 
@@ -116,7 +116,8 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
                 y1={y}
                 x2={width - padding.right}
                 y2={y}
-                stroke="#1e293b"
+                stroke="currentColor"
+                className="text-slate-200 dark:text-[#1e3a5f]"
                 strokeDasharray="3 3"
                 strokeWidth="1"
               />
@@ -124,7 +125,7 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
                 x={padding.left - 8}
                 y={y + 3}
                 textAnchor="end"
-                fill="#64748b"
+                className="fill-slate-400 dark:fill-slate-500"
                 fontSize="10"
                 fontFamily="monospace"
               >
@@ -167,7 +168,7 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
                   cy={getY(d[country])}
                   r="3.5"
                   fill={color}
-                  stroke="#0a0f1a"
+                  stroke="#0f1f38"
                   strokeWidth="2"
                 />
               ))}
@@ -182,7 +183,7 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
             x={getX(i)}
             y={height - 12}
             textAnchor="middle"
-            fill="#64748b"
+            className="fill-slate-500 dark:fill-slate-400"
             fontSize="10"
             fontFamily="monospace"
           >

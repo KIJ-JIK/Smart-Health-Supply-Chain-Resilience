@@ -48,28 +48,28 @@ export const RoundDetailDrawer: React.FC<RoundDetailDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-end animate-in fade-in duration-150"
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-end animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg h-full bg-[#0d1523] border-l border-slate-800 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto space-y-6"
+        className="w-full max-w-lg h-full bg-white dark:bg-[#0f1f38] border-l border-slate-200 dark:border-[#1e3a5f] p-6 shadow-2xl flex flex-col justify-between overflow-y-auto space-y-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="space-y-4">
-          <div className="flex items-start justify-between border-b border-slate-800 pb-4">
+          <div className="flex items-start justify-between border-b border-slate-200 dark:border-[#1e3a5f] pb-4">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-white">{round.roundId}</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-mono">{round.roundId}</h3>
                 <StatusBadge status={round.status} size="sm" pulse={round.status === 'aggregating'} />
               </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Target Model: <span className="text-slate-200 font-mono font-semibold">{round.modelVersion}</span> • Quorum: {round.quorumRequired}/5
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">
+                Target Model: <span className="text-slate-800 dark:text-slate-200 font-semibold">{round.modelVersion}</span> • Quorum: {round.quorumRequired}/5
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-slate-300 p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-[#152b4d] transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -77,15 +77,15 @@ export const RoundDetailDrawer: React.FC<RoundDetailDrawerProps> = ({
 
           {/* Metric Summary */}
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-3 rounded-xl bg-[#111827] border border-slate-800">
-              <span className="text-slate-400 text-[10px] uppercase font-semibold">Started At</span>
-              <p className="text-slate-200 font-mono font-bold mt-1">
+            <div className="p-3 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]">
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold font-mono">Started At</span>
+              <p className="text-slate-800 dark:text-slate-200 font-mono font-bold mt-1">
                 <DataFreshnessLabel timestamp={round.startedAt} />
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-[#111827] border border-slate-800">
-              <span className="text-slate-400 text-[10px] uppercase font-semibold">Consensus Quorum</span>
-              <p className="text-teal-400 font-mono font-bold mt-1">
+            <div className="p-3 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]">
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold font-mono">Consensus Quorum</span>
+              <p className="text-teal-600 dark:text-teal-400 font-mono font-bold mt-1">
                 {round.submittedCountries?.length || 0} / 5 Enclaves Verified
               </p>
             </div>
@@ -93,7 +93,7 @@ export const RoundDetailDrawer: React.FC<RoundDetailDrawerProps> = ({
 
           {/* Enclave Submissions List */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
               Sovereign Node Gradient Status
             </h4>
 
@@ -106,27 +106,27 @@ export const RoundDetailDrawer: React.FC<RoundDetailDrawerProps> = ({
                 return (
                   <div
                     key={code}
-                    className="p-3 rounded-xl bg-[#111827] border border-slate-800/80 flex items-center justify-between"
+                    className="p-3 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]/80 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="text-xl">{flag}</span>
                       <div>
-                        <p className="text-xs font-bold text-white leading-tight">{name}</p>
-                        <span className="text-[10px] font-mono text-slate-400">Node: BRICS-{code}</span>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{name}</p>
+                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Node: BRICS-{code}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       {nodeStatus === 'submitted' ? (
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded border border-emerald-500/20 font-mono">
+                        <span className="gov-badge gov-badge-emerald flex items-center gap-1 font-mono">
                           <CheckCircle2 className="w-3 h-3" /> Submitted
                         </span>
                       ) : nodeStatus === 'pending' ? (
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20 font-mono">
+                        <span className="gov-badge gov-badge-amber flex items-center gap-1 font-mono">
                           <Clock className="w-3 h-3 animate-spin" /> Training...
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded border border-rose-500/20 font-mono">
+                        <span className="gov-badge gov-badge-rose flex items-center gap-1 font-mono">
                           <AlertTriangle className="w-3 h-3" /> Excluded
                         </span>
                       )}
@@ -139,10 +139,10 @@ export const RoundDetailDrawer: React.FC<RoundDetailDrawerProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+        <div className="pt-4 border-t border-slate-200 dark:border-[#1e3a5f] flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all"
+            className="px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-[#152b4d] dark:hover:bg-[#1e3a5f] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#1e3a5f] text-xs font-semibold transition-all"
           >
             Close Inspector
           </button>

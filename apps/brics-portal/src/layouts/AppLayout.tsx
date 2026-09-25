@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // AppLayout — Sidebar + Header + Content Area Layout Wrapper
-// Aligned with dark Command Center design system.
+// Clean white background & institutional government styling
 // ---------------------------------------------------------------------------
 
 import React from 'react';
@@ -9,12 +9,18 @@ import { Sidebar, Header } from '@/components/layout';
 
 export function AppLayout() {
   return (
-    <div className="min-h-screen bg-[#0a0f1a] text-slate-100 flex flex-row font-sans selection:bg-teal-500 selection:text-slate-950">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#f8fafc] font-sans text-slate-900">
+      {/* Sidebar */}
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-hidden">
+
+      {/* Main Content Viewport */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 bg-[#f8fafc]">
         <Header />
-        <main className="flex-1 p-4 md:p-6 lg:p-8 bg-[#0a0f1a] overflow-y-auto max-w-[1600px] w-full mx-auto space-y-6">
-          <Outlet />
+
+        <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 pb-20 lg:pb-6 bg-[#f8fafc]">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

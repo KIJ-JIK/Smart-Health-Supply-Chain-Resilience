@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // Left navigation sidebar for the BRICS Federated Intelligence & Governance Portal.
-// Aligned with team design system (Dark slate, Lucide icons, glowing active states).
+// Styled in deep institutional navy blue (#0b1e36) matching the top heading banner.
 // ---------------------------------------------------------------------------
 
 import React from 'react';
@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Radio,
   FileCheck2,
+  Globe2,
 } from 'lucide-react';
 import { useUIStore } from '@/store';
 
@@ -25,17 +26,37 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
-  badgeColor?: string;
+  badgeVariant?: 'blue' | 'emerald' | 'amber';
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { key: 'overview', label: 'Command Overview', href: '/', icon: LayoutDashboard },
-  { key: 'nodes', label: 'Sovereign Nodes', href: '/nodes', icon: Server, badge: '5 Online', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
-  { key: 'rounds', label: 'Training Rounds', href: '/rounds', icon: Activity, badge: 'Live', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
-  { key: 'review', label: 'Model Review & Sign-Off', href: '/rounds/review', icon: FileCheck2, badge: 'Action', badgeColor: 'bg-amber-500/20 text-amber-300' },
-  { key: 'lineage', label: 'Model Lineage (DAG)', href: '/lineage', icon: GitBranch },
-  { key: 'privacy', label: 'Differential Privacy', href: '/privacy', icon: ShieldCheck, badge: 'ε=1.42', badgeColor: 'bg-teal-500/20 text-teal-300' },
-  { key: 'settings', label: 'Coordinator Settings', href: '/settings', icon: Settings },
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Consortium & Surveillance',
+    items: [
+      { key: 'overview', label: 'Command Overview', href: '/', icon: LayoutDashboard },
+      { key: 'nodes', label: 'Sovereign Enclaves', href: '/nodes', icon: Server, badge: '5 Online', badgeVariant: 'emerald' },
+    ],
+  },
+  {
+    label: 'Federated Training & AI',
+    items: [
+      { key: 'rounds', label: 'Training Rounds', href: '/rounds', icon: Activity, badge: 'Live', badgeVariant: 'blue' },
+      { key: 'lineage', label: 'Model Lineage (DAG)', href: '/lineage', icon: GitBranch },
+    ],
+  },
+  {
+    label: 'Governance & Privacy',
+    items: [
+      { key: 'review', label: 'Model Review & Sign-Off', href: '/rounds/review', icon: FileCheck2, badge: 'Action', badgeVariant: 'amber' },
+      { key: 'privacy', label: 'Differential Privacy', href: '/privacy', icon: ShieldCheck, badge: 'ε=1.42', badgeVariant: 'emerald' },
+      { key: 'settings', label: 'Coordinator Settings', href: '/settings', icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -45,28 +66,25 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`min-h-screen bg-[#0d1523] border-r border-slate-800 text-slate-100 flex flex-col transition-all duration-300 select-none z-20 shrink-0 ${
+      className={`hidden lg:flex flex-col h-full bg-[#0b1e36] text-white border-r border-slate-700/60 select-none z-30 transition-all duration-200 shrink-0 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
-      {/* Sidebar Header */}
-      <div className="h-16 px-4 border-b border-slate-800 flex items-center justify-between">
+      {/* Sidebar Top Identity Header */}
+      <div className="h-12 px-3 border-b border-slate-700/60 flex items-center justify-between bg-[#0b1e36]">
         {!collapsed && (
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center font-black text-xs border border-teal-500/30">
-              BR
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-5 h-5 rounded bg-blue-700 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-sm">
+              🌐
             </div>
-            <div>
-              <span className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-                BRICS Alliance
-              </span>
-              <p className="text-[10px] text-slate-400 font-mono">Federation Oversight</p>
-            </div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-200 truncate">
+              Federated Council
+            </span>
           </div>
         )}
         <button
           onClick={toggleSidebar}
-          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-all mx-auto"
+          className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors mx-auto"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
@@ -74,60 +92,73 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 py-4 px-2.5 space-y-1.5 overflow-y-auto">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+      {/* Navigation Groups List */}
+      <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-4">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="space-y-1">
+            {!collapsed && (
+              <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {group.label}
+              </div>
+            )}
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
 
-          return (
-            <Link
-              key={item.key}
-              to={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
-                isActive
-                  ? 'bg-teal-500/10 text-teal-300 border border-teal-500/30 shadow-sm shadow-teal-500/10 font-bold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
-              }`}
-              title={collapsed ? item.label : undefined}
-            >
-              <Icon
-                className={`w-4 h-4 shrink-0 transition-colors ${
-                  isActive ? 'text-teal-400' : 'text-slate-400 group-hover:text-slate-200'
-                }`}
-              />
-              {!collapsed && (
-                <div className="flex-1 flex items-center justify-between min-w-0">
-                  <span className="truncate">{item.label}</span>
-                  {item.badge && (
-                    <span
-                      className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                        item.badgeColor || 'bg-slate-800 text-slate-300'
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
+              return (
+                <Link
+                  key={item.key}
+                  to={item.href}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors ${
+                    isActive
+                      ? 'bg-blue-800 text-white font-bold border-l-4 border-blue-400 shadow-sm'
+                      : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                  }`}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <Icon
+                    className={`w-4 h-4 shrink-0 ${
+                      isActive ? 'text-white' : 'text-slate-400'
+                    }`}
+                  />
+                  {!collapsed && (
+                    <div className="flex-1 flex items-center justify-between min-w-0">
+                      <span className="truncate">{item.label}</span>
+                      {item.badge && (
+                        <span
+                          className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                            item.badgeVariant === 'emerald'
+                              ? 'bg-emerald-600 text-white'
+                              : item.badgeVariant === 'amber'
+                              ? 'bg-amber-600 text-white'
+                              : 'bg-blue-600 text-white'
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
-            </Link>
-          );
-        })}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
-      {/* Bottom Network Pulse Card */}
+      {/* Bottom Node Security Banner */}
       {!collapsed && (
-        <div className="p-3 mx-2.5 mb-4 rounded-xl bg-[#111827] border border-slate-800/80">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              Consensus Engine
+        <div className="p-3 m-2 rounded-md bg-[#08172b] border border-slate-700/60 text-slate-300 space-y-1">
+          <div className="flex items-center justify-between text-[11px] font-semibold">
+            <span className="flex items-center gap-1.5 text-emerald-400">
+              <Radio className="w-3.5 h-3.5" />
+              Sovereign FedAvg
             </span>
-            <span className="text-[10px] font-mono text-emerald-400 font-bold">100% OK</span>
+            <span className="text-[10px] font-mono text-emerald-400 font-bold">5/5 Ready</span>
           </div>
           <p className="text-[10px] text-slate-400 leading-tight">
-            FedAvg with Paillier Cryptosystem and Gaussian DP noise active.
+            Paillier homomorphic encryption and Gaussian DP noise active.
           </p>
         </div>
       )}
