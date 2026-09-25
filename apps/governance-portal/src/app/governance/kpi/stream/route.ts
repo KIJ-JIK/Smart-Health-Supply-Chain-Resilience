@@ -7,12 +7,16 @@ export const dynamic = 'force-dynamic';
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'http://localhost:8000';
 
-async function fetchBackendKpis(): Promise<Record<string, number>> {
+async function fetchBackendKpis(authHeader?: string): Promise<Record<string, number>> {
   try {
     // Fetch national overview via GraphQL
     const res = await fetch(`${BACKEND}/graphql`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // Forward auth token from the browser so backend logs a real user_id
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
       body: JSON.stringify({
         query: `{ nationalOverview { totalPhcs activePhcs criticalPhcs totalBeds occupiedBeds bedOccupancyRate oxygenCylindersAvailable openAlertsCount criticalAlertsCount staffShortagePhcCount pendingRedistributionsCount } }`,
       }),
@@ -26,7 +30,8 @@ async function fetchBackendKpis(): Promise<Record<string, number>> {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const authHeader = req.headers.get('Authorization') ?? undefined;
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -34,7 +39,7 @@ export async function GET() {
       controller.enqueue(encoder.encode(': connected\n\n'));
 
       const sendTick = async () => {
-        const data = await fetchBackendKpis();
+        const data = await fetchBackendKpis(authHeader);
 
         const ticks = [
           { metric: 'Critical PHCs',      value: data.criticalPhcs              ?? 0, unit: 'PHCs',   severity: 'critical' },
