@@ -7,9 +7,9 @@ import { TenantClaims, pool } from '../../db/pool';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 const CANDIDATE_MODELS = [
-  'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
-  'gemini-3.6-flash',
+  'gemini-flash-lite-latest',
+  'gemini-pro-latest',
+  'gemini-2.5-flash',
   'gemini-flash-latest',
 ];
 
@@ -55,6 +55,7 @@ async function callLlmWithFallback(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(6000),
       });
 
       if (!res.ok) {

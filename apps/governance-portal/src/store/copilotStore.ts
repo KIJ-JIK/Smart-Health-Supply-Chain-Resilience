@@ -103,7 +103,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => ({
             : {}),
         },
         body: JSON.stringify({ phcId, message: trimmed }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(45000),
       });
 
       let assistantMessage: CopilotMessage;
