@@ -23,7 +23,7 @@ export function auditInstrumentationMiddleware(req: Request, res: Response, next
 
   // Intercept cross-tenant read
   if (method === 'GET' && claims) {
-    const phcParam = req.params.phcId || (req.query.phcId as string);
+    const phcParam = req.params?.phcId || (req.query?.phcId as string);
     if (phcParam && claims.role === 'phc_user' && claims.phc_id && claims.phc_id !== phcParam) {
       // Detected cross-tenant read attempt
       AuditService.recordCrossTenantRead(
@@ -59,7 +59,7 @@ export function auditInstrumentationMiddleware(req: Request, res: Response, next
     const originalJson = res.json.bind(res);
     res.json = function (body: any) {
       const responseData = body;
-      const entityId = responseData?.data?.id || responseData?.id || req.params.id || null;
+      const entityId = responseData?.data?.id || responseData?.id || req.params?.id || null;
       const aiRecPayload = req.body?.aiRecommendation || req.body?.aiRecPayload || null;
 
       // Asynchronous append-only audit record creation
@@ -71,7 +71,7 @@ export function auditInstrumentationMiddleware(req: Request, res: Response, next
         entityId,
         beforeState,
         afterState: responseData,
-        phcId: claims?.phc_id || req.params.phcId || null,
+        phcId: claims?.phc_id || req.params?.phcId || null,
         districtId: claims?.district_id || null,
         stateId: claims?.state_id || null,
         sourceIp,

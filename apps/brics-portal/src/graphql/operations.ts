@@ -118,6 +118,7 @@ export const APPROVE_AGGREGATED_MODEL = gql`
     approveAggregatedModel(roundId: $roundId) {
       id
       roundId
+      modelVersion
       status
       completedAt
     }
@@ -129,6 +130,7 @@ export const REJECT_AGGREGATED_MODEL = gql`
     rejectAggregatedModel(roundId: $roundId, reason: $reason) {
       id
       roundId
+      modelVersion
       status
       completedAt
     }

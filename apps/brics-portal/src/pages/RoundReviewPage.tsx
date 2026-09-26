@@ -123,12 +123,12 @@ function ReviewContent() {
   const budgetEntries = budgetData?.federatedPrivacyBudget || [];
 
   const candidateRound =
-    rounds.find((r) => r.roundId === queryRoundId) ||
+    rounds.find((r) => r.roundId === queryRoundId || r.id === queryRoundId) ||
     rounds.find((r) => r.status === 'awaiting_review') ||
     rounds[0];
 
   const candidateModel =
-    models.find((m) => m.federationRoundId === candidateRound?.roundId) ||
+    models.find((m) => m.federationRoundId === candidateRound?.id) ||
     models.find((m) => m.status === 'received') ||
     models[models.length - 1];
 
@@ -138,7 +138,7 @@ function ReviewContent() {
     models[0];
 
   const roundEntries = budgetEntries.filter(
-    (b) => b.federationRoundId === candidateRound?.roundId
+    (b) => b.federationRoundId === candidateRound?.id
   );
   const totalConsumedEpsilon = budgetEntries.reduce(
     (acc, curr) => Math.max(acc, curr.cumulativeEpsilon),
@@ -153,7 +153,7 @@ function ReviewContent() {
     if (!candidateRound) return;
     await approveModel({
       variables: {
-        roundId: candidateRound.roundId,
+        roundId: candidateRound.id,
       },
     });
     setIsApproveOpen(false);
@@ -167,7 +167,7 @@ function ReviewContent() {
     }
     await rejectModel({
       variables: {
-        roundId: candidateRound.roundId,
+        roundId: candidateRound.id,
         reason: rejectReason,
       },
     });
@@ -312,7 +312,7 @@ function ReviewContent() {
                   quorumMet ? 'gov-badge-emerald' : 'gov-badge-rose'
                 }`}
               >
-                {candidateRound.submittedCountries?.length || 0} / 5 Nations Submitted (Quorum Met)
+                {candidateRound.submittedCountries?.length || 0} / 5 Nations Submitted ({quorumMet ? 'Quorum Met' : 'Quorum Not Met'})
               </span>
             </div>
 

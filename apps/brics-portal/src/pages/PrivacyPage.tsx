@@ -57,39 +57,53 @@ export default function PrivacyPage() {
   });
 
   const countryList = ['IN', 'BR', 'RU', 'CN', 'ZA'];
+  const canonicalBudgetLimit = entries[0]?.budgetLimit ?? 10.0;
 
-  const timeSeriesData: PrivacyTimeSeriesDataPoint[] = [
-    {
-      roundLabel: 'Round 13',
-      roundNumber: 13,
-      IN: 1.15,
-      BR: 1.28,
-      RU: 1.10,
-      CN: 1.20,
-      ZA: 1.35,
-      averageCumulative: 1.21,
-    },
-    {
-      roundLabel: 'Round 15',
-      roundNumber: 15,
-      IN: 1.20,
-      BR: 1.35,
-      RU: 1.14,
-      CN: 1.24,
-      ZA: 1.42,
-      averageCumulative: 1.27,
-    },
-    {
-      roundLabel: 'Round 17',
-      roundNumber: 17,
-      IN: 1.24,
-      BR: 1.45,
-      RU: 1.18,
-      CN: 1.30,
-      ZA: 1.50,
-      averageCumulative: 1.33,
-    },
-  ];
+  const timeSeriesData: PrivacyTimeSeriesDataPoint[] = React.useMemo(() => {
+    if (!entries || entries.length === 0) return [];
+
+    // Sort entries chronologically
+    const sorted = [...entries].sort(
+      (a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime()
+    );
+
+    // Group entries by federationRoundId maintaining first-seen order
+    const roundOrder: string[] = [];
+    const roundGroups = new Map<string, PrivacyBudgetEntry[]>();
+
+    for (const entry of sorted) {
+      const rId = entry.federationRoundId || entry.id;
+      if (!roundGroups.has(rId)) {
+        roundGroups.set(rId, []);
+        roundOrder.push(rId);
+      }
+      roundGroups.get(rId)!.push(entry);
+    }
+
+    const latest: Record<string, number> = { IN: 0, BR: 0, RU: 0, CN: 0, ZA: 0 };
+
+    return roundOrder.map((rId, idx) => {
+      const roundEntries = roundGroups.get(rId) || [];
+      for (const e of roundEntries) {
+        const code = e.countryId;
+        if (code && latest[code] !== undefined) {
+          latest[code] = e.cumulativeEpsilon;
+        }
+      }
+      const roundNum = idx + 1;
+      const avg = (latest.IN + latest.BR + latest.RU + latest.CN + latest.ZA) / 5;
+      return {
+        roundLabel: `Round ${roundNum}`,
+        roundNumber: roundNum,
+        IN: Number(latest.IN.toFixed(2)),
+        BR: Number(latest.BR.toFixed(2)),
+        RU: Number(latest.RU.toFixed(2)),
+        CN: Number(latest.CN.toFixed(2)),
+        ZA: Number(latest.ZA.toFixed(2)),
+        averageCumulative: Number(avg.toFixed(2)),
+      };
+    });
+  }, [entries]);
 
   if (error) {
     return (
@@ -151,15 +165,15 @@ export default function PrivacyPage() {
               Cumulative Differential Privacy Consumption (\(\epsilon\)) Across Rounds
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-              Rényi Differential Privacy (RDP) accumulation towards hard cap \(\epsilon \le 5.0\)
+              Rényi Differential Privacy (RDP) accumulation towards hard cap \(\epsilon \le {canonicalBudgetLimit.toFixed(1)}\)
             </p>
           </div>
           <span className="gov-badge gov-badge-teal">
-            All Nodes Healthy (&lt; 35% Consumed)
+            All Nodes Within Sovereign Limit (ε ≤ {canonicalBudgetLimit.toFixed(1)})
           </span>
         </div>
 
-        <PrivacyBudgetChart data={timeSeriesData} budgetLimit={5.0} height={260} />
+        <PrivacyBudgetChart data={timeSeriesData} budgetLimit={canonicalBudgetLimit} height={260} />
       </div>
 
       {/* Per-Country Ledger Breakdown */}
@@ -174,7 +188,9 @@ export default function PrivacyPage() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {countryList.map((code) => {
             const entry = latestByCountry[code];
-            const consumed = entry ? entry.cumulativeEpsilon : 1.3;
+            const consumed = entry ? entry.cumulativeEpsilon : 0;
+            const limit = entry?.budgetLimit ?? canonicalBudgetLimit;
+            const pct = Math.min(100, (consumed / limit) * 100);
             const flag = COUNTRY_FLAGS[code];
             const name = COUNTRY_NAMES[code];
 
@@ -192,13 +208,13 @@ export default function PrivacyPage() {
                 <div>
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white">{name}</h4>
                   <p className="text-[10px] font-mono text-teal-600 dark:text-teal-300 font-bold mt-1">
-                    ε = {consumed.toFixed(2)} / 5.0
+                    ε = {consumed.toFixed(2)} / {limit.toFixed(1)}
                   </p>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-[#0a1628] rounded-full h-1.5 overflow-hidden">
                   <div
-                    className="bg-teal-500 dark:bg-teal-400 h-full rounded-full"
-                    style={{ width: `${(consumed / 5.0) * 100}%` }}
+                    className="bg-teal-500 dark:bg-teal-400 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${pct}%` }}
                   />
                 </div>
               </div>

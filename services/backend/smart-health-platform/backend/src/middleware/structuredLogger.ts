@@ -62,7 +62,7 @@ export function structuredLoggingMiddleware(req: Request, res: Response, next: N
 
     const claims = (req as any).claims;
     const userId = claims?.sub || null;
-    const phcId = claims?.phcId || (claims as any)?.phc_id || req.params.phcId || null;
+    const phcId = claims?.phcId || (claims as any)?.phc_id || req.params?.phcId || null;
 
     const entry: StructuredLogEntry = {
       request_id: requestId,

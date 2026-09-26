@@ -34,8 +34,21 @@ import { auditInstrumentationMiddleware } from './modules/audit/auditMiddleware'
 app.use(auditInstrumentationMiddleware);
 
 // ---------------------------------------------------------------------------
-// Health check — unauthenticated
+// Service root & health check — unauthenticated
 // ---------------------------------------------------------------------------
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'smart-health-backend',
+    status: 'online',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      graphql: '/graphql',
+      api: '/api/v1',
+    },
+  });
+});
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -426,6 +439,13 @@ app.use('/api/v1', auditRouter);
 import { metricsRouter } from './modules/observability/metricsController';
 app.use(metricsRouter);
 app.use('/api/v1', metricsRouter);
+
+// ---------------------------------------------------------------------------
+// Primary Healthcare Centre (PHC) Portal Ground-Truth & Auth Routes
+// ---------------------------------------------------------------------------
+import { phcPortalRouter } from './modules/phc/phcPortalRoutes';
+app.use('/api/v1', phcPortalRouter);
+app.use(phcPortalRouter);
 
 // ---------------------------------------------------------------------------
 // Crisis Simulator WebSocket (Prompt 17) & HTTP Server

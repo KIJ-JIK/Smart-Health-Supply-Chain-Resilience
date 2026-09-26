@@ -5,7 +5,10 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "ts-node src/index.ts",
+    "start": "node dist/src/index.js",
     "build": "tsc",
+    "test": "ts-node tests/test_chunk14_ai_brics.ts",
+    "test:all": "ts-node tests/test_api_contracts.ts && ts-node tests/test_chunk10_consumption_workforce_footfall.ts && ts-node tests/test_chunk11_requests_alerts.ts && ts-node tests/test_chunk12_event_catalog.ts && ts-node tests/test_chunk13_governance_config.ts && ts-node tests/test_chunk14_ai_brics.ts && ts-node tests/test_chunk15_supply_chain_audit.ts && ts-node tests/test_chunk16_observability_cross_team.ts",
     "migrate": "ts-node ../database/seeds/migrate.ts",
     "seed": "ts-node ../database/seeds/seed.ts",
     "test:rls": "ts-node tests/test_rls_matrix.ts",
@@ -25,6 +28,7 @@
     "load-test:billing": "ts-node scripts/load_test_scale.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@types/ws": "^8.18.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

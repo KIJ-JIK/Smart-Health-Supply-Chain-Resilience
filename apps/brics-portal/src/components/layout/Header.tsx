@@ -14,10 +14,11 @@ import {
   Building2,
   Radio,
 } from 'lucide-react';
-import { useCurrentUser } from '@/hooks';
+import { useCurrentUser, useMemberPrivacyBudget } from '@/hooks';
 
 export function Header() {
   const user = useCurrentUser();
+  const { cumulativeEpsilon, budgetLimit } = useMemberPrivacyBudget('ZA');
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-[#0f1f38] border-b border-slate-200 dark:border-[#1e3a5f] shadow-sm shrink-0">
@@ -77,7 +78,7 @@ export function Header() {
           <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-md bg-slate-100 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] text-xs font-mono">
             <span className="text-teal-600 dark:text-teal-300 flex items-center gap-1 font-semibold">
               <Lock className="w-3.5 h-3.5" />
-              <span>DP-SGD (ε=1.42 / 5.0)</span>
+              <span>DP-SGD (ε={cumulativeEpsilon.toFixed(2)} / {budgetLimit.toFixed(1)})</span>
             </span>
           </div>
 

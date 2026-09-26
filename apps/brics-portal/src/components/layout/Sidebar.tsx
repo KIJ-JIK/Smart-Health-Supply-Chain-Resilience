@@ -19,6 +19,7 @@ import {
   Globe2,
 } from 'lucide-react';
 import { useUIStore } from '@/store';
+import { useMemberPrivacyBudget } from '@/hooks';
 
 interface NavItem {
   key: string;
@@ -63,6 +64,7 @@ export function Sidebar() {
   const { pathname } = useLocation();
   const collapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const { cumulativeEpsilon } = useMemberPrivacyBudget('ZA');
 
   return (
     <aside
@@ -125,19 +127,25 @@ export function Sidebar() {
                   {!collapsed && (
                     <div className="flex-1 flex items-center justify-between min-w-0">
                       <span className="truncate">{item.label}</span>
-                      {item.badge && (
-                        <span
-                          className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
-                            item.badgeVariant === 'emerald'
-                              ? 'bg-emerald-600 text-white'
-                              : item.badgeVariant === 'amber'
-                              ? 'bg-amber-600 text-white'
-                              : 'bg-blue-600 text-white'
-                          }`}
-                        >
-                          {item.badge}
-                        </span>
-                      )}
+                      {(() => {
+                        const badgeText = item.key === 'privacy'
+                          ? `ε=${cumulativeEpsilon.toFixed(2)}`
+                          : item.badge;
+                        if (!badgeText) return null;
+                        return (
+                          <span
+                            className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                              item.badgeVariant === 'emerald'
+                                ? 'bg-emerald-600 text-white'
+                                : item.badgeVariant === 'amber'
+                                ? 'bg-amber-600 text-white'
+                                : 'bg-blue-600 text-white'
+                            }`}
+                          >
+                            {badgeText}
+                          </span>
+                        );
+                      })()}
                     </div>
                   )}
                 </Link>
