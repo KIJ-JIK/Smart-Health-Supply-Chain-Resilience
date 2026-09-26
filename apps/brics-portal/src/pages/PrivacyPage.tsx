@@ -139,6 +139,20 @@ export default function PrivacyPage() {
         </button>
       </div>
 
+      {/* Plain-English Executive Guidance Box */}
+      <div className="p-4 rounded-xl bg-teal-50/60 dark:bg-[#152b4d]/70 border border-teal-200 dark:border-[#1e3a5f] flex items-start gap-3.5">
+        <ShieldCheck className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+        <div className="text-xs space-y-1">
+          <h4 className="font-bold text-teal-900 dark:text-teal-200">
+            What is Differential Privacy &amp; What Does This Screen Do?
+          </h4>
+          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+            Think of <strong>ε (Epsilon)</strong> like a <strong>"Privacy Fuel Gauge"</strong>. Each time a member country trains the federated AI on local clinic records to predict disease outbreaks, a small amount of privacy budget (Δε ≈ 0.18) is consumed by injecting mathematical noise (σ = 1.12). 
+            The alliance enforces a <strong>hard regulatory ceiling of ε ≤ 5.0</strong>. If any country approaches this cap, training rounds are automatically throttled to mathematically guarantee that zero patient identities or hospital inventories can ever be reverse-engineered.
+          </p>
+        </div>
+      </div>
+
       {/* Sovereign Isolation Notice */}
       <div className="p-4 rounded-lg bg-teal-50/50 dark:bg-[#0f1f38] border border-teal-200 dark:border-teal-500/30 shadow-sm flex items-start gap-3.5">
         <div className="w-8 h-8 rounded bg-teal-100 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-200 dark:border-teal-500/30 mt-0.5">
@@ -148,7 +162,7 @@ export default function PrivacyPage() {
           <h3 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
             Sovereign Data Residency &amp; Zero Raw Egress Guarantee
           </h3>
-          <p className="text-slate-600 dark:text-slate-300 font-mono leading-relaxed text-[11px]">
+          <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px]">
             The central coordinator <strong>only ever aggregates encrypted gradient updates</strong>. 
             Patient records, inventory quantities, and facility telemetry never leave their sovereign national borders. 
             Gaussian noise addition (σ = 1.12) mathematically prevents model inversion and membership inference attacks.

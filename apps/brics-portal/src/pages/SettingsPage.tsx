@@ -97,13 +97,27 @@ export default function SettingsPage() {
             <Settings className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             Federation Coordinator Settings &amp; Cryptography Configuration
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">
-            Sovereign participant registry, mTLS encryption cipher suites, and multi-cloud sync endpoints.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Sovereign participant registry, mTLS encryption cipher suites, and cross-border sync mesh topology.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <DisabledCountryButton />
+        </div>
+      </div>
+
+      {/* Plain-English Executive Guidance Box */}
+      <div className="p-4 rounded-xl bg-teal-50/60 dark:bg-[#152b4d]/70 border border-teal-200 dark:border-[#1e3a5f] flex items-start gap-3.5">
+        <ShieldCheck className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+        <div className="text-xs space-y-1">
+          <h4 className="font-bold text-teal-900 dark:text-teal-200">
+            What are Coordinator Settings &amp; Why Are They Here?
+          </h4>
+          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+            In international federated AI, national health authorities do not send patient records to a single cloud. Instead, each country operates an isolated, sovereign enclave. 
+            This screen is the <strong>infrastructure dashboard</strong> where health alliance administrators monitor encrypted mTLS gRPC communication channels, ensure compliance with national data privacy statutes (India DPDP Act, Brazil LGPD, South Africa POPIA), and manage member country enclave connectivity.
+          </p>
         </div>
       </div>
 
@@ -122,28 +136,34 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
             <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
               Central Sync Ingestion API
             </span>
-            <p className="font-mono text-teal-600 dark:text-teal-300 font-bold text-sm">{import.meta.env?.VITE_BACKEND_URL?.replace('/graphql','') ?? 'Backend API'}</p>
+            <p className="font-mono text-teal-600 dark:text-teal-300 font-bold text-sm">
+              https://mesh.aura-health.org/api/v1
+            </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">FastAPI &amp; Express Telemetry Ingestion</p>
           </div>
 
-          <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
             <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
               AI Demand &amp; Optimization Engine
             </span>
-            <p className="font-mono text-cyan-600 dark:text-cyan-300 font-bold text-sm">{import.meta.env?.VITE_AI_URL ?? 'AI Engine'}</p>
+            <p className="font-mono text-cyan-600 dark:text-cyan-300 font-bold text-sm">
+              https://ai.aura-health.org/fedavg
+            </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Prophet &amp; FedAvg Aggregator Service</p>
           </div>
 
-          <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
             <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
-              District Command Bridge
+              Governance Command Bridge
             </span>
-            <p className="font-mono text-indigo-600 dark:text-indigo-300 font-bold text-sm">{import.meta.env?.VITE_GOVERNANCE_URL ?? 'Governance Portal'}</p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Varanasi UP Health Administration Portal</p>
+            <p className="font-mono text-indigo-600 dark:text-indigo-300 font-bold text-sm">
+              https://vantage.aura-health.org
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">National &amp; State Command Portal</p>
           </div>
         </div>
       </div>
