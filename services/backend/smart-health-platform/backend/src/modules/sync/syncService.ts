@@ -6,7 +6,7 @@ import { adminPool, TenantClaims } from '../../db/pool';
 
 export interface MutationInput<T = Record<string, any>> {
   id:               string; // Client UUID idempotency key
-  entity_type:      'billing_transaction' | 'inventory_batch_update' | 'resource_request' |
+  entity_type:      'billing_transaction' | 'inventory_batch_update' | 'inventory_batch_create' | 'resource_request' |
                     'footfall_entry' | 'facility_update' | 'staff_attendance' | 'alert_report' |
                     'system_config' | 'config_update';
   operation:        'create' | 'update';
@@ -196,6 +196,7 @@ export class SyncService {
       case 'billing_transaction':
         return this.handleBillingMutation(client, phcId, mutation);
 
+      case 'inventory_batch_create':
       case 'inventory_batch_update':
         return this.handleInventoryMutation(client, phcId, mutation);
 
@@ -289,19 +290,56 @@ export class SyncService {
     mutation: MutationInput,
   ): Promise<MutationResultOutput> {
     const p = mutation.payload;
+    const batchId = p.batch_id || p.id || null;
+    const remainingQty = p.remaining_qty ?? p.new_quantity ?? p.received_qty ?? 0;
+    const isUpdate =
+      mutation.entity_type === 'inventory_batch_update' ||
+      mutation.operation === 'update';
+
+    // In 'inventory_batch_update' or when batch_no is absent
+    if (isUpdate || !p.batch_no) {
+      if (!p.batch_no) {
+        const updateRes = await client.query(
+          `UPDATE inventory_batches
+           SET remaining_qty = $1, updated_at = NOW()
+           WHERE id = $2 OR (phc_id = $3 AND medicine_id = $4)
+           RETURNING id`,
+          [remainingQty, batchId, phcId, p.medicine_id || null],
+        );
+        if ((updateRes.rowCount ?? 0) > 0) {
+          return { mutation_id: mutation.id, status: 'accepted', server_entity_id: updateRes.rows[0].id };
+        }
+      } else {
+        const updateRes = await client.query(
+          `UPDATE inventory_batches
+           SET remaining_qty = $1, updated_at = NOW()
+           WHERE id = $2 OR (phc_id = $3 AND batch_no = $4)
+           RETURNING id`,
+          [remainingQty, batchId, phcId, p.batch_no],
+        );
+        if ((updateRes.rowCount ?? 0) > 0) {
+          return { mutation_id: mutation.id, status: 'accepted', server_entity_id: updateRes.rows[0].id };
+        }
+      }
+    }
+
+    const batchNo = p.batch_no || `BATCH-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
+    const newId = batchId || crypto.randomUUID();
     const res = await client.query(
       `INSERT INTO inventory_batches (
-         phc_id, medicine_id, batch_no, received_qty, remaining_qty, minimum_threshold, expiry_date
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (phc_id, medicine_id, batch_no) DO UPDATE
-       SET remaining_qty = EXCLUDED.remaining_qty
+         id, phc_id, medicine_id, batch_no, remaining_qty, minimum_threshold, expiry_date, updated_at
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7, now()
+       )
+       ON CONFLICT (id) DO UPDATE
+       SET remaining_qty = EXCLUDED.remaining_qty, updated_at = now()
        RETURNING id`,
       [
+        newId,
         phcId,
         p.medicine_id,
-        p.batch_no,
-        p.received_qty || p.remaining_qty || 0,
-        p.remaining_qty || 0,
+        batchNo,
+        remainingQty,
         p.minimum_threshold || 10,
         p.expiry_date || '2027-12-31',
       ],
@@ -390,7 +428,6 @@ export class SyncService {
            emergency_beds = COALESCE($5, emergency_beds),
            isolation_beds = COALESCE($6, isolation_beds),
            oxygen_cylinders_available = COALESCE($3, oxygen_cylinders_available),
-           oxygen_cylinders = COALESCE($3, oxygen_cylinders),
            oxygen_concentrators = COALESCE($7, oxygen_concentrators),
            updated_at = now()
        WHERE id = $4`,
@@ -432,10 +469,14 @@ export class SyncService {
     const p = mutation.payload;
     const validAlertTypes = [
       'stockout', 'near_stockout', 'bed_shortage', 'staff_shortage',
-      'oxygen_critical', 'outbreak_suspected', 'abnormal_consumption',
+      'oxygen_critical', 'outbreak_suspected', 'outbreak_risk', 'abnormal_consumption',
       'redistribution_conflict', 'crisis_mode', 'emergency_report', 'forecast_risk',
+      'medicine_stockout',
     ];
     let aType = (p.alert_type || 'emergency_report').toLowerCase();
+    if (aType === 'outbreak' || aType === 'outbreak_suspected') {
+      aType = 'outbreak_risk';
+    }
     if (!validAlertTypes.includes(aType)) aType = 'emergency_report';
 
     const validSeverities = ['low', 'medium', 'high', 'critical'];

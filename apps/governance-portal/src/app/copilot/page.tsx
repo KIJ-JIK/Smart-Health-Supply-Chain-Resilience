@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useWsSession } from '@/hooks/useWsSession';
 import { Send, Bot, Sparkles, HelpCircle, ArrowRight } from 'lucide-react';
+import { CopilotMessageRenderer } from '@/components/copilot/CopilotMessageRenderer';
 
 interface ChatMessage {
   id: string;
@@ -242,19 +243,22 @@ function CopilotChatContent() {
             >
               <div
                 style={{
-                  maxWidth: '80%',
-                  padding: '12px 16px',
+                  maxWidth: '85%',
+                  padding: '14px 18px',
                   borderRadius: msg.role === 'user' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
                   background: msg.role === 'user' ? 'var(--color-primary)' : 'white',
                   color: msg.role === 'user' ? 'white' : '#1E293B',
                   border: msg.role === 'user' ? 'none' : '1px solid var(--color-border)',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
-                  fontSize: 13.5,
-                  lineHeight: 1.6,
-                  whiteSpace: 'pre-line',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
                 }}
               >
-                {msg.content}
+                {msg.role === 'user' ? (
+                  <div style={{ fontSize: 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                    {msg.content}
+                  </div>
+                ) : (
+                  <CopilotMessageRenderer content={msg.content} />
+                )}
               </div>
             </div>
           ))}

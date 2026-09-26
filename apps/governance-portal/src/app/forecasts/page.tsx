@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@apollo/client';
+import { FORECASTS } from '@/graphql/queries';
 import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
@@ -47,11 +49,45 @@ export default function ForecastsPage() {
   const [selectedCategory, setSelectedCategory] = useState<'all' | ForecastDomainCategory>('all');
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
-  // Scope-reactive forecast cards dataset
-  const forecastCards: MasterplanForecastContract[] = useMemo(
-    () => getForecastCardsByScope(level, selectedCategory),
-    [level, selectedCategory]
-  );
+  const { data: forecastData, loading: forecastLoading, refetch } = useQuery(FORECASTS, {
+    variables: {
+      entity: {
+        entityType: level,
+        entityId: level === 'phc' ? 'phc-01' : undefined,
+      },
+    },
+    fetchPolicy: 'cache-first',
+  });
+
+  // Scope-reactive forecast cards dataset augmented with live backend AI predictions
+  const forecastCards: MasterplanForecastContract[] = useMemo(() => {
+    const baseCards = getForecastCardsByScope(level, selectedCategory);
+    if (!forecastData?.forecasts || forecastData.forecasts.length === 0) {
+      return baseCards;
+    }
+    return baseCards.map((card) => {
+      const match = forecastData.forecasts.find((f: any) =>
+        f.metric?.toLowerCase().includes(card.category) ||
+        card.metricKey?.toLowerCase().includes(f.metric?.toLowerCase())
+      );
+      if (match) {
+        return {
+          ...card,
+          modelName: match.model || card.modelName,
+          confidenceScorePct: Math.round((match.confidence || 0.92) * 100),
+          generatedAt: match.generatedAt || card.generatedAt,
+          points: match.points && match.points.length > 0 ? match.points.map((p: any, idx: number) => ({
+            date: p.date,
+            dayLabel: `Day ${idx + 1}`,
+            predictedValue: p.value,
+            lowerBound: p.lowerBound,
+            upperBound: p.upperBound,
+          })) : card.points,
+        };
+      }
+      return card;
+    });
+  }, [level, selectedCategory, forecastData]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {

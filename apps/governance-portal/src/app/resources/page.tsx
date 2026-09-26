@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@apollo/client';
+import { RESOURCE_INTELLIGENCE } from '@/graphql/queries';
 import { useScopeStore } from '@/store/scopeStore';
 import { useAuthStore } from '@/store/authStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
@@ -70,9 +72,58 @@ export default function ResourcesPage() {
     [user, level, stateId, districtId]
   );
 
-  // Scope-reactive datasets — use enforced scope level
-  const bedsData = useMemo(() => getBedDataByScope(scope.level), [scope.level]);
-  const oxygenData = useMemo(() => getOxygenDataByScope(scope.level), [scope.level]);
+  // Live GraphQL query
+  const { data: resData } = useQuery(RESOURCE_INTELLIGENCE, {
+    variables: {
+      scope: {
+        level: scope.level,
+        stateId: scope.stateId,
+        districtId: scope.districtId,
+      },
+    },
+  });
+
+  // Scope-reactive datasets — live bound from PostgreSQL
+  const bedsData = useMemo(() => {
+    const base = getBedDataByScope(scope.level);
+    const liveBedItem = resData?.resourceIntelligence?.find((r: any) => r.resourceId === 'res-beds');
+    if (liveBedItem && liveBedItem.required > 0) {
+      const occupied = liveBedItem.required - liveBedItem.available;
+      const utilPct = liveBedItem.utilization || Math.round((occupied / liveBedItem.required) * 100);
+      return base.map((b) => {
+        if (b.id === 'bed-general') {
+          return {
+            ...b,
+            totalBeds: liveBedItem.required,
+            occupiedBeds: occupied,
+            utilizationPct: utilPct,
+            classification: getBedClassification(utilPct),
+          };
+        }
+        return b;
+      });
+    }
+    return base;
+  }, [scope.level, resData]);
+
+  const oxygenData = useMemo(() => {
+    const base = getOxygenDataByScope(scope.level);
+    const liveO2Item = resData?.resourceIntelligence?.find((r: any) => r.resourceId === 'res-o2');
+    if (liveO2Item) {
+      return base.map((o) => {
+        if (o.sourceType === 'D_TYPE_CYLINDERS') {
+          return {
+            ...o,
+            currentlyAvailable: liveO2Item.available,
+            totalCapacity: Math.max(liveO2Item.available, liveO2Item.required || 300),
+          };
+        }
+        return o;
+      });
+    }
+    return base;
+  }, [scope.level, resData]);
+
   const equipmentData = useMemo(() => getEquipmentDataByScope(scope.level), [scope.level]);
 
   // Aggregate stats for Beds

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@apollo/client';
+import { AUDIT_LOG } from '@/graphql/queries';
 import { useAuthStore } from '@/store/authStore';
 import { useAuditStore } from '@/store/auditStore';
 import { useScopeStore } from '@/store/scopeStore';
@@ -53,6 +55,39 @@ export default function AuditPage() {
   const { level, stateId: scopeStateId, districtId: scopeDistrictId } = useScopeStore();
   const { entries, resetToDefaults } = useAuditStore();
 
+  const { data: liveAuditData, loading: liveAuditLoading, refetch: refetchAudit } = useQuery(AUDIT_LOG, {
+    fetchPolicy: 'cache-and-network',
+  });
+
+  // Effective entries prioritizing authoritative PostgreSQL audit_log entries
+  const effectiveEntries = useMemo(() => {
+    if (liveAuditData?.auditLog && liveAuditData.auditLog.length > 0) {
+      const dbEntries: AuditEntry[] = liveAuditData.auditLog.map((l: any) => ({
+        auditId: l.auditId || l.id,
+        action: l.action,
+        entityType: l.entityType,
+        entityId: l.entityId,
+        actorId: l.userId || l.actorId || 'system',
+        actorRole: (l.userRole || l.actorRole || 'national_admin') as UserRole,
+        userId: l.userId || l.actorId || 'usr-system',
+        userName: l.userName || l.actorId || 'System Operator',
+        userRole: (l.userRole || l.actorRole || 'national_admin') as UserRole,
+        createdAt: l.timestamp || l.createdAt || new Date().toISOString(),
+        timestamp: l.timestamp || l.createdAt || new Date().toISOString(),
+        sourceIp: l.ipAddress || l.sourceIp || '127.0.0.1',
+        deviceId: l.deviceId || 'GATEWAY-NODE-01',
+        metadata: l.metadata || {},
+        phcId: l.phcId || null,
+        districtId: l.districtId || null,
+        stateId: l.stateId || null,
+      }));
+      const existingIds = new Set(dbEntries.map((e) => e.auditId));
+      const additionalStoreEntries = entries.filter((e) => !existingIds.has(e.auditId));
+      return [...dbEntries, ...additionalStoreEntries];
+    }
+    return entries;
+  }, [liveAuditData, entries]);
+
   // Enforce: clamp scope IDs to the user's jurisdiction boundary
   const scope = useMemo(
     () => getEnforcedScope(user, { level, stateId: scopeStateId, districtId: scopeDistrictId }),
@@ -75,7 +110,7 @@ export default function AuditPage() {
   // - state_admin: sees only entries within their state (or where stateId matches)
   // - district_admin: sees only entries within their district (or where districtId matches)
   const scopedEntries = useMemo(() => {
-    return entries.filter((entry) => {
+    return effectiveEntries.filter((entry) => {
       if (user.role === 'national_admin') {
         // Can optionally filter by scope bar if selected (uses enforced stateId, not raw store)
         if (scope.stateId && entry.stateId && entry.stateId !== scope.stateId) return false;
@@ -99,7 +134,7 @@ export default function AuditPage() {
 
       return false;
     });
-  }, [entries, user, scope.stateId, scope.districtId]);
+  }, [effectiveEntries, user, scope.stateId, scope.districtId]);
 
   // Apply search and dropdown filters
   const filteredEntries = useMemo(() => {
@@ -182,16 +217,15 @@ export default function AuditPage() {
 
             <button
               onClick={() => {
-                if (window.confirm('Reset audit log demo entries to default seed?')) {
-                  resetToDefaults();
-                }
+                refetchAudit();
+                resetToDefaults();
               }}
               className="btn btn-outline"
               style={{ fontSize: 12, padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6 }}
-              title="Reset to default seed data"
+              title="Refresh audit records from PostgreSQL"
             >
               <RefreshCw size={14} />
-              Reset Log
+              {liveAuditLoading ? 'Syncing...' : 'Refresh Log'}
             </button>
           </div>
         </div>

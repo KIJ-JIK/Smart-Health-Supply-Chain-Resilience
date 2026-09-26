@@ -8,7 +8,6 @@ import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
 import {
   REPORT_TIERS,
-  INITIAL_GENERATED_REPORTS,
   ReportTier,
   ExportFormat,
   GeneratedReport,
@@ -71,7 +70,29 @@ export default function AnalyticsPage() {
 
   const [selectedTier, setSelectedTier] = useState<ReportTier>(defaultTier);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | 'quarter' | 'ytd'>('30d');
-  const [reports, setReports] = useState<GeneratedReport[]>(INITIAL_GENERATED_REPORTS);
+  const [reports, setReports] = useState<GeneratedReport[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('governance_analytics_reports');
+        if (stored) return JSON.parse(stored);
+      } catch (e) {
+        // Fallback to empty
+      }
+    }
+    return [];
+  });
+
+  const updateReports = (newReports: GeneratedReport[] | ((prev: GeneratedReport[]) => GeneratedReport[])) => {
+    setReports((prev) => {
+      const updated = typeof newReports === 'function' ? newReports(prev) : newReports;
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('governance_analytics_reports', JSON.stringify(updated));
+        } catch (e) {}
+      }
+      return updated;
+    });
+  };
 
   const activeConfig = REPORT_TIERS[selectedTier];
   // Enforce: tier must be in the role's allowed tiers (second line of defence after requiredRole)
@@ -106,11 +127,11 @@ export default function AnalyticsPage() {
     };
 
     // Prepend to list immediately without blocking UI
-    setReports((prev) => [newJob, ...prev]);
+    updateReports((prev) => [newJob, ...prev]);
 
     // Simulate backend async processing pipeline (e.g. Lambda/Worker + S3 Object Storage)
     setTimeout(() => {
-      setReports((prev) =>
+      updateReports((prev) =>
         prev.map((r) =>
           r.id === newReportId
             ? { ...r, progressPct: 65 }
@@ -121,7 +142,7 @@ export default function AnalyticsPage() {
 
     setTimeout(() => {
       const s3Url = `https://gov-health-reports.s3.ap-south-1.amazonaws.com/exports/2026/09/${selectedTier}_${format.toLowerCase()}_${newReportId}.${format.toLowerCase()}`;
-      setReports((prev) =>
+      updateReports((prev) =>
         prev.map((r) =>
           r.id === newReportId
             ? {

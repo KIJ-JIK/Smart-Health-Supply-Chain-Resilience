@@ -8,6 +8,7 @@
     "start": "node dist/src/index.js",
     "build": "tsc",
     "test": "ts-node tests/test_chunk14_ai_brics.ts",
+    "test:integration": "ts-node tests/verify_cross_portal_integration.ts",
     "test:all": "ts-node tests/test_api_contracts.ts && ts-node tests/test_chunk10_consumption_workforce_footfall.ts && ts-node tests/test_chunk11_requests_alerts.ts && ts-node tests/test_chunk12_event_catalog.ts && ts-node tests/test_chunk13_governance_config.ts && ts-node tests/test_chunk14_ai_brics.ts && ts-node tests/test_chunk15_supply_chain_audit.ts && ts-node tests/test_chunk16_observability_cross_team.ts",
     "migrate": "ts-node ../database/seeds/migrate.ts",
     "seed": "ts-node ../database/seeds/seed.ts",

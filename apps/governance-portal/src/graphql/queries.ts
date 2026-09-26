@@ -10,6 +10,15 @@ export const NATIONAL_OVERVIEW = gql`
     nationalOverview {
       totalPhcs
       activePhcs
+      criticalPhcs
+      totalBeds
+      occupiedBeds
+      bedOccupancyRate
+      oxygenCylindersAvailable
+      openAlertsCount
+      criticalAlertsCount
+      staffShortagePhcCount
+      pendingRedistributionsCount
       stockoutAlerts
       criticalShortages
       pendingRedistributions
@@ -32,10 +41,21 @@ export const STATE_OVERVIEW = gql`
     stateOverview(stateId: $stateId) {
       stateId
       stateName
+      totalDistricts
       totalPhcs
       activePhcs
       stockoutAlerts
       criticalShortages
+      bedOccupancyRate
+      criticalAlertsCount
+      districts {
+        districtId
+        districtName
+        totalPhcs
+        criticalPhcs
+        stockoutRiskCount
+        bedOccupancyRate
+      }
       kpis {
         label
         value
@@ -59,6 +79,19 @@ export const DISTRICT_OVERVIEW = gql`
       totalPhcs
       activePhcs
       stockoutAlerts
+      pendingRequestsCount
+      openAlertsCount
+      phcList {
+        phcId
+        name
+        totalBeds
+        occupiedBeds
+        oxygenCylinders
+        riskLevel
+        openAlerts
+        latitude
+        longitude
+      }
       kpis {
         label
         value
@@ -162,7 +195,7 @@ export const PATIENT_INTELLIGENCE = gql`
 
 // ── Forecasts ──────────────────────────────────────────────────────────────────
 export const FORECASTS = gql`
-  query Forecasts($entity: EntityInput!, $metric: String!) {
+  query Forecasts($entity: EntityInput, $metric: String) {
     forecasts(entity: $entity, metric: $metric) {
       entityId
       entityType
@@ -183,7 +216,7 @@ export const FORECASTS = gql`
 
 // ── Redistribution Recommendations ────────────────────────────────────────────
 export const REDISTRIBUTION_RECOMMENDATIONS = gql`
-  query RedistributionRecommendations($district: ID!) {
+  query RedistributionRecommendations($district: ID) {
     redistributionRecommendations(district: $district) {
       recommendationId
       medicineId
@@ -209,7 +242,7 @@ export const REDISTRIBUTION_RECOMMENDATIONS = gql`
 
 // ── Supply Chain Shipments ─────────────────────────────────────────────────────
 export const SUPPLY_CHAIN_SHIPMENTS = gql`
-  query SupplyChainShipments($filter: ShipmentFilter!) {
+  query SupplyChainShipments($filter: ShipmentFilter) {
     supplyChainShipments(filter: $filter) {
       shipmentId
       orderDate
@@ -235,7 +268,7 @@ export const SUPPLY_CHAIN_SHIPMENTS = gql`
 
 // ── Audit Log ──────────────────────────────────────────────────────────────────
 export const AUDIT_LOG = gql`
-  query AuditLog($filter: AuditFilter!) {
+  query AuditLog($filter: AuditFilter) {
     auditLog(filter: $filter) {
       auditId
       action
@@ -274,3 +307,132 @@ export const ALERTS_HISTORY = gql`
   }
 `;
 
+// ── Jurisdiction Mutations ──────────────────────────────────────────────────
+export const CREATE_PHC_FACILITY = gql`
+  mutation CreatePhcFacility(
+    $name: String!
+    $districtId: ID!
+    $stateId: ID!
+    $latitude: Float
+    $longitude: Float
+    $totalBeds: Int
+    $emergencyBeds: Int
+    $oxygenCylinders: Int
+  ) {
+    createPhcFacility(
+      name: $name
+      districtId: $districtId
+      stateId: $stateId
+      latitude: $latitude
+      longitude: $longitude
+      totalBeds: $totalBeds
+      emergencyBeds: $emergencyBeds
+      oxygenCylinders: $oxygenCylinders
+    ) {
+      phcId
+      phcName
+      districtId
+      districtName
+      stateId
+      stateName
+      totalBeds
+      occupiedBeds
+      oxygenCylinders
+      riskLevel
+    }
+  }
+`;
+
+export const CREATE_DISTRICT = gql`
+  mutation CreateDistrict($name: String!, $stateId: ID!) {
+    createDistrict(name: $name, stateId: $stateId) {
+      districtId
+      districtName
+      stateId
+      stateName
+      totalPhcs
+      activePhcs
+    }
+  }
+`;
+
+export const CREATE_STATE = gql`
+  mutation CreateState($name: String!, $code: String!, $country: String) {
+    createState(name: $name, code: $code, country: $country) {
+      stateId
+      stateName
+      totalDistricts
+      totalPhcs
+    }
+  }
+`;
+
+export const CREATE_NATION = gql`
+  mutation CreateNation($code: String!, $name: String!, $status: String) {
+    createNation(code: $code, name: $name, status: $status) {
+      countryCode
+      countryName
+      status
+      nodeStatus
+      activeModelVersion
+      coordinatorEndpoint
+    }
+  }
+`;
+
+// ── Update Mutations ───────────────────────────────────────────────────────────
+export const UPDATE_PHC_FACILITY = gql`
+  mutation UpdatePhcFacility(
+    $phcId: ID!
+    $name: String
+    $totalBeds: Int
+    $oxygenCylinders: Int
+    $operationalStatus: String
+  ) {
+    updatePhcFacility(
+      phcId: $phcId
+      name: $name
+      totalBeds: $totalBeds
+      oxygenCylinders: $oxygenCylinders
+      operationalStatus: $operationalStatus
+    ) {
+      phcId
+      phcName
+      totalBeds
+      oxygenCylinders
+      riskLevel
+    }
+  }
+`;
+
+export const UPDATE_DISTRICT = gql`
+  mutation UpdateDistrict($districtId: ID!, $name: String) {
+    updateDistrict(districtId: $districtId, name: $name) {
+      districtId
+      districtName
+      totalPhcs
+    }
+  }
+`;
+
+export const UPDATE_STATE = gql`
+  mutation UpdateState($stateId: ID!, $name: String, $code: String) {
+    updateState(stateId: $stateId, name: $name, code: $code) {
+      stateId
+      stateName
+      totalDistricts
+      totalPhcs
+    }
+  }
+`;
+
+export const UPDATE_NATION = gql`
+  mutation UpdateNation($code: String!, $name: String, $status: String) {
+    updateNation(code: $code, name: $name, status: $status) {
+      countryCode
+      countryName
+      status
+      nodeStatus
+    }
+  }
+`;

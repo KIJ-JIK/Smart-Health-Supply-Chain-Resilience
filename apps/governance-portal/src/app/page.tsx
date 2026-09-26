@@ -71,7 +71,7 @@ export default function PlatformHomePage() {
           <div className="hidden sm:flex items-center gap-3 text-xs font-mono text-neutral-600">
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Core Sync 8000</span>
+              <span>Core Sync Active</span>
             </div>
             <span className="text-neutral-400">·</span>
             <span>{currentTime || 'SYNCHRONIZING…'}</span>
@@ -165,8 +165,8 @@ export default function PlatformHomePage() {
                   <div className="w-10 h-10 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-800 group-hover:bg-neutral-900 group-hover:text-white transition-colors">
                     <HeartPulse className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-700 font-semibold border border-neutral-200">
-                    PORT 5173
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100">
+                    Clinic Workbench
                   </span>
                 </div>
 
@@ -199,7 +199,7 @@ export default function PlatformHomePage() {
 
               <div className="mt-6 pt-4 border-t border-neutral-100">
                 <a
-                  href="http://localhost:5173"
+                  href={process.env.NEXT_PUBLIC_PHC_URL ? `${process.env.NEXT_PUBLIC_PHC_URL}/login` : 'http://localhost:5173/login'}
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-colors shadow-xs"
                 >
                   <span>Launch Clinic Portal</span>
@@ -221,8 +221,8 @@ export default function PlatformHomePage() {
                   <div className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center">
                     <Building2 className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-700 font-semibold border border-neutral-200">
-                    PORT 3000
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-neutral-900 text-white font-semibold">
+                    Core Portal
                   </span>
                 </div>
 
@@ -271,8 +271,8 @@ export default function PlatformHomePage() {
                   <div className="w-10 h-10 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-800 group-hover:bg-neutral-900 group-hover:text-white transition-colors">
                     <Globe2 className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-700 font-semibold border border-neutral-200">
-                    PORT 3001
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-100">
+                    Federated AI
                   </span>
                 </div>
 
@@ -305,7 +305,7 @@ export default function PlatformHomePage() {
 
               <div className="mt-6 pt-4 border-t border-neutral-100">
                 <a
-                  href="http://localhost:3001/login"
+                  href={process.env.NEXT_PUBLIC_BRICS_URL ? `${process.env.NEXT_PUBLIC_BRICS_URL}/login` : 'http://localhost:3001/login'}
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-colors shadow-xs"
                 >
                   <span>Enter BRICS Federation</span>

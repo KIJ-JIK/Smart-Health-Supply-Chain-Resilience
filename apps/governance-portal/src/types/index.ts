@@ -68,24 +68,60 @@ export interface OverviewKpi {
   severity?: 'ok' | 'warn' | 'critical';
 }
 
+export interface DistrictSummary {
+  districtId: string;
+  districtName: string;
+  totalPhcs: number;
+  criticalPhcs: number;
+  stockoutRiskCount: number;
+  bedOccupancyRate: number;
+}
+
+export interface PhcSummary {
+  phcId: string;
+  name: string;
+  totalBeds: number;
+  occupiedBeds: number;
+  oxygenCylinders: number;
+  riskLevel: string;
+  openAlerts: number;
+  latitude?: number;
+  longitude?: number;
+}
+
 export interface NationalOverview {
   totalPhcs: number;
   activePhcs: number;
+  criticalPhcs?: number;
+  totalBeds?: number;
+  occupiedBeds?: number;
+  bedOccupancyRate?: number;
+  oxygenCylindersAvailable?: number;
+  openAlertsCount?: number;
+  criticalAlertsCount?: number;
+  staffShortagePhcCount?: number;
+  pendingRedistributionsCount?: number;
   stockoutAlerts: number;
   criticalShortages: number;
   pendingRedistributions: number;
   outbreakAlerts: number;
   kpis: OverviewKpi[];
+  lastUpdated?: string;
 }
 
 export interface StateOverview {
   stateId: string;
   stateName: string;
+  totalDistricts?: number;
   totalPhcs: number;
   activePhcs: number;
   stockoutAlerts: number;
   criticalShortages: number;
+  bedOccupancyRate?: number;
+  criticalAlertsCount?: number;
+  districts?: DistrictSummary[];
   kpis: OverviewKpi[];
+  lastUpdated?: string;
 }
 
 export interface DistrictOverview {
@@ -96,7 +132,11 @@ export interface DistrictOverview {
   totalPhcs: number;
   activePhcs: number;
   stockoutAlerts: number;
+  phcList?: PhcSummary[];
+  pendingRequestsCount?: number;
+  openAlertsCount?: number;
   kpis: OverviewKpi[];
+  lastUpdated?: string;
 }
 
 // ── Medicine Intelligence ─────────────────────────────────────────────────────

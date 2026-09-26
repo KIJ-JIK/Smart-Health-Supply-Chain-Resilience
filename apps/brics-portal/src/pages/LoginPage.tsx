@@ -69,7 +69,7 @@ export function LoginPage() {
       {/* Top Navbar */}
       <header className="px-6 py-4 border-b border-neutral-200 bg-white/80 backdrop-blur-md flex items-center justify-between">
         <a
-          href="http://localhost:3000"
+          href={import.meta.env?.VITE_GOVERNANCE_URL ?? '/'}
           className="inline-flex items-center gap-2 text-xs font-mono text-neutral-600 hover:text-neutral-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -77,7 +77,7 @@ export function LoginPage() {
         </a>
         <div className="flex items-center gap-2 text-xs font-mono text-neutral-600">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>NODE 3001 · BRICS FEDERATED AI MESH</span>
+          <span>BRICS FEDERATED AI MESH</span>
         </div>
       </header>
 

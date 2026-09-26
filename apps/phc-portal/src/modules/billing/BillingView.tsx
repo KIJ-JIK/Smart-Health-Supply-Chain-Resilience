@@ -8,6 +8,7 @@ import {
   Sparkles,
   User,
   ShoppingBag,
+  Camera,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
@@ -20,6 +21,7 @@ import { formatDate, formatDateTime } from '../../utils/date';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { usePhcAuthStore } from '../../stores/authStore';
+import { PrescriptionScannerModal } from '../vision/PrescriptionScannerModal';
 
 interface CartItem {
   medicine: Medicine;
@@ -49,12 +51,40 @@ export const BillingView: React.FC = () => {
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Item Picker State
   const [selectedMedId, setSelectedMedId] = useState('');
   const [inputQty, setInputQty] = useState<number>(10);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isVisionModalOpen, setIsVisionModalOpen] = useState(false);
   const [lastCompletedTxn, setLastCompletedTxn] = useState<BillingTransaction | null>(null);
   const [lastDispensedLines, setLastDispensedLines] = useState<DispensedItem[]>([]);
+
+  const handleApplyFromVision = (extracted: any[], patientName?: string) => {
+    if (patientName) {
+      setPatientRef(patientName);
+    }
+    let addedCount = 0;
+    for (const item of extracted) {
+      const med = medicines.find(
+        (m) =>
+          m.id === item.dbMatchedId ||
+          m.name.toLowerCase().includes((item.genericName || item.name || '').toLowerCase())
+      );
+      if (med) {
+        const medBatches = batches.filter((b) => b.medicine_id === med.id);
+        const qty = item.quantity || 10;
+        const alloc = calculateFEFOAllocation(medBatches, qty);
+        if (alloc.success) {
+          setCart((prev) => [...prev, { medicine: med, quantity: qty, allocation: alloc }]);
+          addedCount++;
+        } else {
+          addToast(`Low stock for ${med.name} (${alloc.totalAvailable} available)`, 'warning');
+        }
+      }
+    }
+    if (addedCount > 0) {
+      addToast(`Added ${addedCount} medicine(s) from Gemini Vision scan`, 'success');
+    }
+  };
 
   // Current selected medicine & FEFO preview
   const selectedMed = medicines.find((m) => m.id === selectedMedId);
@@ -202,9 +232,20 @@ export const BillingView: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-xl text-xs font-semibold">
-          <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span>FEFO Auto-Allocation Active</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsVisionModalOpen(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+          >
+            <Camera className="w-4 h-4 text-blue-200" />
+            <span>Scan Rx (Google AI Vision)</span>
+          </button>
+
+          <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-xl text-xs font-semibold">
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>FEFO Active</span>
+          </div>
         </div>
       </div>
 
@@ -556,6 +597,13 @@ export const BillingView: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* Google AI Vision Prescription Scanner Modal */}
+      <PrescriptionScannerModal
+        isOpen={isVisionModalOpen}
+        onClose={() => setIsVisionModalOpen(false)}
+        onApplyMedicines={handleApplyFromVision}
+      />
     </div>
   );
 };

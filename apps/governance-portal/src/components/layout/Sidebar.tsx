@@ -56,7 +56,7 @@ const useNavSections = (): NavSection[] => {
       items: [
         {
           label: 'National Command Center',
-          href: '/',
+          href: '/governance',
           icon: <LayoutDashboard size={sz} className={iconClass} />,
           roles: ['national_admin', 'state_admin', 'district_admin'],
         },
@@ -170,6 +170,12 @@ const useNavSections = (): NavSection[] => {
           icon: <Settings size={sz} className={iconClass} />,
           roles: ['national_admin', 'state_admin', 'district_admin'],
         },
+        {
+          label: 'Manage Jurisdiction',
+          href: '/manage-jurisdiction',
+          icon: <Globe size={sz} className={iconClass} />,
+          roles: ['national_admin', 'state_admin', 'district_admin'],
+        },
       ],
     },
   ];
@@ -266,11 +272,17 @@ export function Sidebar({ collapsed }: SidebarProps) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={true}
                       className={`nav-item${isActive ? ' active' : ''}`}
                       title={collapsed ? item.label : undefined}
                     >
                       {item.icon}
                       <span className="nav-item-label">{item.label}</span>
+                      {item.href === '/manage-jurisdiction' && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-teal-500/20 text-teal-400 border border-teal-500/30">
+                          NEW
+                        </span>
+                      )}
                       {badge && badge > 0 && (
                         <span className="nav-item-badge">
                           {badge > 99 ? '99+' : badge}

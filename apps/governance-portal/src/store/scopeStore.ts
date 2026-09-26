@@ -133,8 +133,8 @@ export const useScopeStore = create<ScopeState>()(
 
         if (user.role === 'district_admin') {
           // Locked to user's state and district
-          const targetState = user.stateId ?? 'state-mh';
-          const targetDistrict = user.districtId ?? 'dist-pune';
+          const targetState = user.stateId ?? 'a0000001-0000-0000-0000-000000000001';
+          const targetDistrict = user.districtId ?? 'b0000002-0000-0000-0000-000000000001';
           // Check if currently selected PHC is in this district
           const phc = current.phcId ? getPhcById(current.phcId, targetDistrict) : undefined;
 
@@ -146,7 +146,7 @@ export const useScopeStore = create<ScopeState>()(
           });
         } else if (user.role === 'state_admin') {
           // Locked to user's state
-          const targetState = user.stateId ?? 'state-mh';
+          const targetState = user.stateId ?? 'a0000001-0000-0000-0000-000000000001';
           const dist = current.districtId ? getDistrictById(current.districtId, targetState) : undefined;
           const phc = dist && current.phcId ? getPhcById(current.phcId, dist.id) : undefined;
 

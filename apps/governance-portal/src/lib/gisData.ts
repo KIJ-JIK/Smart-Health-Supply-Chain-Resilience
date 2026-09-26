@@ -651,60 +651,248 @@ export const JURISDICTION_EXTENTS: Record<string, GeoExtent> = {
       [97.4, 35.5],
     ],
   },
-  // Maharashtra State
+  // Maharashtra State (Slug & UUID)
   'state-mh': {
     center: [75.7139, 19.7515],
     zoom: 6.8,
     minZoom: 5.5,
     maxZoom: 17,
-    bounds: [
-      [72.5, 15.6],
-      [80.9, 22.1],
-    ],
+    bounds: [[72.5, 15.6], [80.9, 22.1]],
   },
-  // Uttar Pradesh State
-  'state-up': {
-    center: [80.9462, 26.8467],
-    zoom: 6.6,
+  'a0000001-0000-0000-0000-000000000001': {
+    center: [75.7139, 19.7515],
+    zoom: 6.8,
     minZoom: 5.5,
     maxZoom: 17,
-    bounds: [
-      [77.0, 23.8],
-      [84.7, 30.5],
-    ],
+    bounds: [[72.5, 15.6], [80.9, 22.1]],
   },
-  // Tamil Nadu State
-  'state-tn': {
-    center: [78.6569, 11.1271],
-    zoom: 6.9,
-    minZoom: 5.8,
-    maxZoom: 17,
-    bounds: [
-      [76.2, 8.0],
-      [80.4, 13.6],
-    ],
-  },
-  // Karnataka State
+  // Karnataka State (Slug & UUID)
   'state-ka': {
     center: [75.7139, 15.3173],
     zoom: 6.8,
     minZoom: 5.6,
     maxZoom: 17,
-    bounds: [
-      [74.0, 11.5],
-      [78.6, 18.5],
-    ],
+    bounds: [[74.0, 11.5], [78.6, 18.5]],
   },
-  // Pune District (Locked for district_admin Suresh Iyer)
+  'a0000001-0000-0000-0000-000000000002': {
+    center: [75.7139, 15.3173],
+    zoom: 6.8,
+    minZoom: 5.6,
+    maxZoom: 17,
+    bounds: [[74.0, 11.5], [78.6, 18.5]],
+  },
+  // Tamil Nadu State (Slug & UUID)
+  'state-tn': {
+    center: [78.6569, 11.1271],
+    zoom: 6.9,
+    minZoom: 5.8,
+    maxZoom: 17,
+    bounds: [[76.2, 8.0], [80.4, 13.6]],
+  },
+  'a0000001-0000-0000-0000-000000000003': {
+    center: [78.6569, 11.1271],
+    zoom: 6.9,
+    minZoom: 5.8,
+    maxZoom: 17,
+    bounds: [[76.2, 8.0], [80.4, 13.6]],
+  },
+  // Uttar Pradesh State (Slug & UUID)
+  'state-up': {
+    center: [80.9462, 26.8467],
+    zoom: 6.6,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[77.0, 23.8], [84.7, 30.5]],
+  },
+  'a0000001-0000-0000-0000-000000000004': {
+    center: [80.9462, 26.8467],
+    zoom: 6.6,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[77.0, 23.8], [84.7, 30.5]],
+  },
+  // Rajasthan State (Slug & UUID)
+  'state-rj': {
+    center: [74.2179, 27.0238],
+    zoom: 6.6,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[69.5, 23.0], [78.5, 30.5]],
+  },
+  'a0000001-0000-0000-0000-000000000005': {
+    center: [74.2179, 27.0238],
+    zoom: 6.6,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[69.5, 23.0], [78.5, 30.5]],
+  },
+  // Andhra Pradesh State (Slug & UUID)
+  'state-ap': {
+    center: [79.74, 15.91],
+    zoom: 6.8,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[76.7, 12.6], [84.8, 19.1]],
+  },
+  '7b5d180c-e6f9-4cd3-9ab9-c751ec15a116': {
+    center: [79.74, 15.91],
+    zoom: 6.8,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[76.7, 12.6], [84.8, 19.1]],
+  },
+  // Bihar State (Slug & UUID)
+  'state-br': {
+    center: [85.3131, 25.0961],
+    zoom: 7.0,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[83.3, 24.2], [88.3, 27.5]],
+  },
+  '4a9165cf-5d68-4d58-aef6-dea0c5b5e614': {
+    center: [85.3131, 25.0961],
+    zoom: 7.0,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[83.3, 24.2], [88.3, 27.5]],
+  },
+  // Gujarat State (Slug & UUID)
+  'state-gj': {
+    center: [71.1924, 22.2587],
+    zoom: 6.8,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[68.1, 20.1], [74.5, 24.7]],
+  },
+  '71885ac7-e9e9-4316-a33c-d07f53c8af1a': {
+    center: [71.1924, 22.2587],
+    zoom: 6.8,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[68.1, 20.1], [74.5, 24.7]],
+  },
+  // Madhya Pradesh State (Slug & UUID)
+  'state-mp': {
+    center: [77.4126, 22.9734],
+    zoom: 6.6,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[74.0, 21.0], [82.8, 26.8]],
+  },
+  '64e1316d-de72-4b1c-911a-049c37d20c26': {
+    center: [77.4126, 22.9734],
+    zoom: 6.6,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[74.0, 21.0], [82.8, 26.8]],
+  },
+  // West Bengal State (Slug & UUID)
+  'state-wb': {
+    center: [87.855, 22.9868],
+    zoom: 6.8,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[85.8, 21.5], [89.9, 27.2]],
+  },
+  '688c5214-c31f-466b-809a-a90637b92c83': {
+    center: [87.855, 22.9868],
+    zoom: 6.8,
+    minZoom: 5.5,
+    maxZoom: 17,
+    bounds: [[85.8, 21.5], [89.9, 27.2]],
+  },
+  // Arunachal Pradesh
+  'state-ar': { center: [94.7278, 28.2180], zoom: 6.8, minZoom: 5.5, maxZoom: 17, bounds: [[91.5, 26.5], [97.5, 29.5]] },
+  'a0000001-0000-0000-0000-000000000011': { center: [94.7278, 28.2180], zoom: 6.8, minZoom: 5.5, maxZoom: 17, bounds: [[91.5, 26.5], [97.5, 29.5]] },
+  // Assam
+  'state-as': { center: [92.9376, 26.2006], zoom: 7.0, minZoom: 5.5, maxZoom: 17, bounds: [[89.7, 24.1], [96.0, 28.0]] },
+  'a0000001-0000-0000-0000-000000000012': { center: [92.9376, 26.2006], zoom: 7.0, minZoom: 5.5, maxZoom: 17, bounds: [[89.7, 24.1], [96.0, 28.0]] },
+  // Chhattisgarh
+  'state-cg': { center: [81.8661, 21.2787], zoom: 6.7, minZoom: 5.5, maxZoom: 17, bounds: [[80.2, 17.8], [84.4, 24.1]] },
+  'a0000001-0000-0000-0000-000000000013': { center: [81.8661, 21.2787], zoom: 6.7, minZoom: 5.5, maxZoom: 17, bounds: [[80.2, 17.8], [84.4, 24.1]] },
+  // Goa
+  'state-ga': { center: [74.1240, 15.2993], zoom: 9.2, minZoom: 7.5, maxZoom: 17, bounds: [[73.6, 14.8], [74.4, 15.8]] },
+  'a0000001-0000-0000-0000-000000000014': { center: [74.1240, 15.2993], zoom: 9.2, minZoom: 7.5, maxZoom: 17, bounds: [[73.6, 14.8], [74.4, 15.8]] },
+  // Haryana
+  'state-hr': { center: [76.0856, 29.0588], zoom: 7.2, minZoom: 5.8, maxZoom: 17, bounds: [[74.4, 27.6], [77.6, 30.9]] },
+  'a0000001-0000-0000-0000-000000000015': { center: [76.0856, 29.0588], zoom: 7.2, minZoom: 5.8, maxZoom: 17, bounds: [[74.4, 27.6], [77.6, 30.9]] },
+  // Himachal Pradesh
+  'state-hp': { center: [77.1734, 31.1048], zoom: 7.1, minZoom: 5.8, maxZoom: 17, bounds: [[75.5, 30.3], [79.0, 33.3]] },
+  'a0000001-0000-0000-0000-000000000016': { center: [77.1734, 31.1048], zoom: 7.1, minZoom: 5.8, maxZoom: 17, bounds: [[75.5, 30.3], [79.0, 33.3]] },
+  // Jharkhand
+  'state-jh': { center: [85.2799, 23.6102], zoom: 7.0, minZoom: 5.5, maxZoom: 17, bounds: [[83.3, 21.9], [87.9, 25.4]] },
+  'a0000001-0000-0000-0000-000000000017': { center: [85.2799, 23.6102], zoom: 7.0, minZoom: 5.5, maxZoom: 17, bounds: [[83.3, 21.9], [87.9, 25.4]] },
+  // Kerala
+  'state-kl': { center: [76.2711, 10.8505], zoom: 7.0, minZoom: 5.5, maxZoom: 17, bounds: [[74.8, 8.2], [77.5, 12.8]] },
+  'a0000001-0000-0000-0000-000000000018': { center: [76.2711, 10.8505], zoom: 7.0, minZoom: 5.5, maxZoom: 17, bounds: [[74.8, 8.2], [77.5, 12.8]] },
+  // Manipur
+  'state-mn': { center: [93.9063, 24.6637], zoom: 8.0, minZoom: 6.5, maxZoom: 17, bounds: [[92.9, 23.8], [94.8, 25.7]] },
+  'a0000001-0000-0000-0000-000000000019': { center: [93.9063, 24.6637], zoom: 8.0, minZoom: 6.5, maxZoom: 17, bounds: [[92.9, 23.8], [94.8, 25.7]] },
+  // Meghalaya
+  'state-ml': { center: [91.3662, 25.4670], zoom: 8.0, minZoom: 6.5, maxZoom: 17, bounds: [[89.8, 25.0], [92.8, 26.1]] },
+  'a0000001-0000-0000-0000-000000000020': { center: [91.3662, 25.4670], zoom: 8.0, minZoom: 6.5, maxZoom: 17, bounds: [[89.8, 25.0], [92.8, 26.1]] },
+  // Mizoram
+  'state-mz': { center: [92.9376, 23.1645], zoom: 7.8, minZoom: 6.5, maxZoom: 17, bounds: [[92.2, 21.9], [93.5, 24.5]] },
+  'a0000001-0000-0000-0000-000000000021': { center: [92.9376, 23.1645], zoom: 7.8, minZoom: 6.5, maxZoom: 17, bounds: [[92.2, 21.9], [93.5, 24.5]] },
+  // Nagaland
+  'state-nl': { center: [94.5624, 26.1584], zoom: 8.0, minZoom: 6.5, maxZoom: 17, bounds: [[93.3, 25.2], [95.3, 27.0]] },
+  'a0000001-0000-0000-0000-000000000022': { center: [94.5624, 26.1584], zoom: 8.0, minZoom: 6.5, maxZoom: 17, bounds: [[93.3, 25.2], [95.3, 27.0]] },
+  // Odisha
+  'state-od': { center: [85.0985, 20.9517], zoom: 6.8, minZoom: 5.5, maxZoom: 17, bounds: [[81.3, 17.8], [87.5, 22.6]] },
+  'a0000001-0000-0000-0000-000000000023': { center: [85.0985, 20.9517], zoom: 6.8, minZoom: 5.5, maxZoom: 17, bounds: [[81.3, 17.8], [87.5, 22.6]] },
+  // Punjab
+  'state-pb': { center: [75.3412, 31.1471], zoom: 7.2, minZoom: 5.8, maxZoom: 17, bounds: [[73.8, 29.5], [76.9, 32.5]] },
+  'a0000001-0000-0000-0000-000000000024': { center: [75.3412, 31.1471], zoom: 7.2, minZoom: 5.8, maxZoom: 17, bounds: [[73.8, 29.5], [76.9, 32.5]] },
+  // Sikkim
+  'state-sk': { center: [88.5122, 27.5330], zoom: 8.5, minZoom: 7.0, maxZoom: 17, bounds: [[88.0, 27.0], [88.9, 28.1]] },
+  'a0000001-0000-0000-0000-000000000025': { center: [88.5122, 27.5330], zoom: 8.5, minZoom: 7.0, maxZoom: 17, bounds: [[88.0, 27.0], [88.9, 28.1]] },
+  // Telangana
+  'state-ts': { center: [79.0193, 18.1124], zoom: 7.0, minZoom: 5.5, maxZoom: 17, bounds: [[77.2, 15.8], [81.3, 19.9]] },
+  'a0000001-0000-0000-0000-000000000026': { center: [79.0193, 18.1124], zoom: 7.0, minZoom: 5.5, maxZoom: 17, bounds: [[77.2, 15.8], [81.3, 19.9]] },
+  // Tripura
+  'state-tr': { center: [91.9882, 23.9408], zoom: 8.5, minZoom: 7.0, maxZoom: 17, bounds: [[91.1, 22.9], [92.4, 24.5]] },
+  'a0000001-0000-0000-0000-000000000027': { center: [91.9882, 23.9408], zoom: 8.5, minZoom: 7.0, maxZoom: 17, bounds: [[91.1, 22.9], [92.4, 24.5]] },
+  // Uttarakhand
+  'state-uk': { center: [79.0193, 30.0668], zoom: 7.2, minZoom: 5.8, maxZoom: 17, bounds: [[77.5, 28.7], [81.1, 31.5]] },
+  'a0000001-0000-0000-0000-000000000028': { center: [79.0193, 30.0668], zoom: 7.2, minZoom: 5.8, maxZoom: 17, bounds: [[77.5, 28.7], [81.1, 31.5]] },
+  // Andaman and Nicobar Islands
+  'state-an': { center: [92.6586, 11.7401], zoom: 6.5, minZoom: 5.0, maxZoom: 17, bounds: [[92.1, 6.7], [94.0, 13.7]] },
+  'a0000001-0000-0000-0000-000000000031': { center: [92.6586, 11.7401], zoom: 6.5, minZoom: 5.0, maxZoom: 17, bounds: [[92.1, 6.7], [94.0, 13.7]] },
+  // Chandigarh
+  'state-ch': { center: [76.7794, 30.7333], zoom: 11.0, minZoom: 9.5, maxZoom: 17, bounds: [[76.6, 30.6], [76.9, 30.8]] },
+  'a0000001-0000-0000-0000-000000000032': { center: [76.7794, 30.7333], zoom: 11.0, minZoom: 9.5, maxZoom: 17, bounds: [[76.6, 30.6], [76.9, 30.8]] },
+  // Dadra and Nagar Haveli and Daman and Diu
+  'state-dn': { center: [72.9342, 20.3974], zoom: 9.5, minZoom: 8.0, maxZoom: 17, bounds: [[70.8, 20.0], [73.2, 20.8]] },
+  'a0000001-0000-0000-0000-000000000033': { center: [72.9342, 20.3974], zoom: 9.5, minZoom: 8.0, maxZoom: 17, bounds: [[70.8, 20.0], [73.2, 20.8]] },
+  // Delhi (NCT)
+  'state-dl': { center: [77.1025, 28.7041], zoom: 10.0, minZoom: 8.5, maxZoom: 17, bounds: [[76.8, 28.4], [77.4, 28.9]] },
+  'a0000001-0000-0000-0000-000000000034': { center: [77.1025, 28.7041], zoom: 10.0, minZoom: 8.5, maxZoom: 17, bounds: [[76.8, 28.4], [77.4, 28.9]] },
+  // Jammu and Kashmir
+  'state-jk': { center: [74.7973, 33.7782], zoom: 6.8, minZoom: 5.5, maxZoom: 17, bounds: [[73.5, 32.2], [76.8, 35.2]] },
+  'a0000001-0000-0000-0000-000000000035': { center: [74.7973, 33.7782], zoom: 6.8, minZoom: 5.5, maxZoom: 17, bounds: [[73.5, 32.2], [76.8, 35.2]] },
+  // Ladakh
+  'state-la': { center: [77.5771, 34.1526], zoom: 6.5, minZoom: 5.0, maxZoom: 17, bounds: [[75.5, 32.0], [80.5, 36.0]] },
+  'a0000001-0000-0000-0000-000000000036': { center: [77.5771, 34.1526], zoom: 6.5, minZoom: 5.0, maxZoom: 17, bounds: [[75.5, 32.0], [80.5, 36.0]] },
+  // Lakshadweep
+  'state-ld': { center: [72.7847, 10.5667], zoom: 8.0, minZoom: 6.0, maxZoom: 17, bounds: [[71.5, 8.0], [74.0, 12.5]] },
+  'a0000001-0000-0000-0000-000000000037': { center: [72.7847, 10.5667], zoom: 8.0, minZoom: 6.0, maxZoom: 17, bounds: [[71.5, 8.0], [74.0, 12.5]] },
+  // Puducherry
+  'state-py': { center: [79.8083, 11.9416], zoom: 9.5, minZoom: 8.0, maxZoom: 17, bounds: [[79.6, 11.8], [80.0, 12.1]] },
+  'a0000001-0000-0000-0000-000000000038': { center: [79.8083, 11.9416], zoom: 9.5, minZoom: 8.0, maxZoom: 17, bounds: [[79.6, 11.8], [80.0, 12.1]] },
+  // Pune District (Slug & UUID)
   'dist-pune': {
     center: [74.15, 18.62],
     zoom: 9.3,
-    minZoom: 8.2, // District admin cannot zoom out past district boundary
+    minZoom: 8.2,
     maxZoom: 17,
-    bounds: [
-      [73.2, 17.8],
-      [75.2, 19.4],
-    ],
+    bounds: [[73.2, 17.8], [75.2, 19.4]],
+  },
+  'b0000002-0000-0000-0000-000000000001': {
+    center: [74.15, 18.62],
+    zoom: 9.3,
+    minZoom: 8.2,
+    maxZoom: 17,
+    bounds: [[73.2, 17.8], [75.2, 19.4]],
   },
   // Mumbai Suburban District
   'dist-mum': {
@@ -712,21 +900,7 @@ export const JURISDICTION_EXTENTS: Record<string, GeoExtent> = {
     zoom: 11.0,
     minZoom: 9.8,
     maxZoom: 17,
-    bounds: [
-      [72.7, 18.8],
-      [73.1, 19.3],
-    ],
-  },
-  // Thane District
-  'dist-thane': {
-    center: [73.25, 19.25],
-    zoom: 9.8,
-    minZoom: 8.5,
-    maxZoom: 17,
-    bounds: [
-      [72.8, 18.9],
-      [73.6, 19.6],
-    ],
+    bounds: [[72.7, 18.8], [73.1, 19.3]],
   },
   // Lucknow District
   'dist-lucknow': {
@@ -734,9 +908,6 @@ export const JURISDICTION_EXTENTS: Record<string, GeoExtent> = {
     zoom: 10.2,
     minZoom: 9.0,
     maxZoom: 17,
-    bounds: [
-      [80.6, 26.6],
-      [81.2, 27.1],
-    ],
+    bounds: [[80.6, 26.6], [81.2, 27.1]],
   },
 };

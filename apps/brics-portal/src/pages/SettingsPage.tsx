@@ -126,7 +126,7 @@ export default function SettingsPage() {
             <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
               Central Sync Ingestion API
             </span>
-            <p className="font-mono text-teal-600 dark:text-teal-300 font-bold text-sm">http://localhost:8000</p>
+            <p className="font-mono text-teal-600 dark:text-teal-300 font-bold text-sm">{import.meta.env?.VITE_BACKEND_URL?.replace('/graphql','') ?? 'Backend API'}</p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">FastAPI &amp; Express Telemetry Ingestion</p>
           </div>
 
@@ -134,7 +134,7 @@ export default function SettingsPage() {
             <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
               AI Demand &amp; Optimization Engine
             </span>
-            <p className="font-mono text-cyan-600 dark:text-cyan-300 font-bold text-sm">http://localhost:5000</p>
+            <p className="font-mono text-cyan-600 dark:text-cyan-300 font-bold text-sm">{import.meta.env?.VITE_AI_URL ?? 'AI Engine'}</p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Prophet &amp; FedAvg Aggregator Service</p>
           </div>
 
@@ -142,7 +142,7 @@ export default function SettingsPage() {
             <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
               District Command Bridge
             </span>
-            <p className="font-mono text-indigo-600 dark:text-indigo-300 font-bold text-sm">http://localhost:3000</p>
+            <p className="font-mono text-indigo-600 dark:text-indigo-300 font-bold text-sm">{import.meta.env?.VITE_GOVERNANCE_URL ?? 'Governance Portal'}</p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Varanasi UP Health Administration Portal</p>
           </div>
         </div>

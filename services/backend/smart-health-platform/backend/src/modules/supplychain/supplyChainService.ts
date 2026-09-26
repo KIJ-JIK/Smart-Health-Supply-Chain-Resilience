@@ -113,7 +113,7 @@ export class SupplyChainService {
     carrier?: string;
     notes?: string;
   }): Promise<ShipmentRecord> {
-    const id = `ship-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const id = crypto.randomUUID();
     const trackingNumber = `LOG-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
     const now = new Date();
     // Default estimated delivery = 48 hours from creation

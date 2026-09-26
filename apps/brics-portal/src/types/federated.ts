@@ -23,6 +23,9 @@ export interface FederatedNode {
   countryCode: string;
   countryName: string;
   status: NodeParticipationStatus;
+  nodeStatus?: string;
+  activeModelVersion?: string;
+  lastTrainedAt?: string | null;
   lastLocalTraining: string | null;
   lastModelUpload: string | null;
   healthIndicator: string;
@@ -32,6 +35,8 @@ export interface FederatedNode {
 export interface FederatedRound {
   id: string;
   roundId: string;
+  roundNumber?: number;
+  modelId?: string;
   modelVersion: string;
   status: RoundStatus;
   participatingCountries: string[];
@@ -39,6 +44,9 @@ export interface FederatedRound {
   quorumRequired: number;
   roundDeadline: string | null;
   aggregationSignature: string | null;
+  globalLoss?: number | null;
+  previousEntryHash?: string;
+  thisHash?: string;
   startedAt: string;
   completedAt: string | null;
 }
@@ -52,30 +60,37 @@ export interface ModelMetrics {
 export interface FederatedModelVersion {
   id: string;
   modelVersion: string;
-  baseModelVersion: string | null;
-  federationRoundId: string | null;
-  s3Uri: string;
-  aggregationSignature: string | null;
-  participatingCountries: string[];
-  metrics: ModelMetrics | null;
+  baseModelVersion?: string | null;
+  federationRoundId?: string | null;
+  s3Uri?: string;
+  aggregationSignature?: string | null;
+  participatingCountries?: string[];
+  metrics?: ModelMetrics | null;
+  accuracyScore?: number;
+  testAccuracyDelta?: number;
   status: ModelStatus;
   receivedAt: string;
-  activatedAt: string | null;
-  deprecatedAt: string | null;
+  releasedAt?: string;
+  activatedAt?: string | null;
+  deprecatedAt?: string | null;
 }
 
 export interface PrivacyBudgetEntry {
   id: string;
   countryId: string;
-  federationRoundId: string;
+  countryCode?: string;
+  roundNumber?: number;
+  epsilonConsumed?: number;
+  federationRoundId?: string;
   epsilonThisRound: number;
   deltaThisRound: number;
   cumulativeEpsilon: number;
   budgetLimit: number;
-  clipNorm: number | null;
-  noiseMultiplier: number | null;
-  localSampleCount: number | null;
-  submitted: boolean;
+  withinBudget?: boolean;
+  clipNorm?: number | null;
+  noiseMultiplier?: number | null;
+  localSampleCount?: number | null;
+  submitted?: boolean;
   recordedAt: string;
 }
 

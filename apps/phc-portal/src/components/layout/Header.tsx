@@ -150,7 +150,7 @@ export const Header: React.FC = () => {
                   Cross-Portal Navigation
                 </div>
                 <a
-                  href="http://localhost:3000"
+                  href={(import.meta as any).env?.VITE_GOVERNANCE_URL ?? '/'}
                   className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:bg-slate-800 transition-colors"
                 >
                   <Building2 className="w-4 h-4 text-cyan-400" />
@@ -166,27 +166,27 @@ export const Header: React.FC = () => {
                   <HeartPulse className="w-4 h-4 text-teal-400" />
                   <div>
                     <div className="font-semibold">PHC Health Centre</div>
-                    <div className="text-[10px] text-teal-400/80">Active · Port 5173</div>
+                    <div className="text-[10px] text-teal-400/80">Active · Clinic Workbench</div>
                   </div>
                 </a>
                 <a
-                  href="http://localhost:3000/governance"
+                  href={(import.meta as any).env?.VITE_GOVERNANCE_URL ?? '/governance'}
                   className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:bg-slate-800 transition-colors"
                 >
                   <Building2 className="w-4 h-4 text-blue-400" />
                   <div>
                     <div className="font-semibold text-white">Governance Portal</div>
-                    <div className="text-[10px] text-slate-400">Port 3000 · Macro</div>
+                    <div className="text-[10px] text-slate-400">National & State Oversight</div>
                   </div>
                 </a>
                 <a
-                  href="http://localhost:3001"
+                  href={(import.meta as any).env?.VITE_BRICS_URL ?? '/brics'}
                   className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:bg-slate-800 transition-colors"
                 >
                   <Globe2 className="w-4 h-4 text-amber-400" />
                   <div>
                     <div className="font-semibold text-white">BRICS Federated</div>
-                    <div className="text-[10px] text-slate-400">Port 3001 · Sovereign AI</div>
+                    <div className="text-[10px] text-slate-400">Sovereign AI Mesh</div>
                   </div>
                 </a>
               </div>

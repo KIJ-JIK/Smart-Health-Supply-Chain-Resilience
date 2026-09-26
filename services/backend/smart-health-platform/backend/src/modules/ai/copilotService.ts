@@ -4,23 +4,26 @@ import { TenantClaims, pool } from '../../db/pool';
 // ─────────────────────────────────────────────────────────────────────────────
 // Autonomous Agentic Copilot: Text-to-SQL, Multi-Model Cascading & Clinical Reasoning
 // ─────────────────────────────────────────────────────────────────────────────
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+function getGeminiApiKey(): string {
+  return process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEYS || process.env.GEMINI_API_KEYS || '';
+}
 
 const CANDIDATE_MODELS = [
   'gemini-flash-lite-latest',
-  'gemini-pro-latest',
-  'gemini-2.5-flash',
+  'gemini-3.8-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
   'gemini-flash-latest',
 ];
 
 const DATABASE_SCHEMA_PROMPT = `
 PostgreSQL Database Schema (database 'smarthealth'):
 - states(id uuid, name varchar, code varchar, country varchar)
-  Values: Maharashtra, Tamil Nadu, Uttar Pradesh, Rajasthan, Karnataka.
+  States: Andhra Pradesh, Bihar, Gujarat, Karnataka, Madhya Pradesh, Maharashtra, Rajasthan, Tamil Nadu, Uttar Pradesh, West Bengal.
 - districts(id uuid, state_id uuid, name varchar)
-  Values: Pune, Nashik, Lucknow, Chennai, Jaipur, Bengaluru, etc.
+  Districts: Andhra Pradesh Central, Andhra Pradesh North, Andhra Pradesh South, Pune, Nashik, Lucknow, Chennai, Jaipur, Bengaluru, etc.
 - phc_facilities(id uuid, name varchar, district_id uuid, state_id uuid, total_beds int, emergency_beds int, isolation_beds int, occupied_beds int, oxygen_cylinders_available int, operational_status varchar)
-  Facilities: Kothrud PHC (Pune), Hadapsar PHC (Pune), Baramati PHC (Pune), Chakan PHC (Pune), Malegaon PHC (Nashik), Aminabad PHC (Lucknow, UP), Tambaram PHC (Chennai, TN), etc.
+  Sample facility names in DB: 'PHC Andhra Pradesh Central 1', 'PHC Andhra Pradesh North 1', 'PHC Uttar Pradesh South 1', 'Kothrud PHC', 'Hadapsar PHC'.
 - medicines(id uuid, name varchar, category varchar, unit varchar)
   Medicines: Amoxicillin 500mg, Paracetamol 500mg, Chloroquine Phosphate, Insulin Glargine 100U/mL, ORS Sachet, Artesunate, Metformin, etc.
 - inventory_batches(id uuid, phc_id uuid, medicine_id uuid, batch_no varchar, remaining_qty int, minimum_threshold int, expiry_date date)
@@ -39,11 +42,12 @@ async function callLlmWithFallback(
   userPrompt: string,
   systemInstruction?: string
 ): Promise<{ text: string; model: string } | null> {
-  if (!GEMINI_API_KEY) return null;
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) return null;
 
   for (const model of CANDIDATE_MODELS) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const body: any = {
         contents: [{ parts: [{ text: userPrompt }] }],
       };
@@ -55,11 +59,11 @@ async function callLlmWithFallback(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(7000),
       });
 
       if (!res.ok) {
-        // Quota exhausted (429), model unavailable (503), or not found (404) -> try next model
+        // Quota exhausted (429), model unavailable (503), or not found (404) -> try next candidate
         continue;
       }
 
@@ -123,8 +127,9 @@ ${DATABASE_SCHEMA_PROMPT}
 User Question: "${question}"
 
 Instructions:
-1. If the user question is a casual conversation, greeting, capability check, or polite query (e.g. "how are you", "who are you", "what can you do", "hello", "thank you"), respond ONLY with:
-CHAT: <your warm, helpful, conversational response as the Smart Health AI Copilot>
+1. If the user question is a casual conversation, greeting, capability check, or polite query (e.g. "hola", "hello", "hi", "namaste", "good morning", "how are you", "who are you", "what can you do", "thank you", "thanks"):
+Respond ONLY with:
+CHAT: <your warm, helpful, conversational response as the Smart Health AI Copilot, replying in or acknowledging the user's language warmly>
 
 2. If the user asks ANY question about health data, clinical reasons, facility status, footfall, inventory, alerts, beds, staff, or transfers:
 Write a single, safe, read-only PostgreSQL SELECT query to retrieve the necessary data.
@@ -132,7 +137,9 @@ Reply ONLY with:
 SQL: <single SQL statement>
 
 Critical Rules for SQL:
-- Be resilient to user typos, misspellings, and colloquial terms (e.g. "maharstra" -> 'Maharashtra', "the phc in uttar pradesh" or "phc in up" -> join phc_facilities, districts, states WHERE states.name ILIKE '%Uttar Pradesh%').
+- Handle variations in spacing and naming: e.g. "andhrapradesh" -> 'Andhra Pradesh', "phc andhrapradesh central 1" -> match 'PHC Andhra Pradesh Central 1'.
+  Always use: WHERE REPLACE(LOWER(p.name), ' ', '') LIKE '%andhrapradeshcentral1%' OR p.name ILIKE '%Andhra Pradesh Central 1%'.
+- Always SELECT p.id, p.name, d.name AS district_name, s.name AS state_name, p.total_beds, p.occupied_beds, p.emergency_beds, p.isolation_beds, p.oxygen_cylinders_available, p.operational_status
 - Always JOIN relevant descriptive tables (states, districts, medicines, phc_facilities) to retrieve names instead of just UUIDs.
 - For open-ended questions like "what can you tell me about X", select operational status, bed numbers, oxygen cylinders, and active alerts.
 - If the user asks for reasons or attendance on a specific day/date (e.g. "Wednesday" or "so many patients"), query patient_footfall joined with phc_facilities and states, selecting category, count, and date.
@@ -153,7 +160,7 @@ Critical Rules for SQL:
       answer: chatMsg,
       citations: [],
       followUps: [
-        'What is the patient footfall in Uttar Pradesh?',
+        'Can you tell me about PHC Andhra Pradesh Central 1?',
         'Which medicines have critical stockouts across states?',
         'Show bed occupancy at Hadapsar PHC',
         'Show all open critical alerts',
@@ -227,6 +234,12 @@ SQL: <fixed SQL query>`;
     }
   }
 
+  // If no rows were returned from dynamic SQL, check fallback engine before synthesizing empty data
+  if (dbRows.length === 0) {
+    const fallbackRes = await executeRagQuery(client, question);
+    return { ...fallbackRes, model: 'smarthealth-rag-v2.5' };
+  }
+
   // Step 2: Clinical & Epidemiological Synthesis
   const synthSystemPrompt = `You are the Smart Health Platform AI Copilot, a clinical epidemiologist, public health intelligence officer, and healthcare supply chain expert.
 User Query: "${question}"
@@ -234,21 +247,41 @@ User Query: "${question}"
 Real-time ground-truth data retrieved from PostgreSQL:
 ${JSON.stringify(dbRows, null, 2)}
 
-Instructions:
-1. Answer the user's specific query thoroughly, intelligently, and conversationally.
-2. If real-time database records were retrieved above, ground your answer in those exact figures, bolding all metrics, facility names, and counts.
-3. If the user asks for reasons or clinical causes (e.g. "what could be the reason for so many patients on Wednesday in Maharashtra?"):
-   - Analyze the specific categories in the retrieved data (such as Dengue outbreaks, OPD surges, Antenatal Care, routine Immunisation).
-   - Incorporate clinical and public health domain expertise: explain that in India's public health system (NHM), Wednesdays are designated as Village Health, Sanitation and Nutrition Days (VHSND) and routine immunisation sessions; explain seasonal vector-borne disease patterns (e.g., post-monsoon Dengue surges in Pune districts), and delayed care-seeking behavior from earlier in the week.
-4. If the user asks about a facility or region ("tell me about the phc in uttar pradesh"):
-   - Provide a comprehensive operational brief covering facility name, location, bed capacity, bed occupancy rate (highlight if critical), oxygen cylinder reserves, and active clinical alerts.
-   - Highlight any life-support vulnerabilities or supply chain bottlenecks with actionable recommendations.
-5. Even if specific database rows are not present for the exact filters, answer the inquiry thoroughly using clinical epidemiology, healthcare logistics, and operational governance guidelines.
-6. Format with clean Markdown: bold metrics, bullet points, and clinical clarity. Never mention that you ran a SQL query or talk about database internals.`;
+Formatting & Structural Instructions:
+1. Provide a clean, executive operational brief formatted with clear Markdown sections.
+2. ALWAYS place double newlines before every heading (###) and start every bullet point (* ) on its own fresh line.
+3. Structure facility briefs into these exact sections:
+
+### 🏥 Facility Identity & Operational Status
+* **Facility Name:** <name>
+* **Jurisdiction:** <district>, <state>
+* **Operational Status:** **ACTIVE**
+
+### 📊 Bed Capacity & Utilization
+* **Total Bed Capacity:** **<total>** beds
+* **Occupied Beds:** **<occupied>** beds (**<rate>%** utilization)
+* **Available Beds:** **<vacant>** beds free
+* **Emergency & Isolation Beds:** <emergency> emergency beds, <isolation> isolation beds
+
+### 🩺 Oxygen Reserves & Life Support
+* **Oxygen Cylinders Available:** **<count>** cylinders
+* **Status:** <Clinical assessment of oxygen buffer adequacy>
+
+### ⚠️ Clinical Warnings & Directives
+* <Include clinical or supply chain warning if occupancy >= 90% or oxygen cylinders <= 5>
+* 1-2 prioritized operational recommendations for health leadership.
+
+4. Bold all key metrics, numbers, and facility names.
+5. NEVER cram multiple sections or bullet points into one line. Format with clean Markdown.`;
 
   const synthRes = await callLlmWithFallback(question, synthSystemPrompt);
-  const finalAnswer = synthRes ? synthRes.text : (await executeRagQuery(client, question)).answer;
-  const activeModel = synthRes ? synthRes.model : 'smarthealth-rag-v2.5';
+  if (!synthRes) {
+    const fallbackRes = await executeRagQuery(client, question);
+    return { ...fallbackRes, model: 'smarthealth-rag-v2.5' };
+  }
+
+  const finalAnswer = synthRes.text;
+  const activeModel = synthRes.model;
 
   // Extract citations from rows
   const citations: any[] = [];
@@ -285,24 +318,123 @@ interface RagQueryResult {
 
 async function executeRagQuery(client: import('pg').PoolClient, question: string): Promise<RagQueryResult> {
   const q = question.toLowerCase().trim();
+  const qClean = q.replace(/[^a-z0-9]/g, '');
 
-  // 1. Casual Chat / Greetings
+  // 1. Casual Chat / Greetings / Multilingual
+  const greetingWords = ['hola', 'hello', 'hi', 'hey', 'greetings', 'namaste', 'namaskar', 'vanakkam', 'bonjour', 'ciao', 'salut', 'aloha', 'sup', 'yo'];
+  const isGreetingWord = greetingWords.some(w => {
+    return q === w || q.startsWith(w + ' ') || q.endsWith(' ' + w) || q.includes(' ' + w + ' ') || qClean === w;
+  });
+
   if (
-    /^(hello|hi|hey|greetings|good\s*(morning|afternoon|evening)|who\s*are\s*you|how\s*are\s*you|how\s*do\s*you\s*do|what('s|\s+is)\s*up|what\s*can\s*you\s*do|help|thanks|thank\s*you)/i.test(q) ||
+    isGreetingWord ||
+    /^(good\s*(morning|afternoon|evening|day)|who\s*are\s*you|how\s*are\s*you|how\s*do\s*you\s*do|what('s|\s+is)\s*up|what\s*can\s*you\s*do|help|thanks|thank\s*you)/i.test(q) ||
     q.includes('how are you')
   ) {
+    const isSpanish = qClean.includes('hola') || qClean.includes('buenos') || qClean.includes('gracias');
+    const greetingHeader = isSpanish
+      ? `¡Hola! Bienvenido al **Copilot de Salud Inteligente** (Smart Health AI Copilot). 😊`
+      : `Hello! I'm doing well, thank you for asking! 😊\n\nI am your **Smart Health Platform AI Copilot**.`;
+
     return {
-      answer: `Hello! I'm doing well, thank you for asking! 😊\n\nI am your **Smart Health Platform AI Copilot**. I have direct access to the live PostgreSQL health database tracking:\n• **Patient Footfall & Outpatient Visits** (OPD, ANC, Fever clinics by state & PHC)\n• **15 Primary Health Centres** across 5 states\n• **15 Essential Medicines** with real-time stock levels, batches & expiry dates\n• **Hospital Bed Capacity & Oxygen Cylinder Reserves**\n• **Active Clinical Alerts & Emergency Redistribution Transfers**\n\nHow can I help you today?`,
+      answer: `${greetingHeader}\n\nI have direct real-time access to the live PostgreSQL health database tracking:\n• **PHC Facilities & Live Capacities** (Beds, Occupancy, Oxygen reserves across 10 states)\n• **Patient Footfall & Outpatient Visits** (OPD, ANC, Fever clinics, Dengue/Malaria surveillance)\n• **Essential Medicines & Batch Expiry** (Real-time stock levels, stockout risks)\n• **Active Clinical Alerts & Emergency Logistics**\n\nHow can I help you today?`,
       citations: [],
       followUps: [
-        'What is the patient footfall in Uttar Pradesh?',
-        'Which medicines have critical stockouts across states?',
-        'Show bed occupancy at Hadapsar PHC',
+        'Can you tell me about PHC Andhra Pradesh Central 1?',
+        'Which medicines are in critical stockout?',
+        'Show bed occupancy across facilities',
+        'What is the patient footfall in Maharashtra?',
       ],
     };
   }
 
-  // 2. Patient Footfall / Attendance
+  // 2. Medicine Shortages / Inventory / Expiry
+  if (
+    q.includes('medicine') ||
+    q.includes('drug') ||
+    q.includes('stockout') ||
+    q.includes('out of stock') ||
+    q.includes('inventory') ||
+    q.includes('batch') ||
+    q.includes('expir')
+  ) {
+    const res = await client.query(`
+      SELECT 
+        m.name AS medicine_name,
+        m.category,
+        m.unit,
+        p.name AS phc_name,
+        s.name AS state_name,
+        ib.batch_no,
+        ib.remaining_qty,
+        ib.minimum_threshold,
+        ib.expiry_date
+      FROM inventory_batches ib
+      JOIN medicines m ON ib.medicine_id = m.id
+      JOIN phc_facilities p ON ib.phc_id = p.id
+      JOIN states s ON p.state_id = s.id
+      WHERE ib.remaining_qty <= ib.minimum_threshold
+      ORDER BY ib.remaining_qty ASC, ib.expiry_date ASC
+      LIMIT 10;
+    `).catch(() => ({ rows: [] as any[] }));
+
+    if (res.rows.length > 0) {
+      let answer = `### 💊 Critical Medicine Stockout & Low Inventory Report\n\n`;
+      answer += `The following essential pharmaceuticals are at or below safety buffer thresholds:\n\n`;
+      for (const r of res.rows) {
+        const status = r.remaining_qty === 0 ? '🔴 **STOCKOUT**' : '⚠️ **LOW STOCK**';
+        answer += `• ${status}: **${r.medicine_name}** (${r.category}) at **${r.phc_name}** (${r.state_name})\n`;
+        answer += `   - Remaining: **${r.remaining_qty} ${r.unit}** (Min Threshold: ${r.minimum_threshold}) • Batch: \`${r.batch_no}\` • Exp: **${new Date(r.expiry_date).toISOString().split('T')[0]}**\n`;
+      }
+      return {
+        answer,
+        citations: res.rows.slice(0, 5).map(r => ({
+          sourceType: 'inventory_batch',
+          excerpt: `${r.medicine_name} at ${r.phc_name}: ${r.remaining_qty} ${r.unit}`,
+        })),
+        followUps: [
+          'Generate redistribution transfer recommendation',
+          'Show facility operational status',
+        ],
+      };
+    }
+  }
+
+  // 3. Alerts & Emergencies
+  if (q.includes('alert') || q.includes('warning') || q.includes('emergency')) {
+    const res = await client.query(`
+      SELECT a.id, a.alert_type, a.severity, a.status, a.payload, a.created_at, p.name as phc_name, s.name as state_name
+      FROM alerts a
+      LEFT JOIN phc_facilities p ON a.phc_id = p.id
+      LEFT JOIN states s ON p.state_id = s.id
+      WHERE a.status = 'open'
+      ORDER BY 
+        CASE WHEN a.severity = 'critical' THEN 1 WHEN a.severity = 'high' THEN 2 ELSE 3 END,
+        a.created_at DESC
+      LIMIT 8;
+    `).catch(() => ({ rows: [] as any[] }));
+
+    if (res.rows.length > 0) {
+      let answer = `### 🚨 Active Operational & Clinical Alerts\n\n`;
+      for (const a of res.rows) {
+        const icon = a.severity === 'critical' ? '🔴' : a.severity === 'high' ? '🟠' : '⚠️';
+        const msg = a.payload?.message || a.payload?.description || a.alert_type;
+        answer += `• ${icon} **${a.severity.toUpperCase()}** — **${a.alert_type}** at **${a.phc_name || 'System-wide'}** (${a.state_name || ''})\n`;
+        answer += `   - ${msg} (Logged: ${new Date(a.created_at).toISOString().split('T')[0]})\n`;
+      }
+      return {
+        answer,
+        citations: res.rows.slice(0, 5).map(r => ({
+          sourceType: 'alert',
+          entityId: r.id,
+          excerpt: `${r.alert_type}: ${r.severity}`,
+        })),
+        followUps: ['Show bed occupancy', 'Which medicines are low?'],
+      };
+    }
+  }
+
+  // 4. Patient Footfall / Attendance
   if (
     q.includes('footfall') ||
     q.includes('patient') ||
@@ -313,15 +445,36 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
     let whereClause = '';
     const params: any[] = [];
 
-    // Typo-tolerant state detection
-    if (q.includes('mahar') || q.includes('pune') || q.includes('nashik')) {
-      params.push('%Maharashtra%');
+    // Specific state mapping without accidental substring collisions
+    if (q.includes('andhra') || qClean.includes('andhrapradesh')) {
+      params.push('%Andhra Pradesh%');
       whereClause = `WHERE s.name ILIKE $${params.length}`;
-    } else if (q.includes('uttar') || q.includes('pradesh') || q.includes('lucknow') || q.includes(' up')) {
+    } else if (q.includes('uttar') || qClean.includes('uttarpradesh') || q.includes('lucknow') || /\bup\b/.test(q)) {
       params.push('%Uttar Pradesh%');
       whereClause = `WHERE s.name ILIKE $${params.length}`;
-    } else if (q.includes('tamil') || q.includes('nadu') || q.includes('chennai')) {
+    } else if (q.includes('madhya') || qClean.includes('madhyapradesh') || /\bmp\b/.test(q)) {
+      params.push('%Madhya Pradesh%');
+      whereClause = `WHERE s.name ILIKE $${params.length}`;
+    } else if (q.includes('mahar') || q.includes('pune') || q.includes('nashik') || /\bmh\b/.test(q)) {
+      params.push('%Maharashtra%');
+      whereClause = `WHERE s.name ILIKE $${params.length}`;
+    } else if (q.includes('tamil') || q.includes('nadu') || q.includes('chennai') || /\btn\b/.test(q)) {
       params.push('%Tamil Nadu%');
+      whereClause = `WHERE s.name ILIKE $${params.length}`;
+    } else if (q.includes('karnat') || q.includes('bengaluru') || q.includes('bangalore') || /\bka\b/.test(q)) {
+      params.push('%Karnataka%');
+      whereClause = `WHERE s.name ILIKE $${params.length}`;
+    } else if (q.includes('rajas') || q.includes('jaipur') || /\brj\b/.test(q)) {
+      params.push('%Rajasthan%');
+      whereClause = `WHERE s.name ILIKE $${params.length}`;
+    } else if (q.includes('bihar') || q.includes('patna')) {
+      params.push('%Bihar%');
+      whereClause = `WHERE s.name ILIKE $${params.length}`;
+    } else if (q.includes('gujarat') || q.includes('ahmedabad')) {
+      params.push('%Gujarat%');
+      whereClause = `WHERE s.name ILIKE $${params.length}`;
+    } else if (q.includes('bengal') || q.includes('kolkata')) {
+      params.push('%West Bengal%');
       whereClause = `WHERE s.name ILIKE $${params.length}`;
     }
 
@@ -386,44 +539,76 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
     }
   }
 
-  // 3. Facility Details (e.g. "tell me about the phc in uttar pradesh")
-  if (q.includes('phc') || q.includes('facility') || q.includes('hospital') || q.includes('tell me about')) {
-    let whereClause = '';
-    const params: any[] = [];
-
-    if (q.includes('uttar') || q.includes('pradesh') || q.includes('lucknow') || q.includes(' up')) {
-      params.push('%Uttar Pradesh%');
-      whereClause = `WHERE s.name ILIKE $${params.length}`;
-    } else if (q.includes('mahar') || q.includes('pune')) {
-      params.push('%Maharashtra%');
-      whereClause = `WHERE s.name ILIKE $${params.length}`;
-    }
-
-    const res = await client.query(
-      `
-      SELECT 
-        p.*, d.name AS district_name, s.name AS state_name
+  // 5. Facility Details & Bed Capacity (Resilient Fuzzy & Direct Matching)
+  if (
+    q.includes('phc') ||
+    q.includes('facility') ||
+    q.includes('hospital') ||
+    q.includes('tell me about') ||
+    q.includes('bed') ||
+    q.includes('occupancy') ||
+    q.includes('oxygen')
+  ) {
+    const facilitiesRes = await client.query(`
+      SELECT p.*, d.name AS district_name, s.name AS state_name
       FROM phc_facilities p
       JOIN districts d ON p.district_id = d.id
       JOIN states s ON p.state_id = s.id
-      ${whereClause}
-      ORDER BY p.occupied_beds DESC;
-    `,
-      params
-    ).catch(() => ({ rows: [] as any[] }));
+    `).catch(() => ({ rows: [] as any[] }));
 
-    if (res.rows.length > 0) {
-      const f = res.rows[0];
+    let bestMatch: any = null;
+    let bestScore = 0;
+
+    for (const f of facilitiesRes.rows) {
+      const fNameClean = f.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const stateClean = f.state_name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const distClean = f.district_name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      let score = 0;
+
+      // Exact UUID match
+      if (q.includes(f.id.toLowerCase())) {
+        score += 200;
+      }
+
+      // Exact substring of facility name without spaces (e.g. "phcandhrapradeshcentral1")
+      if (qClean.includes(fNameClean)) {
+        score += 100;
+      } else if (fNameClean.includes(qClean) && qClean.length > 5) {
+        score += 80;
+      } else {
+        // Token matching
+        const tokens = f.name.toLowerCase().split(/\s+/).filter((t: string) => t !== 'phc');
+        for (const t of tokens) {
+          if (qClean.includes(t)) score += 15;
+        }
+      }
+
+      // State and District matching
+      if (qClean.includes(stateClean)) score += 20;
+      if (qClean.includes(distClean)) score += 20;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = f;
+      }
+    }
+
+    if (bestMatch && bestScore >= 20) {
+      const f = bestMatch;
       const occPct = f.total_beds > 0 ? ((f.occupied_beds / f.total_beds) * 100).toFixed(1) : '0';
+      const availBeds = Math.max(0, f.total_beds - f.occupied_beds);
+
       let answer = `### 🏥 Health Facility Operational Intelligence: ${f.name}\n\n`;
       answer += `• **Location:** ${f.district_name}, ${f.state_name}\n`;
       answer += `• **Operational Status:** **${f.operational_status.toUpperCase()}**\n`;
       answer += `• **Bed Capacity:** **${f.occupied_beds} / ${f.total_beds} beds occupied** (**${occPct}% utilization**)\n`;
+      answer += `• **Available Beds:** **${availBeds} Free**\n`;
       answer += `• **Emergency & Isolation Beds:** ${f.emergency_beds} emergency, ${f.isolation_beds} isolation\n`;
       answer += `• **Oxygen Cylinder Reserves:** **${f.oxygen_cylinders_available} cylinders** available\n\n`;
 
       if (f.occupied_beds >= f.total_beds * 0.9) {
-        answer += `⚠️ **Clinical Warning:** This facility is operating at **${occPct}% capacity** with only **${f.total_beds - f.occupied_beds} vacant beds**. Immediate diversion or bed redistribution recommended.\n`;
+        answer += `⚠️ **Clinical Warning:** This facility is operating at **${occPct}% capacity** with only **${availBeds} vacant beds**. Immediate diversion or bed redistribution recommended.\n`;
       }
       if (f.oxygen_cylinders_available <= 5) {
         answer += `⚠️ **Supply Chain Warning:** Low oxygen reserve (**${f.oxygen_cylinders_available} cylinders**). High vulnerability for acute respiratory cases.\n`;
@@ -431,19 +616,23 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
 
       return {
         answer,
-        citations: [{ sourceType: 'facility', entityId: f.id, excerpt: `${f.name}: ${f.occupied_beds}/${f.total_beds} beds (${occPct}%)` }],
+        citations: [{
+          sourceType: 'facility',
+          entityId: f.id,
+          excerpt: `${f.name}: ${f.occupied_beds}/${f.total_beds} beds (${occPct}%)`,
+        }],
         followUps: [`Show active alerts for ${f.name}`, `What is the medicine inventory at ${f.name}?`],
       };
     }
   }
 
-  // 4. Default helpful guide
+  // 6. Default helpful guide
   return {
-    answer: `I searched the health database for **"${question}"**, but could not find direct matching records.\n\nYou can ask me about:\n• **Clinical Reasons & Trends:** *"What could be the reason for so many patients on Wednesday in Maharashtra?"*\n• **Facility Profiles:** *"What can you tell me about the PHC in Uttar Pradesh?"*\n• **Medicine Shortages:** *"Which medicines are out of stock?"*\n• **Bed & Oxygen Capacity:** *"Show bed occupancy across PHCs"*`,
+    answer: `I searched the health database for **"${question}"**, but could not find direct matching records.\n\nYou can ask me about:\n• **Facility Profiles:** *"Can you tell me about PHC Andhra Pradesh Central 1?"*\n• **Clinical Reasons & Trends:** *"What could be the reason for so many patients on Wednesday in Maharashtra?"*\n• **Medicine Shortages:** *"Which medicines are out of stock?"*\n• **Bed & Oxygen Capacity:** *"Show bed occupancy across PHCs"*`,
     citations: [],
     followUps: [
+      'Can you tell me about PHC Andhra Pradesh Central 1?',
       'What could be the reason for so many patients attendance on Wednesday in Maharashtra?',
-      'What can you tell me about the PHC in Uttar Pradesh?',
       'Which medicines have critical stockouts across states?',
     ],
   };

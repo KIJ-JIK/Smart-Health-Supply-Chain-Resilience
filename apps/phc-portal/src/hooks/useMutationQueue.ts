@@ -193,25 +193,28 @@ export function useMutationQueue() {
         }
 
         case 'inventory_batch_update': {
-          const { batch_id, medicine_id, new_quantity, previous_quantity, reason, user_name } = payload;
+          const batch_id = payload.batch_id || payload.id;
+          const newQty = Number(payload.new_quantity ?? payload.remaining_qty ?? 0);
+          const prevQty = Number(payload.previous_quantity ?? payload.previous_qty ?? 0);
+          const batchNo = payload.batch_no;
           if (batch_id) {
             await db.inventory_batches.update(batch_id, {
-              remaining_qty: Number(new_quantity),
+              remaining_qty: newQty,
             });
 
             const batch = await db.inventory_batches.get(batch_id);
             await db.stock_movements.put({
               id: generateUUID(),
               phc_id: currentPhcId,
-              medicine_id: medicine_id || batch?.medicine_id || '',
+              medicine_id: payload.medicine_id || batch?.medicine_id || '',
               batch_id,
-              batch_no: batch?.batch_no || '',
+              batch_no: batchNo || batch?.batch_no || '',
               type: 'adjust',
-              quantity: Math.abs(new_quantity - previous_quantity),
-              previous_qty: Number(previous_quantity),
-              new_qty: Number(new_quantity),
-              reason: reason || 'Inventory Audit Adjustment',
-              user_name: user_name || 'Admin',
+              quantity: Math.abs(newQty - prevQty),
+              previous_qty: prevQty,
+              new_qty: newQty,
+              reason: payload.reason || 'Inventory Audit Adjustment',
+              user_name: payload.user_name || 'Admin',
               device_id: CURRENT_DEVICE_ID,
               timestamp: now,
             });

@@ -13,6 +13,9 @@ export const GET_FEDERATED_NODES = gql`
       countryCode
       countryName
       status
+      nodeStatus
+      activeModelVersion
+      lastTrainedAt
       lastLocalTraining
       lastModelUpload
       healthIndicator
@@ -22,10 +25,12 @@ export const GET_FEDERATED_NODES = gql`
 `;
 
 export const GET_FEDERATED_ROUNDS = gql`
-  query GetFederatedRounds($status: RoundStatus) {
+  query GetFederatedRounds($status: String) {
     federatedRounds(status: $status) {
       id
       roundId
+      roundNumber
+      modelId
       modelVersion
       status
       participatingCountries
@@ -33,6 +38,9 @@ export const GET_FEDERATED_ROUNDS = gql`
       quorumRequired
       roundDeadline
       aggregationSignature
+      globalLoss
+      previousEntryHash
+      thisHash
       startedAt
       completedAt
     }
@@ -44,6 +52,8 @@ export const GET_FEDERATED_ROUND = gql`
     federatedRound(id: $id) {
       id
       roundId
+      roundNumber
+      modelId
       modelVersion
       status
       participatingCountries
@@ -51,6 +61,9 @@ export const GET_FEDERATED_ROUND = gql`
       quorumRequired
       roundDeadline
       aggregationSignature
+      globalLoss
+      previousEntryHash
+      thisHash
       startedAt
       completedAt
     }
@@ -82,10 +95,12 @@ export const GET_FEDERATED_MODEL_VERSIONS = gql`
 
 export const GET_FEDERATED_PRIVACY_BUDGET = gql`
   query GetFederatedPrivacyBudget {
-    federatedPrivacyBudget {
+    privacyBudgetLedger {
       id
       countryId
+      countryCode
       federationRoundId
+      roundNumber
       epsilonThisRound
       deltaThisRound
       cumulativeEpsilon
@@ -94,18 +109,42 @@ export const GET_FEDERATED_PRIVACY_BUDGET = gql`
       noiseMultiplier
       localSampleCount
       submitted
+      withinBudget
       recordedAt
+      epsilonConsumed
+    }
+    federatedPrivacyBudget {
+      id
+      countryId
+      countryCode
+      federationRoundId
+      roundNumber
+      epsilonThisRound
+      deltaThisRound
+      cumulativeEpsilon
+      budgetLimit
+      clipNorm
+      noiseMultiplier
+      localSampleCount
+      submitted
+      withinBudget
+      recordedAt
+      epsilonConsumed
     }
   }
 `;
 
+export const GET_PRIVACY_BUDGET_LEDGER = GET_FEDERATED_PRIVACY_BUDGET;
+
 // ── Mutations ────────────────────────────────────────────────────────────────
 
 export const START_FEDERATED_ROUND = gql`
-  mutation StartFederatedRound($config: StartRoundInput!) {
-    startFederatedRound(config: $config) {
+  mutation StartFederatedRound($modelId: String, $targetEpsilon: Float, $config: StartRoundInput) {
+    startFederatedRound(modelId: $modelId, targetEpsilon: $targetEpsilon, config: $config) {
       id
       roundId
+      roundNumber
+      modelId
       modelVersion
       status
       startedAt
@@ -114,8 +153,8 @@ export const START_FEDERATED_ROUND = gql`
 `;
 
 export const APPROVE_AGGREGATED_MODEL = gql`
-  mutation ApproveAggregatedModel($roundId: ID!) {
-    approveAggregatedModel(roundId: $roundId) {
+  mutation ApproveAggregatedModel($roundId: ID!, $targetVersion: String) {
+    approveAggregatedModel(roundId: $roundId, targetVersion: $targetVersion) {
       id
       roundId
       modelVersion
@@ -126,7 +165,7 @@ export const APPROVE_AGGREGATED_MODEL = gql`
 `;
 
 export const REJECT_AGGREGATED_MODEL = gql`
-  mutation RejectAggregatedModel($roundId: ID!, $reason: String!) {
+  mutation RejectAggregatedModel($roundId: ID!, $reason: String) {
     rejectAggregatedModel(roundId: $roundId, reason: $reason) {
       id
       roundId
@@ -146,3 +185,17 @@ export const TOGGLE_COUNTRY_PARTICIPATION = gql`
     }
   }
 `;
+
+export const CREATE_NATION = gql`
+  mutation CreateNation($code: String!, $name: String!, $status: String) {
+    createNation(code: $code, name: $name, status: $status) {
+      countryCode
+      countryName
+      status
+      nodeStatus
+      activeModelVersion
+      coordinatorEndpoint
+    }
+  }
+`;
+

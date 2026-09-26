@@ -14,28 +14,15 @@ import { useSyncEngine } from '../../hooks/useSyncEngine';
 import { useUIStore } from '../../stores/uiStore';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { formatDateTime } from '../../utils/date';
-import { mockBackendServer } from '../../utils/mockBackend';
 import { Button } from '../../components/common/Button';
 
 export const SyncStatusView: React.FC = () => {
   const { isOnline, simulatedOffline, toggleSimulation } = useNetworkStatus();
   const { pendingMutations, allMutations, conflictMutations, markStatus, enqueue, clearSynced } = useMutationQueue();
-  const { isSyncing, lastSuccessfulSync, triggerSync, useLiveServer, setUseLiveServer, backendUrl, setBackendUrl } = useSyncEngine(isOnline);
+  const { isSyncing, lastSuccessfulSync, triggerSync, backendUrl, setBackendUrl } = useSyncEngine(isOnline);
   const { addToast } = useUIStore();
 
   const [, setSelectedConflict] = useState<any | null>(null);
-  const [simulateConflictActive, setSimulateConflictActive] = useState(mockBackendServer.simulateOversoldConflict);
-
-  const toggleConflictSimulation = () => {
-    mockBackendServer.simulateOversoldConflict = !simulateConflictActive;
-    setSimulateConflictActive(mockBackendServer.simulateOversoldConflict);
-    addToast(
-      mockBackendServer.simulateOversoldConflict
-        ? 'Simulation Enabled: Next billing checkout sync will trigger stock_oversold conflict!'
-        : 'Conflict Simulation Disabled',
-      'info'
-    );
-  };
 
   const handleConfirmPartialDispense = async (conflictEntry: any) => {
     try {
@@ -247,74 +234,45 @@ export const SyncStatusView: React.FC = () => {
         </div>
       )}
 
-      {/* SECTION 2: Backend Sync Configuration & Simulator Controls */}
+      {/* SECTION 2: Backend Sync Configuration */}
       <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#1e2d3d] shadow-sm p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1e2d3d] pb-3">
           <div className="flex items-center gap-2">
             <Server className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Sync Endpoint Adapter & Simulator Settings</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Live Central Backend Sync Adapter</h3>
           </div>
           <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">POST /sync/push • GET /sync/pull</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div className="p-3.5 bg-slate-50 dark:bg-[#0d1929]/70 rounded-xl border border-slate-200 dark:border-[#1e2d3d] space-y-2">
-            <span className="font-bold text-slate-800 dark:text-slate-200 block">Target Backend Mode</span>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 dark:text-slate-300">
-                <input
-                  type="radio"
-                  name="syncMode"
-                  checked={!useLiveServer}
-                  onChange={() => setUseLiveServer(false)}
-                  className="text-primary-600"
-                />
-                <span>Simulated In-Browser Engine</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 dark:text-slate-300">
-                <input
-                  type="radio"
-                  name="syncMode"
-                  checked={useLiveServer}
-                  onChange={() => setUseLiveServer(true)}
-                  className="text-primary-600"
-                />
-                <span>Live Backend HTTP Server</span>
-              </label>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-800 dark:text-slate-200 block">Connection Mode</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                Live Backend Connected
+              </span>
             </div>
-
-            {useLiveServer && (
-              <div className="pt-2">
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Backend Base URL</label>
-                <input
-                  type="text"
-                  value={backendUrl}
-                  onChange={(e) => setBackendUrl(e.target.value)}
-                  className="w-full px-2.5 py-1.5 border border-slate-300 dark:border-[#1e2d3d] bg-white dark:bg-[#0d1929] text-slate-900 dark:text-slate-100 rounded-lg text-xs"
-                />
-              </div>
-            )}
+            <div className="pt-1">
+              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Backend Base URL</label>
+              <input
+                type="text"
+                value={backendUrl}
+                onChange={(e) => setBackendUrl(e.target.value)}
+                className="w-full px-2.5 py-1.5 border border-slate-300 dark:border-[#1e2d3d] bg-white dark:bg-[#0d1929] text-slate-900 dark:text-slate-100 rounded-lg text-xs font-mono"
+              />
+            </div>
           </div>
 
-          <div className="p-3.5 bg-slate-50 dark:bg-[#0d1929]/70 rounded-xl border border-slate-200 dark:border-[#1e2d3d] space-y-2">
-            <span className="font-bold text-slate-800 dark:text-slate-200 block">Conflict Simulator</span>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                  Inject <code className="text-rose-600 dark:text-rose-400 font-mono">STOCK_OVERSOLD</code> conflict response on next push
-                </p>
-              </div>
-              <button
-                onClick={toggleConflictSimulation}
-                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
-                  simulateConflictActive
-                    ? 'bg-rose-600 text-white'
-                    : 'bg-slate-200 dark:bg-[#1e2d3d] text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
-                }`}
-              >
-                {simulateConflictActive ? 'Simulation ACTIVE' : 'Simulate Conflict'}
-              </button>
+          <div className="p-3.5 bg-slate-50 dark:bg-[#0d1929]/70 rounded-xl border border-slate-200 dark:border-[#1e2d3d] space-y-2 flex flex-col justify-between">
+            <span className="font-bold text-slate-800 dark:text-slate-200 block">Authoritative Sync Engine</span>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
+              Mutations are queued locally in Dexie IndexedDB and pushed to PostgreSQL with atomic idempotency and automated conflict resolution.
+            </p>
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+              <span>Status:</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {isSyncing ? 'Synchronizing...' : 'Standing By'}
+              </span>
             </div>
           </div>
         </div>

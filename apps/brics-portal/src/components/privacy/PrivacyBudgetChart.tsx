@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export interface PrivacyTimeSeriesDataPoint {
   roundLabel: string;
@@ -38,6 +38,8 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
   budgetLimit = 10.0,
   height = 280,
 }) => {
+  const [hoveredPoint, setHoveredPoint] = useState<{ point: PrivacyTimeSeriesDataPoint; index: number } | null>(null);
+
   if (!data || data.length === 0) {
     return (
       <div
@@ -73,14 +75,14 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
   const ceilingY = getY(budgetLimit);
 
   return (
-    <div className="w-full flex flex-col gap-3">
-      {/* Legend */}
+    <div className="w-full flex flex-col gap-3 relative">
+      {/* Legend & Summary */}
       <div className="flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
         <div className="flex items-center gap-3 flex-wrap">
           {countries.map((c) => (
             <div key={c} className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COUNTRY_COLORS[c] }} />
-              <span className="text-slate-700 dark:text-slate-300">{COUNTRY_FLAGS[c]}</span>
+              <span className="text-slate-700 dark:text-slate-300 font-medium">{COUNTRY_FLAGS[c]}</span>
             </div>
           ))}
         </div>
@@ -90,6 +92,27 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
           <span className="text-rose-600 dark:text-rose-400 font-bold">Hard Limit: ε = {budgetLimit.toFixed(1)}</span>
         </div>
       </div>
+
+      {/* Hover Tooltip Card */}
+      {hoveredPoint && (
+        <div className="absolute top-10 right-4 z-20 bg-slate-900/95 text-white border border-slate-700 rounded-lg p-3 shadow-xl text-xs font-mono space-y-1.5 backdrop-blur-sm pointer-events-none">
+          <div className="font-bold text-teal-400 border-b border-slate-700 pb-1 flex justify-between gap-4">
+            <span>{hoveredPoint.point.roundLabel}</span>
+            <span>Avg ε = {hoveredPoint.point.averageCumulative.toFixed(2)}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] pt-1">
+            {countries.map((c) => (
+              <div key={c} className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COUNTRY_COLORS[c] }} />
+                  <span>{c}:</span>
+                </span>
+                <span className="font-bold">{hoveredPoint.point[c].toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* SVG Chart */}
       <svg
@@ -146,6 +169,19 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
           strokeWidth="1.5"
         />
 
+        {/* Hover Crosshair vertical bar */}
+        {hoveredPoint && (
+          <line
+            x1={getX(hoveredPoint.index)}
+            y1={padding.top}
+            x2={getX(hoveredPoint.index)}
+            y2={height - padding.bottom}
+            stroke="#14b8a6"
+            strokeWidth="1.5"
+            strokeDasharray="2 2"
+          />
+        )}
+
         {/* Plot curves for each nation */}
         {countries.map((country) => {
           const points = data.map((d, i) => `${getX(i)},${getY(d[country])}`).join(' ');
@@ -166,10 +202,13 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
                   key={i}
                   cx={getX(i)}
                   cy={getY(d[country])}
-                  r="3.5"
+                  r={hoveredPoint?.index === i ? 5 : 3.5}
                   fill={color}
                   stroke="#0f1f38"
                   strokeWidth="2"
+                  className="transition-all cursor-pointer"
+                  onMouseEnter={() => setHoveredPoint({ point: d, index: i })}
+                  onMouseLeave={() => setHoveredPoint(null)}
                 />
               ))}
             </g>
@@ -183,9 +222,9 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
             x={getX(i)}
             y={height - 12}
             textAnchor="middle"
-            className="fill-slate-500 dark:fill-slate-400"
-            fontSize="10"
-            fontFamily="monospace"
+            className={`fill-slate-500 dark:fill-slate-400 text-[10px] font-mono cursor-pointer ${hoveredPoint?.index === i ? 'font-bold fill-teal-500' : ''}`}
+            onMouseEnter={() => setHoveredPoint({ point: d, index: i })}
+            onMouseLeave={() => setHoveredPoint(null)}
           >
             {d.roundLabel}
           </text>

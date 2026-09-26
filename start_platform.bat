@@ -17,19 +17,28 @@ if %ERRORLEVEL% neq 0 (
 )
 echo [OK] PostgreSQL database is active!
 
-echo [2/4] Starting Central Backend on port 8000...
+echo [2/6] Starting AI Engine on port 5000...
+start "Smart Health AI Engine :5000" cmd /k "cd /d "%~dp0services\ai-engine" && python main.py"
+
+echo [3/6] Starting Central Backend on port 8000...
 start "Smart Health Backend :8000" cmd /k "cd /d "%~dp0services\backend\smart-health-platform\backend" && npm run dev"
 
-echo [3/4] Starting Governance Portal on port 3000...
+echo [4/6] Starting Governance Portal on port 3000...
 start "Governance Portal :3000" cmd /k "cd /d "%~dp0apps\governance-portal" && npm run dev"
 
-echo [4/4] Starting BRICS Portal on port 3001...
+echo [5/6] Starting BRICS Portal on port 3001...
 start "BRICS Portal :3001" cmd /k "cd /d "%~dp0apps\brics-portal" && npm run dev"
+
+echo [6/6] Starting PHC Portal on port 5173...
+start "PHC Portal :5173" cmd /k "cd /d "%~dp0apps\phc-portal" && npm run dev"
 
 echo ====================================================
 echo All services launched!
 echo - Governance Portal:  http://localhost:3000
 echo - AI Copilot:         http://localhost:3000/copilot
 echo - BRICS Portal:       http://localhost:3001
+echo - PHC Portal:         http://localhost:5173
+echo - Central Backend:    http://localhost:8000
 echo - Backend GraphQL:    http://localhost:8000/graphql
+echo - AI Engine API:      http://localhost:5000/docs
 echo ====================================================

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useQuery } from '@apollo/client';
+import { DISTRICT_OVERVIEW } from '@/graphql/queries';
 import Link from 'next/link';
 import DeckGL from '@deck.gl/react';
 import { ScatterplotLayer, LineLayer, PathLayer, TextLayer } from '@deck.gl/layers';
@@ -168,19 +170,19 @@ export function GisMap() {
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Open style using CartoDB Positron tiles for clean public health map aesthetics
+    // High-reliability open raster basemap tiles (OpenStreetMap & HOT mirrors)
     const styleSpec: StyleSpecification = {
       version: 8,
       sources: {
         'osm-tiles': {
           type: 'raster',
           tiles: [
-            'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-            'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-            'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+            'https://b.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
           ],
           tileSize: 256,
-          attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+          attribution: '&copy; OpenStreetMap contributors, Humanitarian OpenStreetMap Team',
         },
       },
       layers: [
@@ -224,11 +226,44 @@ export function GisMap() {
     }
   }, [viewState]);
 
+  // Fetch live district PHC facilities from backend PostgreSQL
+  const { data: districtData } = useQuery(DISTRICT_OVERVIEW, {
+    variables: { districtId: activeDistrictId || 'dist-pune' },
+    skip: !activeDistrictId && !user.districtId,
+  });
+
+  const livePhcs: PhcGisFeature[] = useMemo(() => {
+    if (!districtData?.districtOverview?.phcList || districtData.districtOverview.phcList.length === 0) {
+      return GIS_PHCS;
+    }
+    const phcList = districtData.districtOverview.phcList;
+    const mapped: PhcGisFeature[] = phcList.map((p: any) => ({
+      id: p.phcId,
+      name: p.name,
+      type: '24x7',
+      coordinates: [p.longitude || 73.8567, p.latitude || 18.5204],
+      stateId: districtData.districtOverview.stateId || 'state-mh',
+      districtId: districtData.districtOverview.districtId,
+      riskLevel: (p.riskLevel as RiskLevel) || 'LOW',
+      riskScore: p.riskLevel === 'CRITICAL' ? 88 : p.riskLevel === 'HIGH' ? 72 : 35,
+      bedTotal: p.totalBeds || 30,
+      bedOccupied: p.occupiedBeds || 15,
+      oxygenAvailable: p.oxygenCylinders || 20,
+      staffPresent: 8,
+      staffSanctioned: 10,
+      medicineStockoutCount: p.openAlerts || 0,
+      isEmergencyHotspot: p.riskLevel === 'CRITICAL',
+    }));
+    const currentDistrictId = districtData.districtOverview.districtId;
+    const otherPhcs = GIS_PHCS.filter((p) => p.districtId !== currentDistrictId);
+    return [...mapped, ...otherPhcs];
+  }, [districtData]);
+
   // ── Role-based Data Scoping per Masterplan §26 ─────────────────────────────
   // If district_admin: strictly filter features to user.districtId
   // If state_admin: strictly filter features to user.stateId
   const scopedPhcs = useMemo(() => {
-    return GIS_PHCS.filter((phc) => {
+    return livePhcs.filter((phc) => {
       if (isDistrictAdmin) {
         return phc.districtId === user.districtId;
       }
@@ -243,7 +278,7 @@ export function GisMap() {
       }
       return true;
     });
-  }, [isDistrictAdmin, isStateAdmin, user.districtId, user.stateId, districtId, stateId]);
+  }, [livePhcs, isDistrictAdmin, isStateAdmin, user.districtId, user.stateId, districtId, stateId]);
 
   // Filter Supply Routes
   // MANDATORY CONSTRAINT: "the supply routes should be visible from phc to phc only"

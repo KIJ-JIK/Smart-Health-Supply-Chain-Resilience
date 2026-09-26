@@ -1,8 +1,10 @@
+import 'dotenv/config';
 import express from 'express';
 import { tenantContextMiddleware, requireAuth } from './middleware/tenantContext';
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Enable CORS for all frontends (PHC Portal, Governance Portal, BRICS Portal)
 app.use((req, res, next) => {
@@ -408,6 +410,12 @@ app.use(graphqlRouter);
 app.use('/api/v1', graphqlRouter);
 
 // ---------------------------------------------------------------------------
+// Governance Redistribution REST Layer
+// ---------------------------------------------------------------------------
+import { redistributionRouter } from './modules/governance/redistributionController';
+app.use('/api/v1/governance/redistribution', redistributionRouter);
+
+// ---------------------------------------------------------------------------
 // Configuration Management Module (Prompt 16)
 // ---------------------------------------------------------------------------
 import { configRouter } from './modules/config/configController';
@@ -418,6 +426,24 @@ app.use('/api/v1', configRouter);
 // ---------------------------------------------------------------------------
 import { copilotRouter } from './modules/ai/copilotService';
 app.use('/api/v1', copilotRouter);
+
+// ---------------------------------------------------------------------------
+// Google AI Multimodal Vision Service (Prescription & Medicine OCR)
+// ---------------------------------------------------------------------------
+import { visionRouter } from './modules/ai/visionService';
+app.use('/api/v1/ai/vision', visionRouter);
+
+// ---------------------------------------------------------------------------
+// Google AI BRICS Multilateral Intelligence Service (Cross-Border Bulletins)
+// ---------------------------------------------------------------------------
+import { bricsAiRouter } from './modules/ai/bricsIntelligenceService';
+app.use('/api/v1/brics', bricsAiRouter);
+
+// ---------------------------------------------------------------------------
+// Geographic & Entity Management (Nations, States, Districts, PHCs)
+// ---------------------------------------------------------------------------
+import { jurisdictionRouter } from './modules/jurisdiction/jurisdictionController';
+app.use('/api/v1/jurisdiction', jurisdictionRouter);
 
 // ---------------------------------------------------------------------------
 // Supply Chain Module (Prompt 19)

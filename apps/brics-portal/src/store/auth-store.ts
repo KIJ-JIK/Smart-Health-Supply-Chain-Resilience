@@ -108,7 +108,7 @@ interface BricsAuthState {
 export const useBricsAuthStore = create<BricsAuthState>()(
   persist(
     (set, get) => ({
-      isAuthenticated: true, // Default to true with India for seamless dev, but allows logout & country switching
+      isAuthenticated: false, // Default to false so user must sign in via login page
       selectedCountry: BRICS_COUNTRIES[0], // India
       currentUser: BRICS_PERSONAS['IN'],
 

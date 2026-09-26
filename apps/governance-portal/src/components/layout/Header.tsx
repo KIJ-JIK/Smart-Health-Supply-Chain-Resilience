@@ -339,6 +339,17 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
             </div>
           )}
 
+          {/* Quick-Access Manage Jurisdiction Button */}
+          <Link
+            href="/manage-jurisdiction"
+            prefetch={true}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20 hover:bg-teal-500/20 transition-all text-decoration-none"
+            title="Open Jurisdiction Management (Add PHC, District, State, Nation)"
+          >
+            <Globe2 size={13} className="text-teal-600 dark:text-teal-400" />
+            <span>Jurisdiction Setup</span>
+          </Link>
+
           {/* Dev-mode role switcher */}
           {isDevMode && (
             <div className="role-switcher" title="Dev mode: switch role">
@@ -471,7 +482,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   </div>
                 </a>
                 <a
-                  href="http://localhost:5173"
+                  href={process.env.NEXT_PUBLIC_PHC_URL ?? '/phc'}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -487,7 +498,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   <HeartPulse size={15} style={{ color: '#14B8A6' }} />
                   <div>
                     <div style={{ fontWeight: 600 }}>PHC Health Centre</div>
-                    <div style={{ fontSize: 10, color: '#64748B' }}>Port 5173 · Clinical</div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>Clinic Workbench</div>
                   </div>
                 </a>
                 <a
@@ -507,11 +518,11 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   <Building2 size={15} style={{ color: '#3B82F6' }} />
                   <div>
                     <div style={{ fontWeight: 600 }}>Governance Portal</div>
-                    <div style={{ fontSize: 10, color: '#60A5FA' }}>Active · Port 3000</div>
+                    <div style={{ fontSize: 10, color: '#60A5FA' }}>Active · National Oversight</div>
                   </div>
                 </a>
                 <a
-                  href="http://localhost:3001"
+                  href={process.env.NEXT_PUBLIC_BRICS_URL ?? '/brics'}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -527,7 +538,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   <Globe2 size={15} style={{ color: '#F59E0B' }} />
                   <div>
                     <div style={{ fontWeight: 600 }}>BRICS Federated</div>
-                    <div style={{ fontSize: 10, color: '#64748B' }}>Port 3001 · Sovereign AI</div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>Sovereign AI Mesh</div>
                   </div>
                 </a>
               </div>

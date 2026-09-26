@@ -3,7 +3,7 @@
 // Aligned with PHC Portal & Governance Institutional Standard (Navy #0a1628 / #0f1f38 / #0b1e36).
 // ---------------------------------------------------------------------------
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Globe2,
   ShieldCheck,
@@ -13,12 +13,15 @@ import {
   Cpu,
   Building2,
   Radio,
+  Sparkles,
 } from 'lucide-react';
 import { useCurrentUser, useMemberPrivacyBudget } from '@/hooks';
+import { BricsAiBriefingModal } from '../intelligence/BricsAiBriefingModal';
 
 export function Header() {
   const user = useCurrentUser();
   const { cumulativeEpsilon, budgetLimit } = useMemberPrivacyBudget('ZA');
+  const [isBriefingOpen, setIsBriefingOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-[#0f1f38] border-b border-slate-200 dark:border-[#1e3a5f] shadow-sm shrink-0">
@@ -85,27 +88,37 @@ export function Header() {
           {/* Cross-Portal Switchers */}
           <div className="hidden md:flex items-center gap-2">
             <a
-              href="http://localhost:3000"
+              href={(import.meta as any).env?.VITE_GOVERNANCE_URL ?? '/governance'}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 dark:text-blue-300 dark:border-blue-800 transition-colors"
               title="Open District & State Governance Portal"
             >
-              <span>Gov Portal (3000)</span>
+              <span>Gov Portal</span>
               <ExternalLink className="w-3 h-3" />
             </a>
 
             <a
-              href="http://localhost:5173"
+              href={(import.meta as any).env?.VITE_PHC_URL ?? '/phc'}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 dark:text-teal-300 dark:border-teal-800 transition-colors"
               title="Open PHC Field Edge Application"
             >
-              <span>PHC Portal (5173)</span>
+              <span>PHC Portal</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>
+
+          {/* Google Gemini AI Briefing Button */}
+          <button
+            type="button"
+            onClick={() => setIsBriefingOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs transition-all cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-blue-200" />
+            <span>Google Gemini AI Briefing</span>
+          </button>
 
           {/* User Identity Chip */}
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-[#1e3a5f]">
@@ -121,6 +134,7 @@ export function Header() {
           </div>
         </div>
       </div>
+      <BricsAiBriefingModal isOpen={isBriefingOpen} onClose={() => setIsBriefingOpen(false)} />
     </header>
   );
 }

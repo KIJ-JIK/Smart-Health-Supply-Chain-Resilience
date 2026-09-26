@@ -10,6 +10,7 @@ import {
   Search,
   AlertTriangle,
   Sparkles,
+  Camera,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
@@ -22,6 +23,7 @@ import { getMedicineStockStatus } from '../../utils/fefo';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { usePhcAuthStore } from '../../stores/authStore';
+import { PrescriptionScannerModal } from '../vision/PrescriptionScannerModal';
 
 export const InventoryView: React.FC = () => {
   const {
@@ -46,6 +48,7 @@ export const InventoryView: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isVisionModalOpen, setIsVisionModalOpen] = useState(false);
 
   // Config values
   const nearExpiryDaysConfig =
@@ -211,19 +214,20 @@ export const InventoryView: React.FC = () => {
     }
 
     try {
+      const trimmedBatchNo = rcvBatchNo.toUpperCase().trim();
       await enqueue('inventory_batch_create', {
         medicine_id: rcvMedicineId,
-        batch_no: rcvBatchNo.toUpperCase().trim(),
+        batch_no: trimmedBatchNo,
         received_qty: Number(rcvQuantity),
         remaining_qty: Number(rcvQuantity),
         minimum_threshold: Math.round(rcvQuantity * 0.2),
         expiry_date: rcvExpiry,
         received_at: new Date(rcvDate).toISOString(),
         source: rcvSource,
-        user_name: 'Store In-charge',
+        user_name: currentStaff?.name || 'Store In-charge',
       });
 
-      addToast(`Batch ${rcvBatchNo} successfully received and enqueued!`, 'success');
+      addToast(`Batch ${trimmedBatchNo} successfully received and enqueued!`, 'success');
       setReceiveStockModalOpen(false);
       setRcvBatchNo('');
       setRcvQuantity(100);
@@ -247,12 +251,18 @@ export const InventoryView: React.FC = () => {
       await enqueue('inventory_batch_update', {
         id: adjBatchId,
         batch_id: adjBatchId,
+        batch_no: b.batch_no || adjBatchId,
         medicine_id: b.medicine_id,
         previous_qty: b.remaining_qty,
+        previous_quantity: b.remaining_qty,
         remaining_qty: Number(adjNewQty),
+        new_quantity: Number(adjNewQty),
         adjustment_delta: Number(adjNewQty) - b.remaining_qty,
         reason: adjReason.trim(),
         user_name: adjUser,
+        expiry_date: b.expiry_date,
+        received_qty: b.received_qty,
+        minimum_threshold: b.minimum_threshold,
       });
 
       addToast(`Stock for batch ${b.batch_no} adjusted to ${adjNewQty} units!`, 'success');
@@ -291,6 +301,16 @@ export const InventoryView: React.FC = () => {
             leftIcon={<SlidersHorizontal className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
           >
             Adjust Stock
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={() => setIsVisionModalOpen(true)}
+            leftIcon={<Camera className="w-4 h-4 text-blue-600" />}
+            className="border-blue-200 dark:border-blue-900 bg-blue-50/60 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300 font-bold"
+          >
+            Scan Packaging (Gemini Vision)
           </Button>
 
           <Button
@@ -941,6 +961,24 @@ export const InventoryView: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Google AI Vision Scanner Modal */}
+      <PrescriptionScannerModal
+        isOpen={isVisionModalOpen}
+        onClose={() => setIsVisionModalOpen(false)}
+        onApplyMedicines={(extracted) => {
+          if (extracted.length > 0) {
+            const first = extracted[0];
+            const med = medicines.find((m) => m.name.toLowerCase().includes((first.name || '').toLowerCase()));
+            if (med) {
+              setRcvMedicineId(med.id);
+              setRcvQuantity(first.quantity || 100);
+              setReceiveStockModalOpen(true);
+              addToast(`Pre-filled stock receipt for ${med.name} from Gemini Vision`, 'success');
+            }
+          }
+        }}
+      />
     </div>
   );
 };

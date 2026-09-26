@@ -10,7 +10,10 @@
     "dev:brics": "npm --prefix apps/brics-portal run dev",
     "dev:backend": "npm --prefix services/backend run dev",
     "dev:ai": "cd services/ai-engine && python main.py",
-    "build": "npm --prefix apps/phc-portal run build && npm --prefix apps/governance-portal run build && npm --prefix apps/brics-portal run build && npm --prefix services/backend run build"
+    "build": "npm --prefix apps/phc-portal run build && npm --prefix apps/governance-portal run build && npm --prefix apps/brics-portal run build && npm --prefix services/backend run build",
+    "verify": "npm --prefix services/backend/smart-health-platform/backend run test:integration",
+    "test:integration": "npm --prefix services/backend/smart-health-platform/backend run test:integration",
+    "sync:runtime": "scripts\\sync_to_runtime.bat"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

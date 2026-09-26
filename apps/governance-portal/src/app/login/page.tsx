@@ -30,8 +30,8 @@ export default function GovernanceLoginPage() {
   const { setNational, setState, setDistrict } = useScopeStore();
 
   const [selectedLevel, setSelectedLevel] = useState<'national' | 'state' | 'district'>('national');
-  const [selectedStateId, setSelectedStateId] = useState<string>('state-mh');
-  const [selectedDistrictId, setSelectedDistrictId] = useState<string>('dist-pune');
+  const [selectedStateId, setSelectedStateId] = useState<string>('a0000001-0000-0000-0000-000000000001');
+  const [selectedDistrictId, setSelectedDistrictId] = useState<string>('b0000002-0000-0000-0000-000000000001');
   const [email, setEmail] = useState<string>('nat-admin@gov.in');
   const [password, setPassword] = useState<string>('••••••••••••');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -121,9 +121,9 @@ export default function GovernanceLoginPage() {
     if (personaKey === 'national_admin') {
       performLogin('national', null, null, p.email || 'nat-admin@gov.in');
     } else if (personaKey === 'state_admin') {
-      performLogin('state', p.stateId || 'state-mh', null, p.email || 'mh-admin@gov.in');
+      performLogin('state', p.stateId || 'a0000001-0000-0000-0000-000000000001', null, p.email || 'mh-admin@gov.in');
     } else {
-      performLogin('district', p.stateId || 'state-mh', p.districtId || 'dist-pune', p.email || 'pune-admin@gov.in');
+      performLogin('district', p.stateId || 'a0000001-0000-0000-0000-000000000001', p.districtId || 'b0000002-0000-0000-0000-000000000001', p.email || 'pune-admin@gov.in');
     }
   };
 
@@ -153,7 +153,7 @@ export default function GovernanceLoginPage() {
         </Link>
         <div className="flex items-center gap-2 text-xs font-mono text-neutral-600">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>NODE 3000 · STATE & NATIONAL GOVERNANCE</span>
+          <span>STATE & NATIONAL GOVERNANCE</span>
         </div>
       </header>
 
@@ -411,3 +411,4 @@ export default function GovernanceLoginPage() {
     </div>
   );
 }
+

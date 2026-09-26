@@ -230,7 +230,11 @@ function AdminContent() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Link href="/audit" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <Link href="/manage-jurisdiction" prefetch={true} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, background: 'var(--color-primary)' }}>
+              <Building2 size={14} />
+              Manage Jurisdictions (Add PHC, State, Nation)
+            </Link>
+            <Link href="/audit" prefetch={true} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
               <History size={14} />
               View Audit Log ({entries.length})
             </Link>

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useCopilotStore, CopilotMessage } from '@/store/copilotStore';
+import { CopilotMessageRenderer } from './CopilotMessageRenderer';
 import {
   Bot,
   X,
@@ -361,9 +362,7 @@ export function CopilotDockedPanel() {
                 }}
               >
                 {/* 1. Answer Text */}
-                <div style={{ fontSize: 13, color: '#1E293B', lineHeight: 1.55 }}>
-                  {msg.content}
-                </div>
+                <CopilotMessageRenderer content={msg.content} />
 
                 {/* 2. Mandatory Supporting Data Attribution (NEVER a bare chat bubble!) */}
                 {msg.supportingData && msg.supportingData.length > 0 && (
