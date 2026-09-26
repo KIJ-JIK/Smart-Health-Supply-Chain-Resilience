@@ -29,6 +29,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
   const [facilities, setFacilities] = useState<PhcFacilityBackendItem[]>([]);
   const [isLoadingFacilities, setIsLoadingFacilities] = useState<boolean>(true);
+  const [isBackendLive, setIsBackendLive] = useState<boolean | null>(null);
   const [selectedFacilityId, setSelectedFacilityId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedStateFilter, setSelectedStateFilter] = useState<string>('all');
@@ -52,11 +53,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         const facs = await PhcBackendService.fetchFacilities();
         if (isMounted && facs.length > 0) {
           setFacilities(facs);
+          setIsBackendLive(facs.length > 15);
           // Default to first facility if not set
           setSelectedFacilityId((prev) => prev || facs[0].id);
         }
       } catch (err) {
         console.error('Failed to load facilities:', err);
+        if (isMounted) setIsBackendLive(false);
       } finally {
         if (isMounted) setIsLoadingFacilities(false);
       }
@@ -273,6 +276,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Backend Connectivity Status Banner */}
+            {isBackendLive === true && (
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs text-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span className="font-medium">Live PostgreSQL Connected ({facilities.length} PHCs across {availableStates.length} states)</span>
+              </div>
+            )}
+            {isBackendLive === false && (
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-xs text-amber-800">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Backend offline (port 8000). Running in Offline Mode with {facilities.length} baseline facilities. Start backend to load all 136 live PHCs.</span>
+              </div>
+            )}
+
             {/* 1. Facility Selector Section */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
