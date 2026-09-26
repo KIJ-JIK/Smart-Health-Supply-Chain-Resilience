@@ -152,7 +152,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => ({
         assistantMessage = {
           id: `ai-${Date.now()}`,
           role: 'assistant',
-          content: `I'm having trouble connecting to the health intelligence system right now (HTTP ${res.status}). Please ensure the backend is running at port 8000 and try again.`,
+          content: `I'm having trouble connecting to the health intelligence system right now (HTTP ${res.status}). Please check system network connectivity and try again.`,
           timestamp: new Date().toISOString(),
           modelVersion: 'offline',
           confidenceScore: 0,

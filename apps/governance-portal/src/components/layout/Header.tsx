@@ -26,22 +26,24 @@ import { useSseStream } from '@/hooks/useSseStream';
 
 // ── Breadcrumb map ─────────────────────────────────────────────────────────────
 const ROUTE_LABELS: Record<string, string> = {
-  '/':               'National Command Center',
-  '/gis':            'GIS Health Map',
-  '/medicine':       'Medicine Intelligence',
-  '/resources':      'Resources',
-  '/workforce':      'Workforce',
-  '/patients':       'Patient Intelligence',
-  '/forecasts':      'AI Forecasts',
-  '/early-warnings': 'Early Warnings',
-  '/redistribution': 'Redistribution',
-  '/supply-chain':   'Supply Chain',
-  '/emergency':      'Emergency / Pandemic Mode',
-  '/simulator':      'Crisis Simulator',
-  '/copilot':        'AI Copilot',
-  '/analytics':      'Analytics & Reports',
-  '/audit':          'Audit Log',
-  '/admin':          'Administration',
+  '/':                   'Platform Overview',
+  '/governance':         'National Command Center',
+  '/manage-jurisdiction':'Manage Jurisdiction',
+  '/gis':                'GIS Health Map',
+  '/medicine':           'Medicine Intelligence',
+  '/resources':          'Resources',
+  '/workforce':          'Workforce',
+  '/patients':           'Patient Intelligence',
+  '/forecasts':          'AI Forecasts',
+  '/early-warnings':     'Early Warnings',
+  '/redistribution':     'Redistribution',
+  '/supply-chain':       'Supply Chain',
+  '/emergency':          'Emergency / Pandemic Mode',
+  '/simulator':          'Crisis Simulator',
+  '/copilot':            'AI Copilot',
+  '/analytics':          'Analytics & Reports',
+  '/audit':              'Audit Log',
+  '/admin':              'Administration',
 };
 
 // ── Alert panel ────────────────────────────────────────────────────────────────
@@ -262,7 +264,9 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
         <div className="header-breadcrumb">
           {!isHome && (
             <>
-              <span>Governance</span>
+              <Link href="/governance" className="hover:underline text-slate-600 dark:text-slate-300">
+                Governance
+              </Link>
               <ChevronRight size={12} className="header-breadcrumb-sep" />
             </>
           )}

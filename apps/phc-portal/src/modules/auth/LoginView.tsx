@@ -286,7 +286,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             {isBackendLive === false && (
               <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-xs text-amber-800">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Backend offline (port 8000). Running in Offline Mode with {facilities.length} baseline facilities. Start backend to load all 136 live PHCs.</span>
+                <span>Local Offline Mode Active ({facilities.length} cached facilities). Connecting to Central Mesh in background...</span>
               </div>
             )}
 

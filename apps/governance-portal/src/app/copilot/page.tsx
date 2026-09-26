@@ -76,7 +76,7 @@ function CopilotChatContent() {
         const data = await res.json();
         replyText = data.message ?? data.answer ?? 'No response from AI engine.';
       } else {
-        replyText = `Backend error (HTTP ${res.status}). Please ensure the server is running on port 8000.`;
+        replyText = `Backend connection error (HTTP ${res.status}). Please check system connectivity and retry.`;
       }
 
       setChatHistory((prev) =>

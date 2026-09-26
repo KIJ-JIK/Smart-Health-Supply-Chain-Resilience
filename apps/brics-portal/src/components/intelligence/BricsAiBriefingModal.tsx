@@ -59,7 +59,9 @@ export const BricsAiBriefingModal: React.FC<BricsAiBriefingModalProps> = ({ isOp
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/brics/ai-briefing', {
+      const backendBase = (import.meta as any).env?.VITE_BACKEND_URL?.replace('/graphql', '') || '';
+      const endpoint = backendBase ? `${backendBase}/api/v1/brics/ai-briefing` : '/api/v1/brics/ai-briefing';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: langCode }),

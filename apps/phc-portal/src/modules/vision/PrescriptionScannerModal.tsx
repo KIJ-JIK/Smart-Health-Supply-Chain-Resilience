@@ -128,7 +128,9 @@ export const PrescriptionScannerModal: React.FC<PrescriptionScannerModalProps> =
 
   const sendToVisionApi = async (bodyPayload: any) => {
     try {
-      const res = await fetch('http://localhost:8000/api/v1/ai/vision/extract-prescription', {
+      const backendBase = (import.meta as any).env?.VITE_BACKEND_URL?.replace('/graphql', '') || '';
+      const endpoint = backendBase ? `${backendBase}/api/v1/ai/vision/extract-prescription` : '/api/v1/ai/vision/extract-prescription';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
