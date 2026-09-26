@@ -131,12 +131,13 @@ export default function OverviewPage() {
     });
   };
 
-  if (anyError) {
+  const hasSomeData = nodes.length > 0 || rounds.length > 0;
+  if (anyError && !hasSomeData) {
     return (
       <div className="py-4">
         <ErrorState
-          title="Federation Telemetry Unavailable"
-          message={anyError.message}
+          title="Connecting to Sovereign AI Federation..."
+          message={anyError.message || 'Waiting for central coordinator sync...'}
           onRetry={refetchAll}
         />
       </div>
