@@ -7,31 +7,53 @@ dotenv.config(); // load .env from the current working directory
 // RLS enforcement relies on SET LOCAL within a per-request transaction;
 // never use this pool directly for tenant queries — use withTenantContext().
 // ---------------------------------------------------------------------------
-export const pool = new Pool({
-  host:     process.env.PGHOST     || 'localhost',
-  port:     Number(process.env.PGPORT     || 5432),
-  user:     process.env.DB_USER    || process.env.APP_PGUSER || process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD || 'postgres',
-  database: process.env.PGDATABASE || 'smarthealth',
-  max:      20,
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 5_000,
-});
+const dbUrl = process.env.DATABASE_URL;
+const isRemoteUrl = dbUrl && !dbUrl.includes('localhost') && !dbUrl.includes('127.0.0.1');
+
+export const pool = new Pool(
+  dbUrl
+    ? {
+        connectionString: dbUrl,
+        ssl: isRemoteUrl ? { rejectUnauthorized: false } : undefined,
+        max: 20,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 10_000,
+      }
+    : {
+        host:     process.env.PGHOST     || 'localhost',
+        port:     Number(process.env.PGPORT     || 5432),
+        user:     process.env.DB_USER    || process.env.APP_PGUSER || process.env.PGUSER || 'postgres',
+        password: process.env.PGPASSWORD || 'postgres',
+        database: process.env.PGDATABASE || 'smarthealth',
+        max:      20,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 5_000,
+      }
+);
 
 pool.on('error', (err) => {
   console.error('[pool] unexpected client error', err);
 });
 
 // Admin pool: strictly for auth infrastructure (device certificate lookup) & migrations
-export const adminPool = new Pool({
-  host:     process.env.PGHOST     || 'localhost',
-  port:     Number(process.env.PGPORT     || 5432),
-  user:     process.env.PGUSER     || 'user',
-  password: process.env.PGPASSWORD || 'password',
-  database: process.env.PGDATABASE || 'meddb',
-  max:      5,
-  idleTimeoutMillis: 30_000,
-});
+export const adminPool = new Pool(
+  dbUrl
+    ? {
+        connectionString: dbUrl,
+        ssl: isRemoteUrl ? { rejectUnauthorized: false } : undefined,
+        max: 5,
+        idleTimeoutMillis: 30_000,
+      }
+    : {
+        host:     process.env.PGHOST     || 'localhost',
+        port:     Number(process.env.PGPORT     || 5432),
+        user:     process.env.PGUSER     || 'user',
+        password: process.env.PGPASSWORD || 'password',
+        database: process.env.PGDATABASE || 'meddb',
+        max:      5,
+        idleTimeoutMillis: 30_000,
+      }
+);
 
 // ---------------------------------------------------------------------------
 // TenantClaims — extracted from a validated JWT or trusted request headers.
