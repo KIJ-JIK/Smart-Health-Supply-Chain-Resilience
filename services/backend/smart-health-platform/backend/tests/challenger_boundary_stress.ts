@@ -349,7 +349,11 @@ async function runChallenge3() {
   console.log('================================================================');
 
   const crypto = require('crypto');
-  const testPhcId = '01000001-0000-0000-0000-000000000001'; // Andaman Port Blair PHC
+  const phcRes = await pool.query('SELECT id, name FROM phc_facilities LIMIT 1');
+  const testPhcId = phcRes.rows[0]?.id;
+  const testPhcName = phcRes.rows[0]?.name;
+  console.log(`Using live PHC: ${testPhcName} (${testPhcId})`);
+
   const testDeviceId = `dexie-challenger-${crypto.randomUUID().substring(0, 8)}`;
 
   // Step 0: Authenticate and retrieve valid JWT token for testPhcId
@@ -367,7 +371,7 @@ async function runChallenge3() {
     });
     const authData = JSON.parse(authRes.body);
     accessToken = authData.tokens?.accessToken || '';
-    console.log(`Authenticated test PHC staff, token length: ${accessToken.length}`);
+    console.log(`Authenticated test PHC staff, token length: ${accessToken.length}, status: ${authRes.status}`);
   } catch (err: any) {
     console.error('Failed to authenticate test PHC:', err.message);
   }

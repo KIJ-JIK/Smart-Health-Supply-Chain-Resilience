@@ -31,15 +31,27 @@ Boundary & Route Stress Verifier (Challenger 2): empirically stress-test 16 Gove
 - **Review criteria**: Empirical boundary stress, route reliability under load, geographical topology integrity, offline mutation queue idempotency/consistency.
 
 ## Key Decisions Made
-- Initializing empirical challenge suite for routes, geo-topology, and Dexie sync.
+- Executed empirical route stress test across all 17 Governance routes on port 3000 under 10-concurrent burst (100% HTTP 200).
+- Validated PostgreSQL topology across all 36 Indian States/UTs, 91 districts, 179 PHCs, zero orphans, coordinates bounded in India, GIS hierarchy.
+- Discovered critical self-deadlock in `adminPool` in `syncService.ts` when handling concurrent failed mutations (pool size 5 exhausted, inner `adminPool.query` deadlocks).
+- Discovered pull delta semantic entity type mismatch between server (`'alert'`, `'request_status_change'`) and client Dexie (`'alerts'`, `'resource_requests'`).
+- Verdict issued: REJECT.
 
 ## Artifact Index
-- handoff.md — Final verdict and empirical challenge report
+- handoff.md — Comprehensive empirical challenge report with evidence chain and verdict
 
 ## Attack Surface
-- **Hypotheses tested**: [TBD]
-- **Vulnerabilities found**: [TBD]
-- **Untested angles**: [TBD]
+- **Hypotheses tested**:
+  - Route stability under 10-concurrency burst on port 3000 (CONFIRMED ROBUST)
+  - 36 Indian states/UTs PostgreSQL referential integrity and GIS coverage (CONFIRMED VALID)
+  - Offline mutation queue race condition and connection pool behavior under error states (VULNERABILITY FOUND: DEADLOCK)
+  - Pull delta entity synchronization between backend and Dexie engine (VULNERABILITY FOUND: DROPPED DELTAS)
+- **Vulnerabilities found**:
+  - Connection pool starvation deadlock in `syncService.ts` (lines 107-163): `client` held while `adminPool.query` called inside catch block with max=5 pool.
+  - Pull delta entity type mismatch: server emits `'alert'` and `'request_status_change'`, client Dexie only accepts `'alerts'` and `'resource_requests'`, dropping all server updates.
+  - Missing `since` sequence filtering in pull deltas: queries return static recent records repeatedly.
+- **Untested angles**:
+  - Prolonged network disconnection beyond 24 hours.
 
 ## Loaded Skills
 - None requested in dispatch.
