@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useMutationQueue, generateUUID } from '../../hooks/useMutationQueue';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { mockBackendServer } from '../../utils/mockBackend';
+import { CURRENT_DEVICE_ID, getCurrentPhcId } from '../../db/seedData';
 import { db } from '../../db';
 import { useUIStore } from '../../stores/uiStore';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -47,18 +47,18 @@ export const ResilienceTestView: React.FC = () => {
     },
     {
       id: 'test-duplicate-idempotency',
-      title: 'Scenario 3: Duplicate Submission Idempotency Check',
+      title: 'Scenario 3: Live Database Idempotency Check',
       description:
-        'Simulate a network ack drop causing the client to re-push the same mutation UUID. Confirm server response is "duplicate" and no double-deduction occurs.',
+        'Simulate a network dropped-ack retry: push the exact same mutation ID twice to PostgreSQL. Confirm server responds with "duplicate" without double-deduction.',
       status: 'idle',
-      assertion: 'Server-side idempotency key ensures zero double-dispensing or redundant stock decrements.',
+      assertion: 'Server-side idempotency key in PostgreSQL mutation_queue ensures zero duplicate transactions.',
       log: [],
     },
     {
       id: 'test-multi-device-conflict',
-      title: 'Scenario 4: Multi-Device Stock-Oversold Conflict Handling',
+      title: 'Scenario 4: Live Server Stock-Oversold Conflict Handling',
       description:
-        'Simulate two devices dispensing the same batch offline. Verify second transaction enters "conflict" state and routes to reconciliation UI without data loss.',
+        'Simulate offline over-allocation exceeding PostgreSQL batch inventory. Verify backend BillingService rejects excess and routes to reconciliation UI.',
       status: 'idle',
       assertion: 'A PHC billing operation must never silently vanish or silently over-fulfill a contested stock batch.',
       log: [],
@@ -77,6 +77,38 @@ export const ResilienceTestView: React.FC = () => {
         s.id === id ? { ...s, log: [...s.log, `[${new Date().toLocaleTimeString()}] ${message}`] } : s
       )
     );
+  };
+
+  const executeLivePush = async (mutations: any[]) => {
+    const backendUrl = (import.meta as any).env?.VITE_BACKEND_URL || 'http://localhost:8000';
+    let token = '';
+    try {
+      const authRaw = localStorage.getItem('phc-portal-auth');
+      if (authRaw) {
+        token = JSON.parse(authRaw)?.state?.token || '';
+      }
+    } catch (_) {}
+
+    const phcId = getCurrentPhcId();
+    const resp = await fetch(`${backendUrl}/sync/push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        'X-Device-ID': CURRENT_DEVICE_ID,
+        'X-PHC-ID': phcId,
+      },
+      body: JSON.stringify({
+        device_id: CURRENT_DEVICE_ID,
+        phc_id: phcId,
+        client_clock: new Date().toISOString(),
+        mutations,
+      }),
+    });
+    if (!resp.ok) {
+      throw new Error(`Sync Push returned HTTP ${resp.status}: ${resp.statusText}`);
+    }
+    return await resp.json();
   };
 
   const runAirplaneTest = async () => {
@@ -157,52 +189,45 @@ export const ResilienceTestView: React.FC = () => {
 
     try {
       const idempotencyKey = generateUUID();
-      appendLog(id, `Sending initial push with Idempotency Key: ${idempotencyKey}`);
+      appendLog(id, `Generating unique mutation ID: ${idempotencyKey}`);
+      appendLog(id, 'Pushing Mutation to live PostgreSQL backend (POST /sync/push)...');
 
-      const firstPush = await mockBackendServer.handlePush({
-        device_id: 'dev-01',
-        phc_id: 'phc-001',
-        client_clock: new Date().toISOString(),
-        mutations: [
-          {
-            id: idempotencyKey,
-            entity_type: 'billing_transaction',
-            operation: 'create',
-            payload: { amount: 50 },
-            local_seq: 1,
-            client_timestamp: new Date().toISOString(),
-          },
-        ],
-      });
+      const firstPush = await executeLivePush([
+        {
+          id: idempotencyKey,
+          entity_type: 'facility_update',
+          operation: 'create',
+          payload: { total_beds: 30 },
+          local_seq: Date.now() % 100000,
+          client_timestamp: new Date().toISOString(),
+        },
+      ]);
 
-      appendLog(id, `First Push Result: ${firstPush.results[0].status}`);
+      const firstStatus = firstPush.results[0]?.status;
+      appendLog(id, `Live Push 1 response: status = "${firstStatus}" (recorded in PostgreSQL mutation_queue)`);
 
-      appendLog(id, 'Simulating network dropped-ack retry: Re-sending same Idempotency Key...');
-      const retryPush = await mockBackendServer.handlePush({
-        device_id: 'dev-01',
-        phc_id: 'phc-001',
-        client_clock: new Date().toISOString(),
-        mutations: [
-          {
-            id: idempotencyKey,
-            entity_type: 'billing_transaction',
-            operation: 'create',
-            payload: { amount: 50 },
-            local_seq: 1,
-            client_timestamp: new Date().toISOString(),
-          },
-        ],
-      });
+      appendLog(id, 'Simulating network dropped-ack: Re-pushing exact same mutation ID to PostgreSQL...');
+      const retryPush = await executeLivePush([
+        {
+          id: idempotencyKey,
+          entity_type: 'facility_update',
+          operation: 'create',
+          payload: { total_beds: 30 },
+          local_seq: Date.now() % 100000,
+          client_timestamp: new Date().toISOString(),
+        },
+      ]);
 
-      appendLog(id, `Retry Result: status = "${retryPush.results[0].status}"`);
+      const retryStatus = retryPush.results[0]?.status;
+      appendLog(id, `Live Push 2 response: status = "${retryStatus}"`);
 
-      if (retryPush.results[0].status !== 'duplicate') {
-        throw new Error(`Assertion Failed: Expected 'duplicate' but got '${retryPush.results[0].status}'`);
+      if (retryStatus !== 'duplicate') {
+        throw new Error(`Expected 'duplicate' from PostgreSQL, but received '${retryStatus}'`);
       }
 
-      appendLog(id, 'ASSERTION PASSED: Duplicate submission detected & handled idempotently without double-charge.');
+      appendLog(id, 'ASSERTION PASSED: Live PostgreSQL mutation_queue detected duplicate submission and prevented redundant processing.');
       updateScenario(id, { status: 'passed' });
-      addToast('Scenario 3: Idempotency Test PASSED!', 'success');
+      addToast('Scenario 3: Live Database Idempotency Test PASSED!', 'success');
     } catch (err: any) {
       appendLog(id, `FAILED: ${err?.message}`);
       updateScenario(id, { status: 'failed' });
@@ -214,40 +239,38 @@ export const ResilienceTestView: React.FC = () => {
     updateScenario(id, { status: 'running', log: [] });
 
     try {
-      appendLog(id, 'Simulating Device A and Device B dispensing same batch offline...');
       const conflictTxnId = generateUUID();
+      appendLog(id, 'Checking local inventory batch to find active medicine...');
+      const batch = await db.inventory_batches.where('remaining_qty').above(0).first();
+      const medId = batch?.medicine_id || 'med-01';
 
-      mockBackendServer.simulateOversoldConflict = true;
-
-      appendLog(id, `Enqueuing Device B transaction ${conflictTxnId} locally (20 units requested)...`);
+      appendLog(id, `Submitting over-dispense request for 999,999 units of medicine ${medId}...`);
       await enqueue('billing_transaction', {
         client_txn_id: conflictTxnId,
-        patient_ref: 'WALK_IN_CONFLICT_SIM',
-        items: [{ medicine_id: 'med-03', medicine_name: 'Regular Insulin', quantity: 20 }],
+        patient_ref: 'TEST_CONFLICT_OVERALLOCATION',
+        items: [{ medicine_id: medId, quantity: 999999 }],
       }, conflictTxnId);
 
-      appendLog(id, 'Attempting sync push against server where batch has only 5 units remaining...');
-      const pushResp = await mockBackendServer.handlePush({
-        device_id: 'dev-02',
-        phc_id: 'phc-001',
-        client_clock: new Date().toISOString(),
-        mutations: [
-          {
-            id: conflictTxnId,
-            entity_type: 'billing_transaction',
-            operation: 'create',
-            payload: { items: [{ medicine_id: 'med-03', quantity: 20 }] },
-            local_seq: 99,
-            client_timestamp: new Date().toISOString(),
+      appendLog(id, 'Pushing to live backend BillingService.checkout() via POST /sync/push...');
+      const pushResp = await executeLivePush([
+        {
+          id: conflictTxnId,
+          entity_type: 'billing_transaction',
+          operation: 'create',
+          payload: {
+            client_txn_id: conflictTxnId,
+            items: [{ medicine_id: medId, quantity: 999999 }],
           },
-        ],
-      });
+          local_seq: (Date.now() + 1) % 100000,
+          client_timestamp: new Date().toISOString(),
+        },
+      ]);
 
       const res = pushResp.results[0];
-      appendLog(id, `Server response: status = "${res.status}", error = "${res.error_code}"`);
+      appendLog(id, `PostgreSQL response: status = "${res?.status}"`);
 
-      if (res.status === 'conflict') {
-        appendLog(id, `Conflict Detail: Requested = 20, Available = ${res.conflict?.available_qty}`);
+      if (res?.status === 'conflict') {
+        appendLog(id, `Conflict Detail: Requested = 999999, Server Available = ${res.conflict?.server_state?.available_qty ?? 0}`);
         await markStatus(conflictTxnId, 'conflict', { conflict_detail: res.conflict });
 
         const queueItem = await db.mutation_queue.get(conflictTxnId);
@@ -255,18 +278,16 @@ export const ResilienceTestView: React.FC = () => {
           throw new Error('Assertion Failed: Queue status was not set to conflict!');
         }
 
-        appendLog(id, 'SUCCESS: Mutation moved to "conflict" state and surfaced on Reconciliation Banner.');
-        appendLog(id, 'ASSERTION PASSED: A PHC billing operation NEVER silently vanishes; routed for clinical reconciliation.');
+        appendLog(id, 'SUCCESS: Real PostgreSQL FEFO safely detected over-allocation conflict.');
+        appendLog(id, 'ASSERTION PASSED: Clinical transaction routed for reconciliation with zero data corruption.');
         updateScenario(id, { status: 'passed' });
-        addToast('Scenario 4: Multi-Device Conflict Test PASSED!', 'success');
+        addToast('Scenario 4: Live Server Conflict Test PASSED!', 'success');
       } else {
-        throw new Error(`Assertion Failed: Expected 'conflict' status but got '${res.status}'`);
+        throw new Error(`Expected conflict from PostgreSQL, but got: ${res?.status}`);
       }
     } catch (err: any) {
       appendLog(id, `FAILED: ${err?.message}`);
       updateScenario(id, { status: 'failed' });
-    } finally {
-      mockBackendServer.simulateOversoldConflict = false;
     }
   };
 

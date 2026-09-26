@@ -10,9 +10,11 @@ import {
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
-import { CURRENT_DEVICE_ID, CURRENT_PHC_ID, initializeDatabase } from '../../db/seedData';
+import { CURRENT_DEVICE_ID, CURRENT_PHC_ID, getCurrentPhcId, initializeDatabase } from '../../db/seedData';
 import { useUIStore } from '../../stores/uiStore';
 import { useThemeStore } from '../../stores/themeStore';
+import { useMutationQueue } from '../../hooks/useMutationQueue';
+import { PhcBackendService } from '../../services/phcBackendService';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button } from '../../components/common/Button';
 
@@ -20,6 +22,7 @@ export const SettingsView: React.FC = () => {
   const systemConfigs = useLiveQuery(() => db.system_config.toArray()) || [];
   const { addToast } = useUIStore();
   const { isDark, toggleTheme } = useThemeStore();
+  const { enqueue } = useMutationQueue();
 
   const [minStockPct,          setMinStockPct]          = useState(20);
   const [criticalStockPct,     setCriticalStockPct]     = useState(10);
@@ -45,15 +48,26 @@ export const SettingsView: React.FC = () => {
     setIsSaving(true);
     try {
       const now = new Date().toISOString();
-      await db.system_config.bulkPut([
-        { key: 'min_stock_threshold_pct',      value: Number(minStockPct),          updated_at: now },
-        { key: 'critical_stock_threshold_pct', value: Number(criticalStockPct),     updated_at: now },
-        { key: 'near_expiry_days',             value: Number(nearExpiryDays),        updated_at: now },
-        { key: 'bed_occupancy_alert_pct',      value: Number(bedOccupancyAlertPct), updated_at: now },
-        { key: 'oxygen_critical_threshold',    value: Number(oxygenThreshold),      updated_at: now },
-        { key: 'safety_buffer_pct',            value: Number(safetyBufferPct),      updated_at: now },
-      ]);
-      addToast('Local threshold configurations updated!', 'success');
+      const configs = [
+        { key: 'min_stock_threshold_pct',      value: Number(minStockPct) },
+        { key: 'critical_stock_threshold_pct', value: Number(criticalStockPct) },
+        { key: 'near_expiry_days',             value: Number(nearExpiryDays) },
+        { key: 'bed_occupancy_alert_pct',      value: Number(bedOccupancyAlertPct) },
+        { key: 'oxygen_critical_threshold',    value: Number(oxygenThreshold) },
+        { key: 'safety_buffer_pct',            value: Number(safetyBufferPct) },
+      ];
+
+      // 1. Commit to local IndexedDB
+      await db.system_config.bulkPut(configs.map(c => ({ ...c, updated_at: now })));
+
+      // 2. Enqueue offline mutation
+      await enqueue('system_config', { configs });
+
+      // 3. Attempt direct push to PostgreSQL backend
+      const phcId = getCurrentPhcId();
+      await PhcBackendService.saveConfig(phcId, configs);
+
+      addToast('Threshold configuration saved to PostgreSQL and synced!', 'success');
     } catch {
       addToast('Failed to update config', 'error');
     } finally {

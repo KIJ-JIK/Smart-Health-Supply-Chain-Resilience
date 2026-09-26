@@ -7,7 +7,8 @@ import { adminPool, TenantClaims } from '../../db/pool';
 export interface MutationInput<T = Record<string, any>> {
   id:               string; // Client UUID idempotency key
   entity_type:      'billing_transaction' | 'inventory_batch_update' | 'resource_request' |
-                    'footfall_entry' | 'facility_update' | 'staff_attendance' | 'alert_report';
+                    'footfall_entry' | 'facility_update' | 'staff_attendance' | 'alert_report' |
+                    'system_config' | 'config_update';
   operation:        'create' | 'update';
   payload:          T;
   local_seq:        number;
@@ -213,6 +214,10 @@ export class SyncService {
       case 'alert_report':
         return this.handleAlertMutation(client, phcId, mutation);
 
+      case 'system_config':
+      case 'config_update':
+        return this.handleConfigMutation(client, phcId, mutation);
+
       default:
         return {
           mutation_id: mutation.id,
@@ -386,9 +391,18 @@ export class SyncService {
            isolation_beds = COALESCE($6, isolation_beds),
            oxygen_cylinders_available = COALESCE($3, oxygen_cylinders_available),
            oxygen_cylinders = COALESCE($3, oxygen_cylinders),
+           oxygen_concentrators = COALESCE($7, oxygen_concentrators),
            updated_at = now()
        WHERE id = $4`,
-      [p.total_beds ?? null, p.occupied_beds ?? null, p.oxygen_cylinders ?? p.oxygen_cylinders_available ?? null, phcId, p.emergency_beds ?? null, p.isolation_beds ?? null],
+      [
+        p.total_beds ?? null,
+        p.occupied_beds ?? null,
+        p.oxygen_cylinders ?? p.oxygen_cylinders_available ?? null,
+        phcId,
+        p.emergency_beds ?? null,
+        p.isolation_beds ?? null,
+        p.oxygen_concentrators ?? null,
+      ],
     );
     return { mutation_id: mutation.id, status: 'accepted', server_entity_id: phcId };
   }
@@ -443,6 +457,34 @@ export class SyncService {
       [phcId, districtId, stateId, aType, sev, JSON.stringify(p)],
     );
     return { mutation_id: mutation.id, status: 'accepted', server_entity_id: res.rows[0].id };
+  }
+
+  private static async handleConfigMutation(
+    client: PoolClient,
+    phcId: string,
+    mutation: MutationInput,
+  ): Promise<MutationResultOutput> {
+    const p = mutation.payload;
+    if (Array.isArray(p.configs)) {
+      for (const item of p.configs) {
+        await client.query(
+          `INSERT INTO system_config (key, value, updated_at)
+           VALUES ($1, $2, now())
+           ON CONFLICT (key) DO UPDATE
+           SET value = EXCLUDED.value, updated_at = now()`,
+          [item.key, JSON.stringify(item.value)],
+        );
+      }
+    } else if (p.key) {
+      await client.query(
+        `INSERT INTO system_config (key, value, updated_at)
+         VALUES ($1, $2, now())
+         ON CONFLICT (key) DO UPDATE
+         SET value = EXCLUDED.value, updated_at = now()`,
+        [p.key, JSON.stringify(p.value)],
+      );
+    }
+    return { mutation_id: mutation.id, status: 'accepted' };
   }
 
   /**

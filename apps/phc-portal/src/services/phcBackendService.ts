@@ -13,6 +13,7 @@ export interface PhcFacilityBackendItem {
   emergency_beds?: number;
   isolation_beds?: number;
   oxygen_cylinders?: number;
+  oxygen_concentrators?: number;
   operational_status: string;
 }
 
@@ -124,8 +125,8 @@ export class PhcBackendService {
           occupied_beds: fac.occupied_beds || 0,
           emergency_beds: fac.emergency_beds || 5,
           isolation_beds: fac.isolation_beds || 3,
-          oxygen_cylinders: fac.oxygen_cylinders_available || 15,
-          oxygen_concentrators: 4,
+          oxygen_cylinders: fac.oxygen_cylinders_available || fac.oxygen_cylinders || 15,
+          oxygen_concentrators: fac.oxygen_concentrators || 4,
           status: 'active',
           operational_status: fac.operational_status === 'active' ? 'operational' : 'partial',
           emergency_capability: true,
@@ -271,7 +272,23 @@ export class PhcBackendService {
         await db.resource_requests.bulkPut(mappedRequests);
       }
 
-      // 10. System config
+      // 10. System configurations from PostgreSQL
+      if (data.configs && data.configs.length > 0) {
+        for (const c of data.configs) {
+          let val = c.value;
+          if (typeof val === 'string') {
+            try { val = JSON.parse(val); } catch (_) {}
+          }
+          await db.system_config.put({
+            key: c.key,
+            value: val,
+            description: c.description || '',
+            updated_at: new Date().toISOString(),
+          });
+        }
+      }
+
+      // 11. System tracking keys
       await db.system_config.put({ key: 'current_phc_id', value: phcId, updated_at: new Date().toISOString() });
       await db.system_config.put({ key: 'last_successful_sync_time', value: new Date().toISOString(), updated_at: new Date().toISOString() });
 
@@ -280,6 +297,23 @@ export class PhcBackendService {
     } catch (err) {
       console.error(`[PhcBackendService] Error hydrating database for ${phcId}:`, err);
       throw err;
+    }
+  }
+
+  /**
+   * Save operational threshold configs to PostgreSQL
+   */
+  static async saveConfig(phcId: string, configs: { key: string; value: any }[]): Promise<boolean> {
+    try {
+      const res = await fetch(`${BACKEND_BASE}/api/v1/phc/${phcId}/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ configs }),
+      });
+      return res.ok;
+    } catch (err) {
+      console.warn('[PhcBackendService] Could not save config to backend:', err);
+      return false;
     }
   }
 }

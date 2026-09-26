@@ -34,7 +34,8 @@ export type EntityType =
   | 'staff_attendance'
   | 'alert_report'
   | 'equipment_update'
-  | 'equipment_create';
+  | 'equipment_create'
+  | 'system_config';
 
 export interface State {
   id: string;

@@ -23,6 +23,7 @@ phcPortalRouter.get('/phc/facilities', async (_req: Request, res: Response) => {
         p.emergency_beds,
         p.isolation_beds,
         p.oxygen_cylinders_available AS oxygen_cylinders, 
+        p.oxygen_concentrators,
         p.operational_status
       FROM phc_facilities p
       LEFT JOIN districts d ON p.district_id = d.id
@@ -171,6 +172,7 @@ phcPortalRouter.get('/phc/:phcId/live-data', async (req: Request, res: Response)
         p.emergency_beds, 
         p.isolation_beds, 
         p.oxygen_cylinders_available, 
+        p.oxygen_concentrators,
         p.operational_status,
         p.created_at
        FROM phc_facilities p
@@ -185,6 +187,11 @@ phcPortalRouter.get('/phc/:phcId/live-data', async (req: Request, res: Response)
     }
 
     const facility = facRes.rows[0];
+
+    // System configurations
+    const configRes = await pool.query(
+      `SELECT key, value, description FROM system_config`
+    );
 
     // Medicines catalog
     const medsRes = await pool.query(
@@ -290,6 +297,7 @@ phcPortalRouter.get('/phc/:phcId/live-data', async (req: Request, res: Response)
     return res.status(200).json({
       phcId,
       facility,
+      configs: configRes.rows,
       medicines: medsRes.rows,
       inventory: invRes.rows,
       footfall: footRes.rows,
@@ -305,5 +313,33 @@ phcPortalRouter.get('/phc/:phcId/live-data', async (req: Request, res: Response)
   } catch (err: any) {
     console.error('[phcPortalRouter] Error fetching live PHC data:', err);
     return res.status(500).json({ error: 'Failed to retrieve live PHC data', details: err.message });
+  }
+});
+
+/**
+ * POST /api/v1/phc/:phcId/config
+ * Updates operational threshold configurations in PostgreSQL system_config
+ */
+phcPortalRouter.post('/phc/:phcId/config', async (req: Request, res: Response) => {
+  try {
+    const { configs } = req.body;
+    if (!Array.isArray(configs)) {
+      return res.status(400).json({ error: 'configs array required' });
+    }
+
+    for (const item of configs) {
+      await pool.query(
+        `INSERT INTO system_config (key, value, updated_at)
+         VALUES ($1, $2, now())
+         ON CONFLICT (key) DO UPDATE
+         SET value = EXCLUDED.value, updated_at = now()`,
+        [item.key, JSON.stringify(item.value)]
+      );
+    }
+
+    return res.status(200).json({ success: true, count: configs.length });
+  } catch (err: any) {
+    console.error('[phcPortalRouter] Error saving config:', err);
+    return res.status(500).json({ error: 'Failed to update system config', details: err.message });
   }
 });

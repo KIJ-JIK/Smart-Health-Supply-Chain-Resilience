@@ -254,7 +254,7 @@ export function useMutationQueue() {
           const attRecord: StaffAttendance = {
             id: attId,
             staff_id: payload.staff_id,
-            phc_id: currentPhcId,
+            phc_id: payload.phc_id || currentPhcId,
             attendance_date: payload.attendance_date || now.split('T')[0],
             status: payload.status,
             notes: payload.notes,
@@ -266,7 +266,7 @@ export function useMutationQueue() {
         case 'footfall_entry': {
           const footfallRecord: PatientFootfall = {
             id: payload.id || mutationId,
-            phc_id: currentPhcId,
+            phc_id: payload.phc_id || currentPhcId,
             category: payload.category,
             count: Number(payload.count),
             date: payload.date || now.split('T')[0],
@@ -280,7 +280,7 @@ export function useMutationQueue() {
         case 'resource_request': {
           const reqRecord: ResourceRequest = {
             id: payload.id || mutationId,
-            phc_id: currentPhcId,
+            phc_id: payload.phc_id || currentPhcId,
             request_type: payload.request_type,
             item_ref: payload.item_ref,
             item_name: payload.item_name,
@@ -299,7 +299,7 @@ export function useMutationQueue() {
         case 'alert_report': {
           const alertRecord: Alert = {
             id: payload.id || mutationId,
-            phc_id: currentPhcId,
+            phc_id: payload.phc_id || currentPhcId,
             alert_type: payload.alert_type,
             severity: payload.severity,
             title: payload.title,
