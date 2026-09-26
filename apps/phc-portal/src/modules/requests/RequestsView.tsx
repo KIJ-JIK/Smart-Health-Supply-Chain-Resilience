@@ -19,9 +19,15 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { formatDateTime } from '../../utils/date';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
+import { usePhcAuthStore } from '../../stores/authStore';
 
 export const RequestsView: React.FC = () => {
-  const requests = useLiveQuery(() => db.resource_requests.reverse().sortBy('created_at')) || [];
+  const { currentStaff, selectedFacility } = usePhcAuthStore();
+  const currentPhcId = selectedFacility?.id || currentStaff?.facilityId;
+  const requests = useLiveQuery(
+    () => db.resource_requests.filter((r) => !currentPhcId || r.phc_id === currentPhcId).reverse().sortBy('created_at'),
+    [currentPhcId]
+  ) || [];
   const medicines = useLiveQuery(() => db.medicines.toArray()) || [];
   const { enqueue } = useMutationQueue();
   const { addToast, isNewRequestModalOpen, setNewRequestModalOpen } = useUIStore();
@@ -48,6 +54,7 @@ export const RequestsView: React.FC = () => {
     try {
       await enqueue('resource_request', {
         id: generateUUID(),
+        phc_id: currentPhcId,
         request_type: reqType,
         item_ref: selectedItemRef || undefined,
         item_name: itemName || `${reqType.toUpperCase()} Supply Request`,

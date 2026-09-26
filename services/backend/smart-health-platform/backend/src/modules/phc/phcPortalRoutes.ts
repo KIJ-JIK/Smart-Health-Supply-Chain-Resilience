@@ -241,7 +241,7 @@ phcPortalRouter.get('/phc/:phcId/live-data', async (req: Request, res: Response)
 
     // Resource Requests
     const reqRes = await pool.query(
-      `SELECT id, phc_id, request_type, priority, status, created_at::text AS created_at
+      `SELECT id, phc_id, request_type, item_ref, quantity, priority, reason, source, status, item_name, notes, created_at::text AS created_at
        FROM resource_requests
        WHERE phc_id = $1
        ORDER BY created_at DESC

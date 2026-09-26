@@ -56,6 +56,22 @@ async function main() {
 
       ALTER TABLE alerts DROP CONSTRAINT IF EXISTS alerts_status_check;
       ALTER TABLE alerts ADD CONSTRAINT alerts_status_check CHECK (status IN ('open', 'acknowledged', 'resolved', 'false_positive'));
+
+      ALTER TABLE resource_requests DROP CONSTRAINT IF EXISTS resource_requests_priority_check;
+      ALTER TABLE resource_requests ADD CONSTRAINT resource_requests_priority_check CHECK (priority IN ('routine', 'urgent', 'critical', 'normal', 'high', 'low'));
+
+      ALTER TABLE resource_requests DROP CONSTRAINT IF EXISTS resource_requests_status_check;
+      ALTER TABLE resource_requests ADD CONSTRAINT resource_requests_status_check CHECK (status IN ('pending', 'approved', 'dispatched', 'delivered', 'rejected', 'in_transit'));
+
+      ALTER TABLE resource_requests DROP CONSTRAINT IF EXISTS resource_requests_request_type_check;
+      ALTER TABLE resource_requests ADD CONSTRAINT resource_requests_request_type_check CHECK (request_type IN ('medicine', 'oxygen', 'bed', 'staff', 'equipment', 'replenishment'));
+
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS item_ref UUID;
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS quantity INT;
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS reason VARCHAR(30);
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS source VARCHAR(20);
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS item_name VARCHAR(255);
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS notes TEXT;
     `);
 
     // Helper to read JSON
@@ -298,7 +314,7 @@ async function main() {
         await client.query(`
           INSERT INTO staff_attendance (staff_id, phc_id, attendance_date, status, created_at)
           VALUES ($1, $2, $3, $4, $5)
-          ON CONFLICT (id) DO NOTHING;
+          ON CONFLICT (staff_id, attendance_date) DO UPDATE SET status = EXCLUDED.status;
         `, [rs.id, RAMPUR_ID, dtStr, status, `${dtStr}T09:00:00Z`]);
       }
     }
@@ -398,17 +414,56 @@ async function main() {
       ]);
     }
 
-    // Active alert for PHC Rampur
+    // 14. Resource Requests (300 records)
+    const rawRequests = readJson('11_resource_requests.json');
+    console.log(`[Ingestion] Upserting ${rawRequests.length} resource requests...`);
+    const medNameMap = new Map();
+    rawMeds.forEach((m) => medNameMap.set(m.id, m.name));
+
+    for (const r of rawRequests) {
+      const mappedMedId = r.item_ref ? (medMap.get(r.item_ref) || r.item_ref) : null;
+      const phcFac = rawFacilities.find((f) => f.id === r.phc_id);
+      const distId = phcFac ? (distMap.get(phcFac.district_id) || phcFac.district_id) : null;
+      const stateId = phcFac ? (stateMap.get(phcFac.state_id) || phcFac.state_id) : null;
+      const itemName = mappedMedId ? medNameMap.get(mappedMedId) || `${r.request_type.toUpperCase()} Supply` : `${r.request_type.toUpperCase()} Requisition`;
+
+      await client.query(`
+        INSERT INTO resource_requests (
+          id, phc_id, district_id, state_id, request_type, item_ref, quantity, priority, reason, source, status, item_name, payload, created_at, decided_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        ON CONFLICT (id) DO UPDATE SET
+          status = EXCLUDED.status,
+          quantity = EXCLUDED.quantity;
+      `, [
+        r.id,
+        r.phc_id,
+        distId,
+        stateId,
+        r.request_type || 'medicine',
+        mappedMedId,
+        r.quantity || 100,
+        r.priority || 'routine',
+        r.reason || 'manual',
+        r.source || 'manual',
+        r.status || 'pending',
+        itemName,
+        JSON.stringify({ item_ref: mappedMedId, item_name: itemName, quantity: r.quantity, reason: r.reason, source: r.source }),
+        r.created_at || new Date().toISOString(),
+        r.decided_at || null,
+      ]);
+    }
+
+    // Sample pending request for PHC Rampur
     await client.query(`
-      INSERT INTO alerts (phc_id, district_id, state_id, alert_type, severity, payload, status, created_at)
-      VALUES ($1, $2, $3, 'near_stockout', 'high', '{"message": "Paracetamol batches nearing expiry in 30 days"}', 'open', now());
+      INSERT INTO resource_requests (phc_id, district_id, state_id, request_type, quantity, priority, reason, source, status, item_name, payload, created_at)
+      VALUES ($1, $2, $3, 'oxygen', 10, 'urgent', 'manual', 'manual', 'pending', 'Medical Oxygen Cylinders (D-Type)', '{"quantity": 10, "notes": "Anticipated surge during festival week"}', now());
     `, [RAMPUR_ID, varanasiId, upStateId]);
 
     await client.query('COMMIT');
     console.log('\n[Ingestion] ✅ Successfully ingested all canonical datasets + PHC Rampur into PostgreSQL!');
 
     // Print summary counts
-    const tables = ['states', 'districts', 'phc_facilities', 'equipment', 'medicines', 'inventory_batches', 'staff_registry', 'staff_attendance', 'patient_footfall', 'alerts'];
+    const tables = ['states', 'districts', 'phc_facilities', 'equipment', 'medicines', 'inventory_batches', 'staff_registry', 'staff_attendance', 'patient_footfall', 'alerts', 'resource_requests'];
     console.log('\n--- Final PostgreSQL Row Counts ---');
     for (const t of tables) {
       const res = await client.query('SELECT count(*) FROM ' + t);

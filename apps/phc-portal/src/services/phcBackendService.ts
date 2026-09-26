@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { PHCFacility, Medicine, InventoryBatch, Alert, PatientFootfall, StaffRegistry, Equipment, StaffAttendance } from '../types';
+import { PHCFacility, Medicine, InventoryBatch, Alert, PatientFootfall, StaffRegistry, Equipment, StaffAttendance, ResourceRequest } from '../types';
 
 export interface PhcFacilityBackendItem {
   id: string;
@@ -103,6 +103,7 @@ export class PhcBackendService {
       await db.staff_registry.clear();
       await db.equipment.clear();
       await db.staff_attendance.clear();
+      await db.resource_requests.clear();
 
       // 1. Facility record
       if (data.facility) {
@@ -238,7 +239,26 @@ export class PhcBackendService {
         await db.staff_attendance.bulkPut(mappedAttendance);
       }
 
-      // 9. System config
+      // 9. Resource Requests
+      if (data.requests && data.requests.length > 0) {
+        const mappedRequests: ResourceRequest[] = data.requests.map((r: any) => ({
+          id: r.id,
+          phc_id: r.phc_id,
+          request_type: r.request_type,
+          item_ref: r.item_ref || undefined,
+          item_name: r.item_name || `${(r.request_type || 'SUPPLY').toUpperCase()} Requisition`,
+          quantity: r.quantity || 100,
+          priority: r.priority || 'routine',
+          reason: r.reason || 'manual',
+          source: r.source || 'manual',
+          status: r.status || 'pending',
+          notes: r.notes || '',
+          created_at: r.created_at || new Date().toISOString(),
+        }));
+        await db.resource_requests.bulkPut(mappedRequests);
+      }
+
+      // 10. System config
       await db.system_config.put({ key: 'current_phc_id', value: phcId, updated_at: new Date().toISOString() });
       await db.system_config.put({ key: 'last_successful_sync_time', value: new Date().toISOString(), updated_at: new Date().toISOString() });
 
