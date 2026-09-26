@@ -4,16 +4,18 @@ import { TenantClaims, pool } from '../../db/pool';
 // ─────────────────────────────────────────────────────────────────────────────
 // Autonomous Agentic Copilot: Text-to-SQL, Multi-Model Cascading & Clinical Reasoning
 // ─────────────────────────────────────────────────────────────────────────────
-function getGeminiApiKey(): string {
-  return process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEYS || process.env.GEMINI_API_KEYS || '';
+let keyIndex = 0;
+function getGeminiApiKeys(): string[] {
+  const keysStr = process.env.GEMINI_API_KEYS || process.env.GOOGLE_AI_API_KEYS || process.env.GEMINI_API_KEY || '';
+  return keysStr.split(',').map((k) => k.trim()).filter(Boolean);
 }
 
 const CANDIDATE_MODELS = [
-  'gemini-flash-lite-latest',
-  'gemini-3.8-flash',
-  'gemini-2.5-flash-lite',
   'gemini-2.0-flash',
-  'gemini-flash-latest',
+  'gemini-1.5-flash',
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-3.8-flash',
 ];
 
 const DATABASE_SCHEMA_PROMPT = `
@@ -42,39 +44,42 @@ async function callLlmWithFallback(
   userPrompt: string,
   systemInstruction?: string
 ): Promise<{ text: string; model: string } | null> {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) return null;
+  const apiKeys = getGeminiApiKeys();
+  if (apiKeys.length === 0) return null;
 
-  for (const model of CANDIDATE_MODELS) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const body: any = {
-        contents: [{ parts: [{ text: userPrompt }] }],
-      };
-      if (systemInstruction) {
-        body.systemInstruction = { parts: [{ text: systemInstruction }] };
-      }
+  for (let k = 0; k < apiKeys.length; k++) {
+    const apiKey = apiKeys[(keyIndex + k) % apiKeys.length];
+    for (const model of CANDIDATE_MODELS) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const body: any = {
+          contents: [{ parts: [{ text: userPrompt }] }],
+        };
+        if (systemInstruction) {
+          body.systemInstruction = { parts: [{ text: systemInstruction }] };
+        }
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(7000),
-      });
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(7000),
+        });
 
-      if (!res.ok) {
-        // Quota exhausted (429), model unavailable (503), or not found (404) -> try next candidate
+        if (!res.ok) {
+          continue;
+        }
+
+        const data: any = await res.json();
+        const parts = data?.candidates?.[0]?.content?.parts || [];
+        const textPart = parts.find((p: any) => p.text)?.text;
+        if (textPart) {
+          keyIndex = (keyIndex + 1) % apiKeys.length;
+          return { text: textPart.trim(), model };
+        }
+      } catch {
         continue;
       }
-
-      const data: any = await res.json();
-      const parts = data?.candidates?.[0]?.content?.parts || [];
-      const textPart = parts.find((p: any) => p.text)?.text;
-      if (textPart) {
-        return { text: textPart.trim(), model };
-      }
-    } catch {
-      continue;
     }
   }
   return null;
