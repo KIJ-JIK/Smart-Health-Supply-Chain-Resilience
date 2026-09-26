@@ -19,7 +19,7 @@ export function getCurrentPhcId(): string {
 }
 
 export const CURRENT_PHC_ID = 'c0000003-0000-0000-0000-000000000001';
-export const CURRENT_DEVICE_ID = 'dev-phc-tab-01';
+export const CURRENT_DEVICE_ID = 'd0000001-0000-0000-0000-000000000001';
 
 /**
  * Initializes baseline configuration parameters.

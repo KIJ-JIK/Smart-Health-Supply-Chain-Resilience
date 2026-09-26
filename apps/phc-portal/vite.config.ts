@@ -54,10 +54,14 @@ export default defineConfig({
       }
     })
   ],
+  resolve: {
+    preserveSymlinks: true,
+  },
   server: {
     port: 5173,
     fs: {
       strict: false,
+      allow: ['..'],
     },
   },
 });
