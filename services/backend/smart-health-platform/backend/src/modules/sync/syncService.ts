@@ -323,13 +323,25 @@ export class SyncService {
 
     const itemRef = p.item_ref || p.medicine_id || (p.items && p.items[0]?.medicine_id) || null;
     const qty = Number(p.quantity || (p.items && p.items[0]?.requested_qty) || (p.items && p.items[0]?.quantity) || 1);
+    const itemName = p.item_name || p.medicine_name || null;
+    const notes = p.notes || null;
+    const reason = p.reason || 'manual';
+
+    // Lookup district_id and state_id so request is visible to district/state/national portals
+    const facRes = await client.query(
+      `SELECT district_id, state_id FROM phc_facilities WHERE id = $1 LIMIT 1`,
+      [phcId],
+    );
+    const districtId = facRes.rows[0]?.district_id || null;
+    const stateId = facRes.rows[0]?.state_id || null;
 
     const res = await client.query(
       `INSERT INTO resource_requests (
-         phc_id, request_type, item_ref, quantity, priority, reason, source, status
-       ) VALUES ($1, $2, $3, $4, $5, 'manual', 'manual', 'pending')
+         phc_id, district_id, state_id, request_type, item_ref, item_name, quantity,
+         priority, reason, source, status, notes
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'manual', 'pending', $10)
        RETURNING id`,
-      [phcId, reqType, itemRef, qty, prio],
+      [phcId, districtId, stateId, reqType, itemRef, itemName, qty, prio, reason, notes],
     );
     return { mutation_id: mutation.id, status: 'accepted', server_entity_id: res.rows[0].id };
   }
@@ -345,10 +357,16 @@ export class SyncService {
     if (cat === 'general_opd') cat = 'opd';
     if (!validCategories.includes(cat)) cat = 'other';
 
+    // Use 'date' column (not 'time') — patient_footfall table schema uses date type
+    const footfallDate = p.date || p.time
+      ? new Date(p.date || p.time).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+
     await client.query(
-      `INSERT INTO patient_footfall (time, phc_id, category, count)
-       VALUES ($1, $2, $3, $4)`,
-      [p.time || new Date().toISOString(), phcId, cat, Number(p.count ?? 1)],
+      `INSERT INTO patient_footfall (date, phc_id, category, count)
+       VALUES ($1::date, $2, $3, $4)
+       ON CONFLICT DO NOTHING`,
+      [footfallDate, phcId, cat, Number(p.count ?? 1)],
     );
     return { mutation_id: mutation.id, status: 'accepted' };
   }
@@ -359,14 +377,18 @@ export class SyncService {
     mutation: MutationInput,
   ): Promise<MutationResultOutput> {
     const p = mutation.payload;
+    // Note: DB column is oxygen_cylinders_available, not oxygen_cylinders
     await client.query(
       `UPDATE phc_facilities
        SET total_beds = COALESCE($1, total_beds),
            occupied_beds = COALESCE($2, occupied_beds),
+           emergency_beds = COALESCE($5, emergency_beds),
+           isolation_beds = COALESCE($6, isolation_beds),
+           oxygen_cylinders_available = COALESCE($3, oxygen_cylinders_available),
            oxygen_cylinders = COALESCE($3, oxygen_cylinders),
            updated_at = now()
        WHERE id = $4`,
-      [p.total_beds, p.occupied_beds, p.oxygen_cylinders, phcId],
+      [p.total_beds ?? null, p.occupied_beds ?? null, p.oxygen_cylinders ?? p.oxygen_cylinders_available ?? null, phcId, p.emergency_beds ?? null, p.isolation_beds ?? null],
     );
     return { mutation_id: mutation.id, status: 'accepted', server_entity_id: phcId };
   }
@@ -377,12 +399,13 @@ export class SyncService {
     mutation: MutationInput,
   ): Promise<MutationResultOutput> {
     const p = mutation.payload;
+    // Include phc_id in insert — required column in staff_attendance table
     await client.query(
-      `INSERT INTO staff_attendance (staff_id, attendance_date, status)
-       VALUES ($1, $2, $3)
+      `INSERT INTO staff_attendance (staff_id, phc_id, attendance_date, status)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT (staff_id, attendance_date) DO UPDATE
        SET status = EXCLUDED.status`,
-      [p.staff_id, p.attendance_date || new Date().toISOString().split('T')[0], p.status || 'present'],
+      [p.staff_id, phcId, p.attendance_date || new Date().toISOString().split('T')[0], p.status || 'present'],
     );
     return { mutation_id: mutation.id, status: 'accepted' };
   }
@@ -405,11 +428,19 @@ export class SyncService {
     let sev = (p.severity || 'high').toLowerCase();
     if (!validSeverities.includes(sev)) sev = 'high';
 
+    // Lookup district_id and state_id so alert is visible to district/state/national portals
+    const facRes = await client.query(
+      `SELECT district_id, state_id FROM phc_facilities WHERE id = $1 LIMIT 1`,
+      [phcId],
+    );
+    const districtId = facRes.rows[0]?.district_id || null;
+    const stateId = facRes.rows[0]?.state_id || null;
+
     const res = await client.query(
-      `INSERT INTO alerts (phc_id, alert_type, severity, status, payload)
-       VALUES ($1, $2, $3, 'open', $4)
+      `INSERT INTO alerts (phc_id, district_id, state_id, alert_type, severity, status, payload)
+       VALUES ($1, $2, $3, $4, $5, 'open', $6)
        RETURNING id`,
-      [phcId, aType, sev, JSON.stringify(p)],
+      [phcId, districtId, stateId, aType, sev, JSON.stringify(p)],
     );
     return { mutation_id: mutation.id, status: 'accepted', server_entity_id: res.rows[0].id };
   }

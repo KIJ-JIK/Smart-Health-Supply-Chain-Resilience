@@ -137,14 +137,27 @@ export class PhcBackendService {
 
       // 2. Medicines Catalog
       if (data.medicines && data.medicines.length > 0) {
+        // Build a map from medicine_id → average minimum_threshold from actual inventory batches
+        const batchThresholdMap: Record<string, number> = {};
+        if (data.inventory && data.inventory.length > 0) {
+          const grouped: Record<string, number[]> = {};
+          for (const ib of data.inventory) {
+            if (!grouped[ib.medicine_id]) grouped[ib.medicine_id] = [];
+            grouped[ib.medicine_id].push(ib.minimum_threshold || 50);
+          }
+          for (const [medId, vals] of Object.entries(grouped)) {
+            batchThresholdMap[medId] = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+          }
+        }
+
         const mappedMeds: Medicine[] = data.medicines.map((m: any) => ({
           id: m.id,
           name: m.name,
           category: m.category || 'General',
           unit: m.unit || 'tablets',
           unit_price: 15,
-          min_threshold: 50,
-          critical_threshold: 20,
+          min_threshold: batchThresholdMap[m.id] || 50,
+          critical_threshold: Math.round((batchThresholdMap[m.id] || 50) * 0.4),
         }));
         await db.medicines.bulkPut(mappedMeds);
       }

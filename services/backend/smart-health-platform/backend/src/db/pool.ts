@@ -36,6 +36,7 @@ pool.on('error', (err) => {
 });
 
 // Admin pool: strictly for auth infrastructure (device certificate lookup) & migrations
+// NOTE: adminPool intentionally uses the same smarthealth DB — meddb does not exist in this environment
 export const adminPool = new Pool(
   dbUrl
     ? {
@@ -47,9 +48,9 @@ export const adminPool = new Pool(
     : {
         host:     process.env.PGHOST     || 'localhost',
         port:     Number(process.env.PGPORT     || 5432),
-        user:     process.env.PGUSER     || 'user',
-        password: process.env.PGPASSWORD || 'password',
-        database: process.env.PGDATABASE || 'meddb',
+        user:     process.env.PGUSER     || process.env.DB_USER || process.env.APP_PGUSER || 'postgres',
+        password: process.env.PGPASSWORD || 'postgres',
+        database: process.env.PGDATABASE || 'smarthealth',
         max:      5,
         idleTimeoutMillis: 30_000,
       }

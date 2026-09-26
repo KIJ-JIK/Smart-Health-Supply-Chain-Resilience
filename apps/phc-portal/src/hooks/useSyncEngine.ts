@@ -91,9 +91,24 @@ export function useSyncEngine(isOnline: boolean) {
     };
 
     if (useLiveServer) {
+      // Read the stored JWT token — stored in zustand authStore under key 'phc-portal-auth'
+      let authToken = '';
+      try {
+        const authRaw = localStorage.getItem('phc-portal-auth');
+        if (authRaw) {
+          const parsed = JSON.parse(authRaw);
+          authToken = parsed?.state?.token || '';
+        }
+      } catch (_) {}
+
       const resp = await fetch(`${backendUrl}/sync/push`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+          'X-Device-ID': CURRENT_DEVICE_ID,
+          'X-PHC-ID': getCurrentPhcId(),
+        },
         body: JSON.stringify(reqBody),
       });
       if (!resp.ok) {
@@ -110,8 +125,24 @@ export function useSyncEngine(isOnline: boolean) {
    */
   const executePull = async (sinceSeq: number): Promise<SyncPullResponse> => {
     if (useLiveServer) {
+      let authToken = '';
+      try {
+        const authRaw = localStorage.getItem('phc-portal-auth');
+        if (authRaw) {
+          const parsed = JSON.parse(authRaw);
+          authToken = parsed?.state?.token || '';
+        }
+      } catch (_) {}
+
       const resp = await fetch(
-        `${backendUrl}/sync/pull?since=${sinceSeq}&device_id=${CURRENT_DEVICE_ID}&limit=100`
+        `${backendUrl}/sync/pull?since=${sinceSeq}&device_id=${CURRENT_DEVICE_ID}&limit=100`,
+        {
+          headers: {
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+            'X-Device-ID': CURRENT_DEVICE_ID,
+            'X-PHC-ID': getCurrentPhcId(),
+          },
+        }
       );
       if (!resp.ok) {
         throw new Error(`Sync Pull HTTP Error: ${resp.status} ${resp.statusText}`);
