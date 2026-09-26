@@ -218,15 +218,45 @@ function ReviewContent() {
             </h2>
             <StatusBadge status={candidateRound.status} size="sm" pulse={isAwaitingReview} />
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Mandatory human operator gate: Verify cross-border accuracy improvements, quorum rules, and DP budgets before network publication.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-[#152b4d] px-3 py-1.5 rounded border border-slate-200 dark:border-[#1e3a5f]">
-            Target Checkpoint: <strong className="text-teal-600 dark:text-teal-400">{candidateRound.modelVersion}</strong>
-          </span>
+        {/* Interactive Round Selector */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Select Checkpoint:</label>
+          <select
+            value={candidateRound.roundId}
+            onChange={(e) => {
+              const rId = e.target.value;
+              navigate(`/review?roundId=${rId}`);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#152b4d] border border-slate-300 dark:border-[#1e3a5f] text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+          >
+            {rounds.map((r) => (
+              <option key={r.id} value={r.roundId}>
+                {r.modelVersion} ({r.roundId}) — {r.status.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Plain-English Executive Guidance Box */}
+      <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-[#152b4d]/70 border border-blue-200 dark:border-[#1e3a5f] flex items-start gap-3.5">
+        <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+        <div className="text-xs space-y-1">
+          <h4 className="font-bold text-blue-900 dark:text-blue-200">
+            Why Human-in-the-Loop Sign-Off is Required
+          </h4>
+          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+            In healthcare supply chain governance, AI models cannot be automatically deployed to clinics. As a national delegate, you verify: 
+            <strong> (1) Accuracy:</strong> Does this model predict disease outbreaks and medicine stockouts with lower error than current baseline? 
+            <strong> (2) Sovereign Quorum:</strong> Did at least 4 of 5 member nations contribute valid gradients? 
+            <strong> (3) Privacy Budget:</strong> Is differential privacy ε strictly within safety limits? 
+            Once confirmed, click <strong>"Authorize &amp; Publish Global Model"</strong> to push weights to AURA Vantage and frontline clinics.
+          </p>
         </div>
       </div>
 
@@ -416,9 +446,16 @@ function ReviewContent() {
                 </button>
               </>
             ) : (
-              <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] text-center space-y-1">
+              <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] text-center space-y-2">
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">Round Status: {candidateRound.status.toUpperCase()}</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">This round has already been resolved.</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">This round has already been resolved and archived.</p>
+                <button
+                  onClick={() => navigate('/rounds')}
+                  className="mt-2 w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                >
+                  <Cpu className="w-3.5 h-3.5" />
+                  <span>Dispatch New Round to Enclaves</span>
+                </button>
               </div>
             )}
           </div>

@@ -38,6 +38,7 @@ export function App() {
             <Route path="/nodes" element={<NodesPage />} />
             <Route path="/rounds" element={<RoundsPage />} />
             <Route path="/rounds/review" element={<RoundReviewPage />} />
+            <Route path="/review" element={<RoundReviewPage />} />
             <Route path="/lineage" element={<LineagePage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/settings" element={<SettingsPage />} />

@@ -53,7 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Governance & Privacy',
     items: [
-      { key: 'review', label: 'Model Review & Sign-Off', href: '/rounds/review', icon: FileCheck2, badge: 'Action', badgeVariant: 'amber' },
+      { key: 'review', label: 'Model Review & Sign-Off', href: '/review', icon: FileCheck2, badge: 'Action', badgeVariant: 'amber' },
       { key: 'privacy', label: 'Differential Privacy', href: '/privacy', icon: ShieldCheck, badge: 'ε=1.42', badgeVariant: 'emerald' },
       { key: 'settings', label: 'Coordinator Settings', href: '/settings', icon: Settings },
     ],
@@ -106,7 +106,13 @@ export function Sidebar() {
             {group.items.map((item) => {
               const Icon = item.icon;
               const isActive =
-                item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+                item.href === '/'
+                  ? pathname === '/'
+                  : item.href === '/rounds'
+                  ? pathname === '/rounds'
+                  : item.href === '/review'
+                  ? pathname === '/review' || pathname === '/rounds/review'
+                  : pathname.startsWith(item.href);
 
               return (
                 <Link

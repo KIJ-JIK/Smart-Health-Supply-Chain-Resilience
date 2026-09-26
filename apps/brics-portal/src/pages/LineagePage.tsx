@@ -75,18 +75,32 @@ export default function LineagePage() {
             <GitBranch className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             Global Model Lineage &amp; Validation DAG
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">
-            Immutable version tree of globally aggregated FedAvg model checkpoints, cryptographic weight signatures, and cross-border performance benchmarks.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Immutable cryptographic version tree of cross-border FedAvg models, weight hashes, and epidemic prediction benchmarks.
           </p>
         </div>
 
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-[#152b4d] dark:hover:bg-[#1e3a5f] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#1e3a5f] text-xs font-semibold transition-all self-start sm:self-auto"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-[#152b4d] dark:hover:bg-[#1e3a5f] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#1e3a5f] text-xs font-semibold transition-all self-start sm:self-auto cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Refresh Lineage</span>
         </button>
+      </div>
+
+      {/* Plain-English Executive Guidance Box */}
+      <div className="p-4 rounded-xl bg-teal-50/60 dark:bg-[#152b4d]/70 border border-teal-200 dark:border-[#1e3a5f] flex items-start gap-3.5">
+        <ShieldCheck className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+        <div className="text-xs space-y-1">
+          <h4 className="font-bold text-teal-900 dark:text-teal-200">
+            What is Model Lineage &amp; Why It Matters in Pandemic Response
+          </h4>
+          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+            Because sovereign nations do not share raw patient records, every federated model is mathematically composed of encrypted gradient contributions from India, Brazil, Russia, China, and South Africa. 
+            This Lineage DAG proves <strong>algorithmic transparency</strong>: tracking each version's accuracy gain (MAE / RMSE), its parent checkpoint, and cryptographic SHA-256 signatures to guarantee that no rogue entity injected poisoned data.
+          </p>
+        </div>
       </div>
 
       {/* Timeline Entries */}
