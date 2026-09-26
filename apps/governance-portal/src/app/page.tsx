@@ -20,6 +20,7 @@ import {
   Workflow,
   Radio,
 } from 'lucide-react';
+import { AuraLogo } from '@/components/brand/AuraLogo';
 
 export default function PlatformHomePage() {
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -55,15 +56,13 @@ export default function PlatformHomePage() {
         <div className="flex items-center justify-between px-5 py-3 rounded-full bg-white/90 border border-neutral-200 backdrop-blur-md shadow-sm">
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center text-white">
-              <Activity className="w-4 h-4" />
-            </div>
+            <AuraLogo size={32} />
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm tracking-tight text-neutral-900">
-                Smart Health
+              <span className="font-extrabold text-sm tracking-tight text-neutral-900">
+                AURA
               </span>
               <span className="text-neutral-400 font-mono text-xs">/</span>
-              <span className="text-xs text-neutral-500 font-medium">Resilience Platform</span>
+              <span className="text-xs text-neutral-600 font-semibold tracking-tight">Health Platform</span>
             </div>
           </div>
 
@@ -71,7 +70,7 @@ export default function PlatformHomePage() {
           <div className="hidden sm:flex items-center gap-3 text-xs font-mono text-neutral-600">
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Core Sync Active</span>
+              <span>Sovereign Sync Active</span>
             </div>
             <span className="text-neutral-400">·</span>
             <span>{currentTime || 'SYNCHRONIZING…'}</span>
@@ -93,17 +92,18 @@ export default function PlatformHomePage() {
         {/* Minimal pill badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-neutral-200 text-neutral-700 text-xs font-medium shadow-xs mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span>Unified Health Architecture · 3 Integrated Portals</span>
+          <span>AURA Architecture · 3 Integrated Sovereign Gateways</span>
         </div>
 
-        {/* Crisp Headline (No neon gradients, pure typography) */}
-        <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-neutral-900 max-w-3xl leading-[1.12]">
-          Healthcare Supply Chain Resilience
+        {/* Crisp Headline */}
+        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-neutral-900 max-w-3xl leading-[1.12]">
+          Autonomous Universal Resilience Architecture
         </h1>
 
         <p className="mt-4 text-base sm:text-lg text-neutral-600 max-w-2xl leading-relaxed">
-          High-assurance operations connecting frontline clinical care, multi-tier state & national governance,
-          and sovereign BRICS intelligence through real-time telemetry and mathematical optimization.
+          High-assurance operations connecting frontline clinical care (<span className="font-semibold text-neutral-800">AURA Point</span>), 
+          multi-tier state &amp; national governance (<span className="font-semibold text-neutral-800">AURA Vantage</span>),
+          and sovereign multilateral intelligence (<span className="font-semibold text-neutral-800">AURA Sovereign</span>).
         </p>
 
         {/* ── REAL-TIME STATS STRIP (Clean White Bento Cards) ── */}
@@ -158,27 +158,27 @@ export default function PlatformHomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
-            {/* ═════════ 1. PRIMARY HEALTH CENTRE ═════════ */}
+            {/* ═════════ 1. AURA POINT (PHC CLINIC) ═════════ */}
             <div className="flex flex-col justify-between p-6 rounded-2xl bg-white border border-neutral-200 hover:border-neutral-400 hover:shadow-md transition-all duration-200 group">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-10 h-10 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-800 group-hover:bg-neutral-900 group-hover:text-white transition-colors">
                     <HeartPulse className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100">
-                    Clinic Workbench
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                    AURA Point
                   </span>
                 </div>
 
                 <h3 className="text-lg font-bold text-neutral-900 group-hover:text-neutral-700 transition-colors">
-                  Primary Health Centre
+                  AURA Point
                 </h3>
                 <p className="text-xs font-mono text-neutral-500 mt-0.5 uppercase tracking-wide">
-                  Clinic Operations Workbench
+                  Primary Health Centre &amp; Clinic Workbench
                 </p>
 
                 <p className="text-xs text-neutral-600 mt-3 leading-relaxed">
-                  Offline-first clinic triage, OPD/IPD beds, and FEFO medication dispensing with local Dexie synchronization.
+                  Frontline clinic triage, OPD/IPD beds, Google AI Vision Rx scanner, and FEFO medication dispensing with local Dexie synchronization.
                 </p>
 
                 <div className="mt-5 space-y-2 text-xs text-neutral-600 border-t border-neutral-100 pt-4 font-mono">
@@ -188,7 +188,7 @@ export default function PlatformHomePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-neutral-700 shrink-0" />
-                    <span>OPD & IPD Bed Allocation</span>
+                    <span>Multimodal AI Vision Scanner</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-neutral-700 shrink-0" />
@@ -202,17 +202,17 @@ export default function PlatformHomePage() {
                   href={process.env.NEXT_PUBLIC_PHC_URL ? `${process.env.NEXT_PUBLIC_PHC_URL}/login` : 'http://localhost:5173/login'}
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-colors shadow-xs"
                 >
-                  <span>Launch Clinic Portal</span>
+                  <span>Launch AURA Point</span>
                   <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </a>
               </div>
             </div>
 
-            {/* ═════════ 2. STATE & NATIONAL GOVERNANCE ═════════ */}
+            {/* ═════════ 2. AURA VANTAGE (GOVERNANCE COMMAND) ═════════ */}
             <div className="flex flex-col justify-between p-6 rounded-2xl bg-white border-2 border-neutral-900 shadow-sm hover:shadow-lg transition-all duration-200 group relative">
               <div className="absolute -top-3 left-6">
                 <span className="px-2.5 py-0.5 rounded-full bg-neutral-900 text-white text-[10px] font-mono uppercase tracking-wider font-semibold">
-                  Core Portal
+                  AURA Vantage
                 </span>
               </div>
 
@@ -221,26 +221,26 @@ export default function PlatformHomePage() {
                   <div className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center">
                     <Building2 className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-neutral-900 text-white font-semibold">
-                    Core Portal
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-neutral-900 text-white font-semibold">
+                    Command Core
                   </span>
                 </div>
 
                 <h3 className="text-lg font-bold text-neutral-900">
-                  State & National Governance
+                  AURA Vantage
                 </h3>
                 <p className="text-xs font-mono text-neutral-500 mt-0.5 uppercase tracking-wide">
-                  Multi-Tier Health Authority
+                  State &amp; National Governance Command
                 </p>
 
                 <p className="text-xs text-neutral-600 mt-3 leading-relaxed">
-                  Macro supply chain oversight, GIS epidemic surveillance, PuLP MILP automated redistribution, and early warning systems.
+                  Macro supply chain oversight, nationwide 36-state GIS epidemic surveillance, PuLP MILP automated redistribution, and Copilot AI.
                 </p>
 
                 <div className="mt-5 space-y-2 text-xs text-neutral-600 border-t border-neutral-100 pt-4 font-mono">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-neutral-900 shrink-0" />
-                    <span>National, State & District Tiers</span>
+                    <span>36 States &amp; UTs Unified GIS</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-neutral-900 shrink-0" />
@@ -248,7 +248,7 @@ export default function PlatformHomePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-neutral-900 shrink-0" />
-                    <span>GIS Deck.gl Heatmaps</span>
+                    <span>Jurisdiction Management</span>
                   </div>
                 </div>
               </div>
@@ -258,33 +258,33 @@ export default function PlatformHomePage() {
                   href="/login"
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-colors shadow-xs"
                 >
-                  <span>Access Governance Portal</span>
+                  <span>Launch AURA Vantage</span>
                   <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </Link>
               </div>
             </div>
 
-            {/* ═════════ 3. BRICS FEDERATED INTELLIGENCE ═════════ */}
+            {/* ═════════ 3. AURA SOVEREIGN (BRICS FEDERATED AI) ═════════ */}
             <div className="flex flex-col justify-between p-6 rounded-2xl bg-white border border-neutral-200 hover:border-neutral-400 hover:shadow-md transition-all duration-200 group">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-10 h-10 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-800 group-hover:bg-neutral-900 group-hover:text-white transition-colors">
                     <Globe2 className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-100">
-                    Federated AI
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 font-bold border border-blue-200">
+                    AURA Sovereign
                   </span>
                 </div>
 
                 <h3 className="text-lg font-bold text-neutral-900 group-hover:text-neutral-700 transition-colors">
-                  BRICS Federated AI
+                  AURA Sovereign
                 </h3>
                 <p className="text-xs font-mono text-neutral-500 mt-0.5 uppercase tracking-wide">
-                  Cross-Border Sovereign Mesh
+                  BRICS Federated AI &amp; Cryptographic Ledger
                 </p>
 
                 <p className="text-xs text-neutral-600 mt-3 leading-relaxed">
-                  Privacy-preserving epidemiological surveillance across 5 sovereign nations with FedAvg consensus and DP-SGD guarantees.
+                  Privacy-preserving epidemiological forecasting across 5 sovereign nations with FedAvg consensus and Differential Privacy (DP-SGD).
                 </p>
 
                 <div className="mt-5 space-y-2 text-xs text-neutral-600 border-t border-neutral-100 pt-4 font-mono">
@@ -294,11 +294,11 @@ export default function PlatformHomePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-neutral-700 shrink-0" />
-                    <span>Differential Privacy (DP-SGD ε = 0.50)</span>
+                    <span>Differential Privacy (ε ≤ 5.0)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-neutral-700 shrink-0" />
-                    <span>FedAvg Weight Aggregation</span>
+                    <span>Multilingual AI Intelligence</span>
                   </div>
                 </div>
               </div>
@@ -308,7 +308,7 @@ export default function PlatformHomePage() {
                   href={process.env.NEXT_PUBLIC_BRICS_URL ? `${process.env.NEXT_PUBLIC_BRICS_URL}/login` : 'http://localhost:3001/login'}
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-colors shadow-xs"
                 >
-                  <span>Enter BRICS Federation</span>
+                  <span>Launch AURA Sovereign</span>
                   <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </a>
               </div>

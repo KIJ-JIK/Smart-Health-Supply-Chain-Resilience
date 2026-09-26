@@ -15,6 +15,7 @@ import {
   Cpu,
 } from 'lucide-react';
 import { useBricsAuthStore, BRICS_COUNTRIES, BRICS_PERSONAS } from '@/store/auth-store';
+import { AuraLogo } from '@/components/brand/AuraLogo';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -73,11 +74,11 @@ export function LoginPage() {
           className="inline-flex items-center gap-2 text-xs font-mono text-neutral-600 hover:text-neutral-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>BACK TO PLATFORM HUB</span>
+          <span>BACK TO AURA HUB</span>
         </a>
         <div className="flex items-center gap-2 text-xs font-mono text-neutral-600">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>BRICS FEDERATED AI MESH</span>
+          <span>AURA SOVEREIGN · BRICS FEDERATED AI GRID</span>
         </div>
       </header>
 
@@ -86,15 +87,13 @@ export function LoginPage() {
         <div className="w-full max-w-lg bg-white border border-neutral-200/90 rounded-2xl p-7 sm:p-10 shadow-sm">
           {/* Header */}
           <div className="flex items-center gap-3.5 mb-6">
-            <div className="w-11 h-11 rounded-xl bg-neutral-900 text-white flex items-center justify-center shadow-xs shrink-0">
-              <Globe2 className="w-5 h-5" />
-            </div>
+            <AuraLogo size={42} />
             <div>
-              <div className="text-[11px] font-mono uppercase tracking-wider text-neutral-500 font-semibold">
-                SOVEREIGN FEDERATION NETWORK
+              <div className="text-[11px] font-mono uppercase tracking-wider text-teal-600 font-semibold">
+                AURA HEALTH PLATFORM · SOVEREIGN FEDERATION
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
-                BRICS Intelligence Access
+                AURA Sovereign
               </h1>
             </div>
           </div>

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useAlertStore } from '@/store/alertStore';
 import { useAuthStore } from '@/store/authStore';
+import { AuraLogo } from '@/components/brand/AuraLogo';
 
 // ── Navigation structure (masterplan §24) ─────────────────────────────────────
 interface NavItem {
@@ -204,14 +205,14 @@ export function Sidebar({ collapsed }: SidebarProps) {
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       {/* Logo */}
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">
-          <Activity size={18} color="white" />
-        </div>
-        <div className="sidebar-logo-text">
-          <span className="sidebar-logo-title">Health Gov</span>
-          <span className="sidebar-logo-sub">Governance Portal</span>
-        </div>
+      <div className="sidebar-logo flex items-center gap-2.5 px-4 py-3 border-b border-slate-800/80">
+        <AuraLogo size={24} />
+        {!collapsed && (
+          <div className="sidebar-logo-text flex flex-col">
+            <span className="sidebar-logo-title font-bold text-slate-100 text-sm tracking-tight">AURA Vantage</span>
+            <span className="sidebar-logo-sub text-[10px] text-teal-400 font-medium tracking-wide uppercase">Governance Command</span>
+          </div>
+        )}
       </div>
 
       {/* Jurisdiction indicator (not collapsed) */}

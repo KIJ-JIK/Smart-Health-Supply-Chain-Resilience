@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useCurrentUser, useMemberPrivacyBudget } from '@/hooks';
 import { BricsAiBriefingModal } from '../intelligence/BricsAiBriefingModal';
+import { AuraLogo } from '../brand/AuraLogo';
 
 export function Header() {
   const user = useCurrentUser();
@@ -33,11 +34,11 @@ export function Header() {
             🌐
           </div>
           <span className="font-semibold tracking-wide text-slate-200">
-            BRICS Health Alliance · Joint Epidemiological Intelligence Council
+            AURA Sovereign · BRICS Federated Epidemiological Intelligence Council
           </span>
           <span className="hidden md:inline text-slate-400">|</span>
           <span className="hidden md:inline text-slate-300">
-            Cross-Border Federated AI Network · Differential Privacy &amp; Data Residency
+            Cross-Border Sovereign AI Mesh · Differential Privacy &amp; Data Residency
           </span>
         </div>
 
@@ -47,7 +48,7 @@ export function Header() {
             <span>Paillier SMPC Certified · Zero Raw Data Egress</span>
           </span>
           <span className="text-[10px] text-slate-400 font-mono">
-            ID: COORD-BRICS-HQ-01
+            ID: AURA-SOV-HQ-01
           </span>
         </div>
       </div>
@@ -56,13 +57,11 @@ export function Header() {
       <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-4">
         {/* Left: Organization Identity */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-9 h-9 rounded-md bg-[#0b1e36] dark:bg-blue-900 text-white flex items-center justify-center border border-slate-300 dark:border-blue-700">
-            <Globe2 className="w-5 h-5 text-blue-300" />
-          </div>
+          <AuraLogo size={36} />
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-tight truncate">
-                BRICS Federated AI Governance Command Center
+                AURA Sovereign — BRICS Federated AI Grid
               </h1>
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
@@ -92,9 +91,9 @@ export function Header() {
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 dark:text-blue-300 dark:border-blue-800 transition-colors"
-              title="Open District & State Governance Portal"
+              title="Open AURA Vantage Governance Command"
             >
-              <span>Gov Portal</span>
+              <span>AURA Vantage</span>
               <ExternalLink className="w-3 h-3" />
             </a>
 
@@ -103,9 +102,9 @@ export function Header() {
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 dark:text-teal-300 dark:border-teal-800 transition-colors"
-              title="Open PHC Field Edge Application"
+              title="Open AURA Point Clinic Workbench"
             >
-              <span>PHC Portal</span>
+              <span>AURA Point</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>

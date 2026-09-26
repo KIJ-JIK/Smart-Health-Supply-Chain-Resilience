@@ -11,6 +11,7 @@ import { useSyncEngine } from '../../hooks/useSyncEngine';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { useThemeStore } from '../../stores/themeStore';
+import { AuraLogo } from '../brand/AuraLogo';
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -43,11 +44,10 @@ export const Header: React.FC = () => {
       <div className="px-4 lg:px-6 py-3 flex items-center justify-between gap-3">
         {/* Left: Facility Identity */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center shadow-[0_0_12px_rgba(13,148,136,0.4)]">
-            <HeartPulse className="w-4.5 h-4.5 w-[18px] h-[18px]" />
-          </div>
+          <AuraLogo size={36} />
           <div className="hidden sm:block min-w-0">
             <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider font-mono">AURA Point ·</span>
               <h1 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-none truncate">
                 {activeFacName}
               </h1>
@@ -155,8 +155,8 @@ export const Header: React.FC = () => {
                 >
                   <Building2 className="w-4 h-4 text-cyan-400" />
                   <div>
-                    <div className="font-semibold text-white">Platform Hub</div>
-                    <div className="text-[10px] text-slate-400">Command Gateway</div>
+                    <div className="font-semibold text-white">AURA Hub</div>
+                    <div className="text-[10px] text-slate-400">Platform Gateway</div>
                   </div>
                 </a>
                 <a
@@ -165,8 +165,8 @@ export const Header: React.FC = () => {
                 >
                   <HeartPulse className="w-4 h-4 text-teal-400" />
                   <div>
-                    <div className="font-semibold">PHC Health Centre</div>
-                    <div className="text-[10px] text-teal-400/80">Active · Clinic Workbench</div>
+                    <div className="font-semibold">AURA Point</div>
+                    <div className="text-[10px] text-teal-400/80">Active · Frontline Clinic</div>
                   </div>
                 </a>
                 <a
@@ -175,8 +175,8 @@ export const Header: React.FC = () => {
                 >
                   <Building2 className="w-4 h-4 text-blue-400" />
                   <div>
-                    <div className="font-semibold text-white">Governance Portal</div>
-                    <div className="text-[10px] text-slate-400">National & State Oversight</div>
+                    <div className="font-semibold text-white">AURA Vantage</div>
+                    <div className="text-[10px] text-slate-400">Governance Command</div>
                   </div>
                 </a>
                 <a
@@ -185,8 +185,8 @@ export const Header: React.FC = () => {
                 >
                   <Globe2 className="w-4 h-4 text-amber-400" />
                   <div>
-                    <div className="font-semibold text-white">BRICS Federated</div>
-                    <div className="text-[10px] text-slate-400">Sovereign AI Mesh</div>
+                    <div className="font-semibold text-white">AURA Sovereign</div>
+                    <div className="text-[10px] text-slate-400">BRICS Federated AI Grid</div>
                   </div>
                 </a>
               </div>

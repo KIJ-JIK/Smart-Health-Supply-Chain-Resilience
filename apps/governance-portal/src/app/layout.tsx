@@ -4,9 +4,9 @@ import { Providers } from './providers';
 import { AppShell } from '@/components/layout/AppShell';
 
 export const metadata: Metadata = {
-  title: 'Governance Portal — Smart Health & Supply Chain Resilience',
+  title: 'AURA Vantage — Healthcare Supply Chain Resilience Command',
   description:
-    'National/state/district decision-making portal for health supply chain governance, ' +
+    'National, state, and district decision-making command portal for health supply chain governance, ' +
     'AI-driven redistribution, early warnings, and crisis management.',
 };
 

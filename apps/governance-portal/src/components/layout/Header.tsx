@@ -481,8 +481,8 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                 >
                   <Building2 size={15} style={{ color: '#06B6D4' }} />
                   <div>
-                    <div style={{ fontWeight: 600 }}>Platform Hub</div>
-                    <div style={{ fontSize: 10, color: '#64748B' }}>Command Gateway</div>
+                    <div style={{ fontWeight: 600 }}>AURA Hub</div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>Platform Gateway</div>
                   </div>
                 </a>
                 <a
@@ -501,8 +501,8 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                 >
                   <HeartPulse size={15} style={{ color: '#14B8A6' }} />
                   <div>
-                    <div style={{ fontWeight: 600 }}>PHC Health Centre</div>
-                    <div style={{ fontSize: 10, color: '#64748B' }}>Clinic Workbench</div>
+                    <div style={{ fontWeight: 600 }}>AURA Point</div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>Frontline Clinic Workbench</div>
                   </div>
                 </a>
                 <a
@@ -521,8 +521,8 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                 >
                   <Building2 size={15} style={{ color: '#3B82F6' }} />
                   <div>
-                    <div style={{ fontWeight: 600 }}>Governance Portal</div>
-                    <div style={{ fontSize: 10, color: '#60A5FA' }}>Active · National Oversight</div>
+                    <div style={{ fontWeight: 600 }}>AURA Vantage</div>
+                    <div style={{ fontSize: 10, color: '#60A5FA' }}>Active · Governance Command</div>
                   </div>
                 </a>
                 <a
@@ -541,8 +541,8 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                 >
                   <Globe2 size={15} style={{ color: '#F59E0B' }} />
                   <div>
-                    <div style={{ fontWeight: 600 }}>BRICS Federated</div>
-                    <div style={{ fontSize: 10, color: '#64748B' }}>Sovereign AI Mesh</div>
+                    <div style={{ fontWeight: 600 }}>AURA Sovereign</div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>BRICS Federated AI Grid</div>
                   </div>
                 </a>
               </div>

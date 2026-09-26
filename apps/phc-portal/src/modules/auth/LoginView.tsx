@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { usePhcAuthStore, PhcStaffPersona } from '../../stores/authStore';
 import { PhcBackendService, PhcFacilityBackendItem } from '../../services/phcBackendService';
+import { AuraLogo } from '../../components/brand/AuraLogo';
 
 interface LoginViewProps {
   onLoginSuccess?: () => void;
@@ -249,11 +250,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           className="inline-flex items-center gap-2 text-xs font-mono text-neutral-600 hover:text-neutral-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>BACK TO PLATFORM HUB</span>
+          <span>BACK TO AURA HUB</span>
         </a>
         <div className="flex items-center gap-2 text-xs font-mono text-neutral-600">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>PRIMARY HEALTHCARE WORKBENCH</span>
+          <span>AURA POINT · FRONTLINE CLINIC WORKBENCH</span>
         </div>
       </header>
 
@@ -262,15 +263,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         <div className="w-full max-w-xl bg-white border border-neutral-200/90 rounded-2xl p-7 sm:p-10 shadow-sm">
           {/* Header */}
           <div className="flex items-center gap-3.5 mb-6">
-            <div className="w-11 h-11 rounded-xl bg-neutral-900 text-white flex items-center justify-center shadow-xs shrink-0">
-              <HeartPulse className="w-5 h-5" />
-            </div>
+            <AuraLogo size={42} />
             <div>
-              <div className="text-[11px] font-mono uppercase tracking-wider text-neutral-500 font-semibold">
-                NATIONAL HEALTH MISSION · CLINIC ACCESS
+              <div className="text-[11px] font-mono uppercase tracking-wider text-teal-600 font-semibold">
+                AURA HEALTH PLATFORM · CLINIC ACCESS
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
-                PHC Operations Portal
+                AURA Point
               </h1>
             </div>
           </div>
