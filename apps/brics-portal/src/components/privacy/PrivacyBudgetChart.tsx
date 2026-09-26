@@ -1,12 +1,8 @@
-'use client';
-
 import React from 'react';
-import { colors, typography } from '@/styles/theme';
 
 export interface PrivacyTimeSeriesDataPoint {
   roundLabel: string;
   roundNumber: number;
-  // Epsilon values for the 5 nations
   IN: number;
   BR: number;
   RU: number;
@@ -22,11 +18,19 @@ export interface PrivacyBudgetChartProps {
 }
 
 const COUNTRY_COLORS: Record<string, string> = {
-  IN: '#f0883e', // Orange tone (India)
-  BR: '#3fb950', // Green tone (Brazil)
-  RU: '#58a6ff', // Blue tone (Russia)
-  CN: '#d29922', // Amber/Yellow tone (China)
-  ZA: '#f85149', // Red tone (South Africa - near exhaustion)
+  IN: '#f97316', // Orange
+  BR: '#10b981', // Emerald
+  RU: '#0ea5e9', // Sky blue
+  CN: '#eab308', // Amber
+  ZA: '#f43f5e', // Rose
+};
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  IN: '🇮🇳 India',
+  BR: '🇧🇷 Brazil',
+  RU: '🇷🇺 Russia',
+  CN: '🇨🇳 China',
+  ZA: '🇿🇦 South Africa',
 };
 
 export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
@@ -37,26 +41,20 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
   if (!data || data.length === 0) {
     return (
       <div
-        style={{
-          height,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: colors.text.muted,
-          ...typography.bodySmall,
-        }}
+        style={{ height }}
+        className="flex items-center justify-center text-slate-500 text-xs font-mono"
       >
-        No privacy budget ledger history available.
+        No privacy budget history available.
       </div>
     );
   }
 
-  const padding = { top: 25, right: 35, bottom: 45, left: 45 };
+  const padding = { top: 25, right: 40, bottom: 45, left: 50 };
   const width = 640;
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
 
-  const maxVal = budgetLimit; // Hard ceiling at 10.0
+  const maxVal = budgetLimit;
   const minVal = 0;
 
   const getX = (index: number) => {
@@ -70,177 +68,131 @@ export const PrivacyBudgetChart: React.FC<PrivacyBudgetChartProps> = ({
   };
 
   const countries = ['IN', 'BR', 'RU', 'CN', 'ZA'] as const;
-
-  // 10% exhaustion threshold line (9.0 epsilon)
   const warningEpsilon = budgetLimit * 0.9;
   const warningY = getY(warningEpsilon);
   const ceilingY = getY(budgetLimit);
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Legend & Threshold Indicators */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+    <div className="w-full flex flex-col gap-3">
+      {/* Legend */}
+      <div className="flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
+        <div className="flex items-center gap-3 flex-wrap">
           {countries.map((c) => (
-            <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 5, ...typography.bodySmall }}>
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  backgroundColor: COUNTRY_COLORS[c],
-                }}
-              />
-              <span style={{ color: colors.text.secondary, fontWeight: 600 }}>{c}</span>
+            <div key={c} className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COUNTRY_COLORS[c] }} />
+              <span className="text-slate-700 dark:text-slate-300">{COUNTRY_FLAGS[c]}</span>
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, ...typography.bodySmall }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span
-              style={{
-                width: 14,
-                height: 2,
-                backgroundColor: colors.status.red.dot,
-                borderTop: `2px dashed ${colors.status.red.dot}`,
-              }}
-            />
-            <span style={{ color: colors.status.red.text, fontSize: '0.6875rem' }}>
-              Hard Limit ({budgetLimit.toFixed(1)} ε)
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span
-              style={{
-                width: 14,
-                height: 2,
-                backgroundColor: colors.status.amber.dot,
-                borderTop: `2px dashed ${colors.status.amber.dot}`,
-              }}
-            />
-            <span style={{ color: colors.status.amber.text, fontSize: '0.6875rem' }}>
-              Warning Zone ({warningEpsilon.toFixed(1)} ε)
-            </span>
-          </div>
+        <div className="flex items-center gap-2 text-[11px]">
+          <span className="w-3 h-0.5 bg-rose-500" />
+          <span className="text-rose-600 dark:text-rose-400 font-bold">Hard Limit: ε = {budgetLimit.toFixed(1)}</span>
         </div>
       </div>
 
-      {/* SVG Multi-Line Chart */}
-      <div style={{ width: '100%', overflowX: 'auto' }}>
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          style={{ width: '100%', height, overflow: 'visible' }}
-        >
-          {/* Warning Zone Shading (> 9.0 epsilon) */}
-          <rect
-            x={padding.left}
-            y={ceilingY}
-            width={plotWidth}
-            height={warningY - ceilingY}
-            fill={`${colors.status.red.bg}80`}
-          />
+      {/* SVG Chart */}
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full overflow-visible"
+        style={{ maxHeight: height }}
+      >
+        {/* Warning zone rect */}
+        <rect
+          x={padding.left}
+          y={ceilingY}
+          width={plotWidth}
+          height={warningY - ceilingY}
+          fill="rgba(244, 63, 94, 0.08)"
+        />
 
-          {/* Grid lines */}
-          {[0, 2.5, 5.0, 7.5, 9.0, 10.0].map((eps) => {
-            const y = getY(eps);
-            const isHardLimit = eps === 10.0;
-            const isWarningLimit = eps === 9.0;
+        {/* Grid lines */}
+        {[0, 2, 4, 6, 8, 10].map((eps) => {
+          const y = getY(eps);
+          return (
+            <g key={eps}>
+              <line
+                x1={padding.left}
+                y1={y}
+                x2={width - padding.right}
+                y2={y}
+                stroke="currentColor"
+                className="text-slate-200 dark:text-[#1e3a5f]"
+                strokeDasharray="3 3"
+                strokeWidth="1"
+              />
+              <text
+                x={padding.left - 8}
+                y={y + 3}
+                textAnchor="end"
+                className="fill-slate-400 dark:fill-slate-500"
+                fontSize="10"
+                fontFamily="monospace"
+              >
+                ε={eps}
+              </text>
+            </g>
+          );
+        })}
 
-            return (
-              <g key={eps}>
-                <line
-                  x1={padding.left}
-                  y1={y}
-                  x2={padding.left + plotWidth}
-                  y2={y}
-                  stroke={
-                    isHardLimit
-                      ? colors.status.red.dot
-                      : isWarningLimit
-                      ? colors.status.amber.dot
-                      : colors.bg.borderSubtle
-                  }
-                  strokeDasharray={isHardLimit || isWarningLimit ? '4 3' : undefined}
-                  strokeWidth={isHardLimit ? 1.5 : 1}
+        {/* Hard ceiling line */}
+        <line
+          x1={padding.left}
+          y1={ceilingY}
+          x2={width - padding.right}
+          y2={ceilingY}
+          stroke="#f43f5e"
+          strokeDasharray="4 2"
+          strokeWidth="1.5"
+        />
+
+        {/* Plot curves for each nation */}
+        {countries.map((country) => {
+          const points = data.map((d, i) => `${getX(i)},${getY(d[country])}`).join(' ');
+          const color = COUNTRY_COLORS[country];
+
+          return (
+            <g key={country}>
+              <polyline
+                fill="none"
+                stroke={color}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={points}
+              />
+              {data.map((d, i) => (
+                <circle
+                  key={i}
+                  cx={getX(i)}
+                  cy={getY(d[country])}
+                  r="3.5"
+                  fill={color}
+                  stroke="#0f1f38"
+                  strokeWidth="2"
                 />
-                <text
-                  x={padding.left - 8}
-                  y={y + 4}
-                  textAnchor="end"
-                  fill={
-                    isHardLimit
-                      ? colors.status.red.text
-                      : isWarningLimit
-                      ? colors.status.amber.text
-                      : colors.text.muted
-                  }
-                  fontSize={10}
-                  fontFamily="sans-serif"
-                >
-                  {eps.toFixed(1)} ε
-                </text>
-              </g>
-            );
-          })}
+              ))}
+            </g>
+          );
+        })}
 
-          {/* X Axis Labels */}
-          {data.map((d, i) => (
-            <text
-              key={i}
-              x={getX(i)}
-              y={padding.top + plotHeight + 20}
-              textAnchor="middle"
-              fill={colors.text.muted}
-              fontSize={11}
-              fontFamily="sans-serif"
-            >
-              {d.roundLabel}
-            </text>
-          ))}
-
-          {/* Render Lines for each Country */}
-          {countries.map((c) => {
-            const points = data.map((d, i) => `${getX(i)},${getY(d[c])}`).join(' ');
-            const strokeColor = COUNTRY_COLORS[c];
-
-            return (
-              <g key={c}>
-                <polyline
-                  fill="none"
-                  stroke={strokeColor}
-                  strokeWidth={c === 'ZA' ? '3' : '2'}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  points={points}
-                />
-                {data.map((d, i) => (
-                  <circle
-                    key={`${c}-dot-${i}`}
-                    cx={getX(i)}
-                    cy={getY(d[c])}
-                    r={c === 'ZA' ? 4.5 : 3.5}
-                    fill={colors.bg.surface}
-                    stroke={strokeColor}
-                    strokeWidth="2"
-                  >
-                    <title>{`${d.roundLabel} - ${c}: ${d[c].toFixed(3)} ε`}</title>
-                  </circle>
-                ))}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
+        {/* X-axis labels */}
+        {data.map((d, i) => (
+          <text
+            key={i}
+            x={getX(i)}
+            y={height - 12}
+            textAnchor="middle"
+            className="fill-slate-500 dark:fill-slate-400"
+            fontSize="10"
+            fontFamily="monospace"
+          >
+            {d.roundLabel}
+          </text>
+        ))}
+      </svg>
     </div>
   );
 };
+
+export default PrivacyBudgetChart;

@@ -1,82 +1,39 @@
-'use client';
-
 import React from 'react';
-import { colors, typography } from '@/styles/theme';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export interface ErrorStateProps {
   title?: string;
-  error?: Error | { message: string } | string | null;
+  message?: string;
   onRetry?: () => void;
-  isRetrying?: boolean;
 }
 
 export const ErrorState: React.FC<ErrorStateProps> = ({
-  title = 'Failed to Load Federated Data',
-  error,
+  title = 'Telemetry Ingestion Error',
+  message = 'Failed to communicate with federated coordinator node.',
   onRetry,
-  isRetrying = false,
 }) => {
-  const errorMessage =
-    typeof error === 'string'
-      ? error
-      : error?.message || 'A network error or schema mismatch occurred while resolving federated queries.';
-
   return (
-    <div
-      style={{
-        backgroundColor: colors.status.red.bg,
-        border: `1px solid ${colors.status.red.border}`,
-        borderRadius: 8,
-        padding: 24,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        gap: 12,
-      }}
-    >
-      <h3
-        style={{
-          ...typography.titleMedium,
-          color: colors.status.red.text,
-          margin: 0,
-        }}
-      >
-        {title}
-      </h3>
-      <p
-        style={{
-          ...typography.body,
-          color: colors.text.secondary,
-          maxWidth: 520,
-          margin: 0,
-          lineHeight: 1.4,
-          wordBreak: 'break-word',
-        }}
-      >
-        {errorMessage}
-      </p>
-
+    <div className="p-6 rounded-2xl bg-rose-950/20 border border-rose-800/60 flex flex-col sm:flex-row items-center justify-between gap-4 my-4">
+      <div className="flex items-center gap-3 text-left">
+        <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30 shrink-0">
+          <AlertCircle className="w-5 h-5" />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-white">{title}</h3>
+          <p className="text-xs text-rose-300/80 mt-0.5">{message}</p>
+        </div>
+      </div>
       {onRetry && (
         <button
-          type="button"
           onClick={onRetry}
-          disabled={isRetrying}
-          style={{
-            marginTop: 4,
-            padding: '8px 18px',
-            borderRadius: 6,
-            border: `1px solid ${colors.status.red.border}`,
-            backgroundColor: colors.bg.surface,
-            color: colors.text.primary,
-            cursor: isRetrying ? 'not-allowed' : 'pointer',
-            ...typography.bodySmall,
-            fontWeight: 600,
-          }}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-md shrink-0"
         >
-          {isRetrying ? 'Retrying...' : 'Retry Query'}
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Retry Sync</span>
         </button>
       )}
     </div>
   );
 };
+
+export default ErrorState;

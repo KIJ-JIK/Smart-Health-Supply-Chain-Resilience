@@ -1,7 +1,5 @@
-'use client';
-
 import React, { useState } from 'react';
-import { colors, typography } from '@/styles/theme';
+import { Play, X, ShieldAlert, Cpu } from 'lucide-react';
 import { ConfirmationDialog } from '@/components/common/ConfirmationDialog';
 import type { StartRoundInput } from '@/types/federated';
 
@@ -43,281 +41,129 @@ export const StartRoundModal: React.FC<StartRoundModalProps> = ({
   return (
     <>
       <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(2px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999,
-          padding: 20,
-        }}
+        className="fixed inset-0 bg-slate-900/70 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         onClick={onClose}
       >
         <div
-          style={{
-            backgroundColor: colors.bg.surface,
-            border: `1px solid ${colors.bg.border}`,
-            borderRadius: 10,
-            width: '100%',
-            maxWidth: 520,
-            padding: 24,
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 18,
-          }}
+          className="bg-white dark:bg-[#0f1f38] border border-slate-200 dark:border-[#1e3a5f] rounded-lg w-full max-w-lg p-5 sm:p-6 shadow-xl space-y-4"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Modal Header */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderBottom: `1px solid ${colors.bg.borderSubtle}`,
-              paddingBottom: 14,
-            }}
-          >
-            <div>
-              <h3 style={{ ...typography.titleMedium, color: colors.text.primary, margin: 0 }}>
-                Configure &amp; Launch Federated Round
-              </h3>
-              <div style={{ ...typography.bodySmall, color: colors.text.muted, marginTop: 2 }}>
-                Cross-Border Federated Learning Dispatch
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-slate-100 dark:border-[#1e3a5f] pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-md bg-blue-50 dark:bg-[#152b4d] text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-[#1e3a5f]">
+                <Play className="w-4 h-4 fill-current" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
+                  Configure &amp; Launch Federated Round
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Cross-Border FedAvg Dispatch with DP-SGD Privacy Bounds
+                </p>
               </div>
             </div>
             <button
-              type="button"
               onClick={onClose}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: colors.text.muted,
-                fontSize: '1.25rem',
-                cursor: 'pointer',
-                padding: 4,
-              }}
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-[#152b4d] transition-colors"
             >
-              ✕
+              <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleOpenConfirmation} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label
-                style={{
-                  ...typography.bodySmall,
-                  fontWeight: 600,
-                  color: colors.text.secondary,
-                  display: 'block',
-                  marginBottom: 6,
-                }}
-              >
-                Target Model Architecture / Identifier
+          <form onSubmit={handleOpenConfirmation} className="space-y-4 text-xs">
+            <div className="space-y-1">
+              <label className="text-slate-700 dark:text-slate-300 font-semibold block">
+                Target Model Version &amp; Architecture
               </label>
               <input
                 type="text"
                 value={targetModel}
                 onChange={(e) => setTargetModel(e.target.value)}
+                className="field font-mono"
                 required
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 6,
-                  border: `1px solid ${colors.bg.border}`,
-                  backgroundColor: colors.bg.surfaceHover,
-                  color: colors.text.primary,
-                  ...typography.body,
-                  outline: 'none',
-                }}
-                placeholder="e.g. v1.21-resilience-transformer"
               />
-              <span style={{ fontSize: '0.6875rem', color: colors.text.muted, marginTop: 4, display: 'block' }}>
-                Base model weights from which participating national nodes will compute weight deltas.
-              </span>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Base architecture deployed across India, Brazil, Russia, China, and South Africa enclaves.
+              </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div>
-                <label
-                  style={{
-                    ...typography.bodySmall,
-                    fontWeight: 600,
-                    color: colors.text.secondary,
-                    display: 'block',
-                    marginBottom: 6,
-                  }}
-                >
-                  Minimum Quorum Required
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-slate-700 dark:text-slate-300 font-semibold block">
+                  Minimum Sovereign Quorum
                 </label>
                 <select
                   value={minimumNodes}
                   onChange={(e) => setMinimumNodes(Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: 6,
-                    border: `1px solid ${colors.bg.border}`,
-                    backgroundColor: colors.bg.surfaceHover,
-                    color: colors.text.primary,
-                    ...typography.body,
-                    outline: 'none',
-                  }}
+                  className="field font-mono"
                 >
-                  <option value={3}>3 Sovereign Nodes</option>
-                  <option value={4}>4 Sovereign Nodes (Standard)</option>
-                  <option value={5}>5 Sovereign Nodes (Full Consensus)</option>
+                  <option value={3}>3 of 5 Nations</option>
+                  <option value={4}>4 of 5 Nations (Recommended)</option>
+                  <option value={5}>5 of 5 Nations (Unanimous)</option>
                 </select>
-                <span style={{ fontSize: '0.6875rem', color: colors.text.muted, marginTop: 4, display: 'block' }}>
-                  Default is 4 to permit 1 degraded node without halting aggregation.
-                </span>
               </div>
 
-              <div>
-                <label
-                  style={{
-                    ...typography.bodySmall,
-                    fontWeight: 600,
-                    color: colors.text.secondary,
-                    display: 'block',
-                    marginBottom: 6,
-                  }}
-                >
-                  Round Timeout (Hours)
+              <div className="space-y-1">
+                <label className="text-slate-700 dark:text-slate-300 font-semibold block">
+                  Round Window Timeout
                 </label>
-                <input
-                  type="number"
-                  min={12}
-                  max={168}
-                  step={12}
+                <select
                   value={roundTimeoutHours}
                   onChange={(e) => setRoundTimeoutHours(Number(e.target.value))}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: 6,
-                    border: `1px solid ${colors.bg.border}`,
-                    backgroundColor: colors.bg.surfaceHover,
-                    color: colors.text.primary,
-                    ...typography.body,
-                    outline: 'none',
-                  }}
-                />
-                <span style={{ fontSize: '0.6875rem', color: colors.text.muted, marginTop: 4, display: 'block' }}>
-                  Maximum time window for cross-border local training and upload.
-                </span>
+                  className="field font-mono"
+                >
+                  <option value={24}>24 Hours</option>
+                  <option value={48}>48 Hours</option>
+                  <option value={72}>72 Hours (Standard)</option>
+                  <option value={120}>120 Hours</option>
+                </select>
               </div>
             </div>
 
-            {/* Cross-border dispatch cost advisory */}
-            <div
-              style={{
-                backgroundColor: colors.status.amber.bg,
-                border: `1px solid ${colors.status.amber.border}`,
-                borderRadius: 6,
-                padding: 12,
-                fontSize: '0.75rem',
-                color: colors.status.amber.text,
-                lineHeight: 1.4,
-              }}
-            >
-              <strong>Oversight Reminder:</strong> Initiating a federated training round consumes
-              differential privacy budget across India, Brazil, Russia, China, and South Africa. A confirmation summary is mandatory.
+            <div className="p-3 rounded-md bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]/80 space-y-1">
+              <span className="font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5 text-[11px]">
+                <Cpu className="w-3.5 h-3.5" /> Privacy &amp; Cryptography Guardrails
+              </span>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Gaussian differential privacy noise (σ=1.12, ε-budget increment ≤ 0.35) will be enforced on all local node client gradients.
+              </p>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: 12,
-                borderTop: `1px solid ${colors.bg.borderSubtle}`,
-                paddingTop: 16,
-              }}
-            >
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-[#1e3a5f]">
               <button
                 type="button"
                 onClick={onClose}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 6,
-                  border: `1px solid ${colors.bg.border}`,
-                  backgroundColor: 'transparent',
-                  color: colors.text.secondary,
-                  cursor: 'pointer',
-                  ...typography.bodySmall,
-                  fontWeight: 600,
-                }}
+                className="px-3.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-[#152b4d] dark:hover:bg-[#1c3864] text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-[#1e3a5f] font-semibold transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: 6,
-                  border: 'none',
-                  backgroundColor: colors.brand.primary,
-                  color: '#ffffff',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  ...typography.bodySmall,
-                  fontWeight: 600,
-                }}
+                className="px-4 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors shadow-sm active:scale-95 flex items-center gap-1.5"
               >
-                Review &amp; Initiate Round
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Review &amp; Broadcast</span>
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* Confirmation Summary Dialog */}
+      {/* Confirmation Dialog */}
       <ConfirmationDialog
         isOpen={isConfirmOpen}
-        title="Confirm Federated Round Initiation"
-        description="Federation rounds are computationally intensive and trigger synchronous DP-SGD local training across 5 sovereign nations. Verify the parameters before final dispatch:"
-        confirmLabel="Authorize Round Launch"
-        cancelLabel="Back to Configuration"
-        isDestructive={false}
+        title="Broadcast Federated Learning Round"
+        description={`Initiating this round will broadcast model architecture ${targetModel} to all sovereign enclaves. Minimum quorum is set to ${minimumNodes}/5 nodes with a ${roundTimeoutHours}-hour completion window.`}
+        confirmLabel="Broadcast to Enclaves"
         onConfirm={handleFinalConfirm}
         onCancel={() => setIsConfirmOpen(false)}
-      >
-        <div
-          style={{
-            backgroundColor: colors.bg.surfaceHover,
-            padding: 14,
-            borderRadius: 6,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            border: `1px solid ${colors.bg.borderSubtle}`,
-            ...typography.bodySmall,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: colors.text.muted }}>Target Model:</span>
-            <strong style={{ color: colors.text.primary }}>{targetModel}</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: colors.text.muted }}>Quorum Required:</span>
-            <strong style={{ color: colors.text.primary }}>{minimumNodes} of 5 Sovereign Nodes</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: colors.text.muted }}>Window Deadline:</span>
-            <strong style={{ color: colors.text.primary }}>{roundTimeoutHours} Hours</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: colors.text.muted }}>Coordinator:</span>
-            <strong style={{ color: colors.status.green.text }}>FedAvg + DP-SGD Secure Aggregator</strong>
-          </div>
-        </div>
-      </ConfirmationDialog>
+      />
     </>
   );
 };
+
+export default StartRoundModal;

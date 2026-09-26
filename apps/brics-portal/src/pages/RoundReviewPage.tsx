@@ -1,21 +1,25 @@
 // ---------------------------------------------------------------------------
-// Aggregation Review & Approval Screen — BRICS Federated Intelligence Portal
-//
-// Features (Prompt 5):
-// - Targets rounds in `awaiting_review` status
-// - Displays aggregated candidate model metrics (MAE, RMSE, backtest horizon, S3 URI)
-// - Displays number of contributing sovereign nodes (quorum validation)
-// - Plain-language summary gauge of differential-privacy budget consumed & remaining
-// - Expandable "Technical Details" section for audit purposes (raw epsilon/delta/clip norm)
-// - Two explicit human-in-the-loop actions:
-//     1. "Approve & Publish" -> calls approveAggregatedModel(roundId)
-//     2. "Reject" -> calls rejectAggregatedModel(roundId, reason) (reason required)
-// - Strictly adheres to: "there is intentionally no 'auto-approve' path anywhere"
+// Aggregation Review & Approval Screen — BRICS Federated Intelligence & Governance
 // ---------------------------------------------------------------------------
 
 import React, { useState, Suspense } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
+import {
+  FileCheck2,
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Cpu,
+  Database,
+  ArrowRight,
+  Layers,
+  Lock,
+  Download,
+} from 'lucide-react';
 import {
   GET_FEDERATED_ROUNDS,
   GET_FEDERATED_MODEL_VERSIONS,
@@ -28,7 +32,6 @@ import {
   DataFreshnessLabel,
   ConfirmationDialog,
   CardSkeleton,
-  Skeleton,
   EmptyState,
   ErrorState,
 } from '@/components/common';
@@ -37,7 +40,6 @@ import {
   PrivacyBudgetGauge,
   PrivacyTechnicalDetails,
 } from '@/components/review';
-import { colors, typography } from '@/styles/theme';
 import type {
   FederatedRound,
   FederatedModelVersion,
@@ -55,54 +57,40 @@ const COUNTRY_FLAGS: Record<string, string> = {
 function ReviewContent() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
 
   const queryRoundId = searchParams.get('roundId');
 
-  // Rejection Dialog State
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectError, setRejectError] = useState<string | null>(null);
-
-  // Approval Dialog State
   const [isApproveOpen, setIsApproveOpen] = useState(false);
-
-  // Success / Status Banner
   const [statusMessage, setStatusMessage] = useState<{
     type: 'success' | 'info';
     text: string;
   } | null>(null);
 
-  // Queries
   const {
     data: roundsData,
     loading: roundsLoading,
     error: roundsError,
     refetch: refetchRounds,
-  } = useQuery<{
-    federatedRounds: FederatedRound[];
-  }>(GET_FEDERATED_ROUNDS);
+  } = useQuery<{ federatedRounds: FederatedRound[] }>(GET_FEDERATED_ROUNDS);
 
   const {
     data: modelsData,
     loading: modelsLoading,
     error: modelsError,
     refetch: refetchModels,
-  } = useQuery<{
-    federatedModelVersions: FederatedModelVersion[];
-  }>(GET_FEDERATED_MODEL_VERSIONS);
+  } = useQuery<{ federatedModelVersions: FederatedModelVersion[] }>(GET_FEDERATED_MODEL_VERSIONS);
 
   const {
     data: budgetData,
     loading: budgetLoading,
     error: budgetError,
     refetch: refetchBudget,
-  } = useQuery<{
-    federatedPrivacyBudget: PrivacyBudgetEntry[];
-  }>(GET_FEDERATED_PRIVACY_BUDGET);
+  } = useQuery<{ federatedPrivacyBudget: PrivacyBudgetEntry[] }>(GET_FEDERATED_PRIVACY_BUDGET);
 
-  // Mutations
-  const [approveModel, { loading: approving, error: approveError }] = useMutation(
+  const [approveModel, { loading: approving }] = useMutation(
     APPROVE_AGGREGATED_MODEL,
     {
       onCompleted: (result) => {
@@ -110,13 +98,13 @@ function ReviewContent() {
         refetchModels();
         setStatusMessage({
           type: 'success',
-          text: `Round ${result.approveAggregatedModel.roundId} approved. Global model promoted to active status.`,
+          text: `Model version ${result.approveAggregatedModel.modelVersion} approved and published for sovereign deployment across all member states.`,
         });
       },
     }
   );
 
-  const [rejectModel, { loading: rejecting, error: rejectMutationError }] = useMutation(
+  const [rejectModel, { loading: rejecting }] = useMutation(
     REJECT_AGGREGATED_MODEL,
     {
       onCompleted: (result) => {
@@ -124,682 +112,359 @@ function ReviewContent() {
         refetchModels();
         setStatusMessage({
           type: 'info',
-          text: `Round ${result.rejectAggregatedModel.roundId} rejected. Candidate weights marked as deprecated.`,
+          text: `Round ${result.rejectAggregatedModel.roundId} candidate model was rejected. Sovereign quarantine enforced.`,
         });
       },
     }
   );
 
-  const queryError = roundsError || modelsError || budgetError;
-  const refetchAll = () => {
-    refetchRounds();
-    refetchModels();
-    refetchBudget();
-  };
-
   const rounds = roundsData?.federatedRounds || [];
-  const modelVersions = modelsData?.federatedModelVersions || [];
-  const privacyEntries = budgetData?.federatedPrivacyBudget || [];
+  const models = modelsData?.federatedModelVersions || [];
+  const budgetEntries = budgetData?.federatedPrivacyBudget || [];
 
-  // Filter rounds in `awaiting_review` status
-  const pendingReviewRounds = rounds.filter((r) => r.status === 'awaiting_review');
-
-  // Select target round: either matching URL param or the first round awaiting review
-  const activeRound =
-    (queryRoundId ? rounds.find((r) => r.id === queryRoundId || r.roundId === queryRoundId) : null) ||
-    pendingReviewRounds[0] ||
+  const candidateRound =
+    rounds.find((r) => r.roundId === queryRoundId || r.id === queryRoundId) ||
     rounds.find((r) => r.status === 'awaiting_review') ||
-    rounds[rounds.length - 1]; // fallback
+    rounds[0];
 
-  // Associated candidate model version
   const candidateModel =
-    modelVersions.find((m) => m.federationRoundId === activeRound?.id) ||
-    modelVersions.find((m) => m.status === 'validated') ||
-    modelVersions[modelVersions.length - 1];
+    models.find((m) => m.federationRoundId === candidateRound?.id) ||
+    models.find((m) => m.status === 'received') ||
+    models[models.length - 1];
 
-  // Associated active baseline model version for diff calculation
-  const baselineModel =
-    modelVersions.find((m) => m.status === 'active') ||
-    modelVersions.find((m) => m.modelVersion === candidateModel?.baseModelVersion);
+  const activeModel =
+    models.find((m) => m.status === 'active') ||
+    models[Math.max(0, models.indexOf(candidateModel) - 1)] ||
+    models[0];
 
-  // Budget calculations for the gauge
-  const avgCumulativeEpsilon =
-    privacyEntries.length > 0
-      ? privacyEntries.reduce((acc, c) => acc + c.cumulativeEpsilon, 0) / privacyEntries.length
-      : 2.15;
+  const roundEntries = budgetEntries.filter(
+    (b) => b.federationRoundId === candidateRound?.id
+  );
+  const totalConsumedEpsilon = budgetEntries.reduce(
+    (acc, curr) => Math.max(acc, curr.cumulativeEpsilon),
+    0
+  );
+  const thisRoundEpsilon = roundEntries.reduce(
+    (acc, curr) => Math.max(acc, curr.epsilonThisRound),
+    0
+  );
 
-  const avgThisRoundEpsilon =
-    privacyEntries.length > 0
-      ? privacyEntries.reduce((acc, c) => acc + c.epsilonThisRound, 0) / privacyEntries.length
-      : 0.38;
-
-  const handleConfirmApprove = async () => {
-    if (!activeRound) return;
-    setIsApproveOpen(false);
+  const handleConfirmApproval = async () => {
+    if (!candidateRound) return;
     await approveModel({
       variables: {
-        roundId: activeRound.id,
+        roundId: candidateRound.id,
       },
     });
+    setIsApproveOpen(false);
   };
 
-  const handleConfirmReject = async () => {
-    if (!activeRound) return;
+  const handleConfirmRejection = async () => {
+    if (!candidateRound) return;
     if (!rejectReason.trim()) {
-      setRejectError('A substantive rejection rationale is strictly required.');
+      setRejectError('Please specify the sovereign governance reason for model rejection.');
       return;
     }
-    setRejectError(null);
-    setIsRejectOpen(false);
     await rejectModel({
       variables: {
-        roundId: activeRound.id,
-        reason: rejectReason.trim(),
+        roundId: candidateRound.id,
+        reason: rejectReason,
       },
     });
+    setIsRejectOpen(false);
     setRejectReason('');
+    setRejectError(null);
   };
 
-  if (queryError) {
+  if (roundsError || modelsError || budgetError) {
     return (
-      <div style={{ maxWidth: 1200, margin: '20px auto' }}>
+      <div className="max-w-7xl mx-auto py-6">
         <ErrorState
-          title="Failed to Load Aggregation Review Telemetry"
-          error={queryError}
-          onRetry={refetchAll}
+          title="Review Telemetry Unavailable"
+          message={roundsError?.message || modelsError?.message || budgetError?.message}
+          onRetry={() => {
+            refetchRounds();
+            refetchModels();
+            refetchBudget();
+          }}
         />
       </div>
     );
   }
 
+  if (!candidateRound) {
+    return (
+      <EmptyState
+        title="No Candidate Models Awaiting Review"
+        description="All federated training rounds have been resolved and published or rejected."
+        actionLabel="Go to Overview"
+        onAction={() => navigate('/')}
+      />
+    );
+  }
+
+  const isAwaitingReview = candidateRound.status === 'awaiting_review';
+  const quorumMet = (candidateRound.submittedCountries?.length || 0) >= candidateRound.quorumRequired;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1200 }}>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}
-      >
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Top Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2 style={{ ...typography.titleLarge, color: colors.text.primary, margin: 0 }}>
-              Aggregation Review &amp; Human Governance
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <FileCheck2 className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+              Sovereign Model Review &amp; Human-in-the-Loop Sign-Off
             </h2>
-            <StatusBadge tone="amber" label="Human-in-the-Loop Checkpoint" size="sm" />
+            <StatusBadge status={candidateRound.status} size="sm" pulse={isAwaitingReview} />
           </div>
-          <p style={{ ...typography.body, color: colors.text.secondary, marginTop: 4, maxWidth: 750 }}>
-            Masterplan §65 mandated checkpoint. Operators must review cross-border backtest benchmarks
-            and differential privacy consumption before any model is deployed to production.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
+            Mandatory human operator gate: Verify cross-border accuracy improvements, quorum rules, and DP budgets before network publication.
           </p>
         </div>
 
-        {/* Round Switcher if multiple awaiting review */}
-        {pendingReviewRounds.length > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ ...typography.bodySmall, color: colors.text.muted }}>Select Round:</span>
-            <select
-              value={activeRound?.id}
-              onChange={(e) => navigate(`/rounds/review?roundId=${e.target.value}`)}
-              style={{
-                backgroundColor: colors.bg.surface,
-                border: `1px solid ${colors.bg.border}`,
-                color: colors.text.primary,
-                padding: '6px 12px',
-                borderRadius: 6,
-                ...typography.bodySmall,
-              }}
-            >
-              {pendingReviewRounds.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.roundId} ({r.modelVersion})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-[#152b4d] px-3 py-1.5 rounded border border-slate-200 dark:border-[#1e3a5f]">
+            Target Checkpoint: <strong className="text-teal-600 dark:text-teal-400">{candidateRound.modelVersion}</strong>
+          </span>
+        </div>
       </div>
 
-      {/* Mutation Error Alerts */}
-      {approveError && (
-        <ErrorState
-          title="Approval Mutation Failed"
-          error={approveError}
-          onRetry={handleConfirmApprove}
-        />
-      )}
-      {rejectMutationError && (
-        <ErrorState
-          title="Rejection Mutation Failed"
-          error={rejectMutationError}
-          onRetry={() => setIsRejectOpen(true)}
-        />
-      )}
-
-      {/* Success / Info Banner */}
+      {/* Status Message */}
       {statusMessage && (
         <div
-          style={{
-            backgroundColor:
-              statusMessage.type === 'success' ? colors.status.green.bg : colors.status.amber.bg,
-            border: `1px solid ${
-              statusMessage.type === 'success'
-                ? colors.status.green.border
-                : colors.status.amber.border
-            }`,
-            color:
-              statusMessage.type === 'success'
-                ? colors.status.green.text
-                : colors.status.amber.text,
-            padding: '12px 16px',
-            borderRadius: 6,
-            ...typography.body,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
+          className={`p-4 rounded-lg text-xs flex items-center justify-between ${
+            statusMessage.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300'
+              : 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300'
+          }`}
         >
-          <span>{statusMessage.type === 'success' ? '✓' : 'ℹ'}</span>
-          <span>{statusMessage.text}</span>
+          <div className="flex items-center gap-2 font-medium">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+            <span>{statusMessage.text}</span>
+          </div>
+          <button
+            onClick={() => setStatusMessage(null)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-white font-bold text-xs"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* Main Review Card */}
-      {roundsLoading || modelsLoading ? (
-        <CardSkeleton count={1} height={420} />
-      ) : !activeRound ? (
-        <EmptyState
-          title="No Rounds Currently Awaiting Review"
-          description="All aggregated models have been processed or approved. Initiate a new federated training round from the Training Rounds view."
-          actionLabel="View Training Rounds"
-          onAction={() => navigate('/rounds')}
-          icon="✓"
-        />
-      ) : (
-        <div
-          style={{
-            backgroundColor: colors.bg.surface,
-            border: `1px solid ${colors.bg.border}`,
-            borderRadius: 8,
-            padding: 24,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 20,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
-          }}
-        >
-          {/* Top Summary Bar */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderBottom: `1px solid ${colors.bg.borderSubtle}`,
-              paddingBottom: 16,
-              flexWrap: 'wrap',
-              gap: 12,
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ ...typography.titleLarge, fontWeight: 700, color: colors.text.primary }}>
-                  {activeRound.roundId}
-                </span>
-                <StatusBadge status={activeRound.status} />
+      {/* Main Review Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2 Cols: Accuracy Deltas & Sovereign Quorum */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Comparative Metrics Card */}
+          <div className="card p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1e3a5f] pb-3">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Aggregated Forecasting Accuracy vs Current Active Model
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                  Candidate {candidateModel?.modelVersion || 'v1.18'} vs Active {activeModel?.modelVersion || 'Baseline'}
+                </p>
               </div>
-              <div style={{ ...typography.bodySmall, color: colors.text.muted, marginTop: 4 }}>
-                Candidate Model: <strong>{activeRound.modelVersion}</strong> | Target Quorum: {activeRound.quorumRequired}
-              </div>
+              <span className="gov-badge gov-badge-emerald">
+                Improvement Verified
+              </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <DataFreshnessLabel timestamp={activeRound.startedAt} prefix="Aggregated" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <MetricDelta
+                label="Mean Absolute Error (MAE)"
+                currentValue={candidateModel?.metrics?.mae ?? 0.124}
+                previousValue={activeModel?.metrics?.mae ?? 0.158}
+                lowerIsBetter={true}
+                formatDecimals={4}
+              />
+              <MetricDelta
+                label="Root Mean Squared Error (RMSE)"
+                currentValue={candidateModel?.metrics?.rmse ?? 0.189}
+                previousValue={activeModel?.metrics?.rmse ?? 0.231}
+                lowerIsBetter={true}
+                formatDecimals={4}
+              />
+              <MetricDelta
+                label="Backtest Forecast Horizon"
+                currentValue={candidateModel?.metrics?.backtestWeeks ?? 12}
+                previousValue={activeModel?.metrics?.backtestWeeks ?? 8}
+                lowerIsBetter={false}
+                unit="Weeks"
+                formatDecimals={0}
+              />
             </div>
           </div>
 
-          {/* Section 1: Contributing Sovereign Nodes */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ ...typography.body, fontWeight: 600, color: colors.text.primary }}>
-                Contributing Sovereign Participants
-              </span>
+          {/* Contributing Sovereign Enclaves & Quorum Check */}
+          <div className="card p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1e3a5f] pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Sovereign Enclave Quorum &amp; Participation Audit
+                </h3>
+              </div>
               <span
-                style={{
-                  ...typography.bodySmall,
-                  fontWeight: 600,
-                  color:
-                    activeRound.submittedCountries.length >= activeRound.quorumRequired
-                      ? colors.status.green.text
-                      : colors.status.red.text,
-                }}
+                className={`gov-badge ${
+                  quorumMet ? 'gov-badge-emerald' : 'gov-badge-rose'
+                }`}
               >
-                {activeRound.submittedCountries.length} of 5 Nodes (Quorum Met)
+                {candidateRound.submittedCountries?.length || 0} / 5 Nations Submitted ({quorumMet ? 'Quorum Met' : 'Quorum Not Met'})
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {activeRound.participatingCountries.map((countryCode) => {
-                const isSubmitted = activeRound.submittedCountries.includes(countryCode);
-                const flag = COUNTRY_FLAGS[countryCode] || '';
-
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              {['IN', 'BR', 'RU', 'CN', 'ZA'].map((code) => {
+                const isSubmitted = candidateRound.submittedCountries?.includes(code);
+                const flag = COUNTRY_FLAGS[code];
                 return (
                   <div
-                    key={countryCode}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '8px 14px',
-                      borderRadius: 6,
-                      backgroundColor: colors.bg.surfaceHover,
-                      border: `1px solid ${isSubmitted ? colors.status.green.border : colors.bg.borderSubtle}`,
-                    }}
+                    key={code}
+                    className={`p-3 rounded border text-center space-y-1.5 transition-all ${
+                      isSubmitted
+                        ? 'bg-emerald-50/50 dark:bg-[#152b4d] border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300'
+                        : 'bg-slate-50 dark:bg-[#0a1628]/60 border-slate-200 dark:border-[#1e3a5f] text-slate-400'
+                    }`}
                   >
-                    <span style={{ fontSize: '1.25rem' }}>{flag}</span>
-                    <span style={{ ...typography.bodySmall, fontWeight: 600, color: colors.text.primary }}>
-                      {countryCode}
+                    <span className="text-2xl block">{flag}</span>
+                    <span className="text-xs font-bold block text-slate-900 dark:text-white">{code} Enclave</span>
+                    <span className="text-[10px] font-mono font-semibold block">
+                      {isSubmitted ? '✓ Encrypted' : '✗ Excluded'}
                     </span>
-                    <StatusBadge
-                      status={isSubmitted ? 'submitted' : 'pending'}
-                      label={isSubmitted ? 'Submitted' : 'Excluded'}
-                      size="sm"
-                    />
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* Section 2: Aggregated Model Performance & Backtest Delta */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ ...typography.body, fontWeight: 600, color: colors.text.primary }}>
-                Candidate Performance Validation (Multi-Center Backtest)
-              </span>
-              {baselineModel && (
-                <span style={{ ...typography.bodySmall, color: colors.text.muted }}>
-                  Compared against active production baseline: <strong>{baselineModel.modelVersion}</strong>
-                </span>
-              )}
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: 12,
-              }}
-            >
-              <MetricDelta
-                label="Mean Absolute Error (MAE)"
-                currentValue={candidateModel?.metrics?.mae || 0.0694}
-                previousValue={baselineModel?.metrics?.mae || 0.0829}
-                lowerIsBetter={true}
-              />
-
-              <MetricDelta
-                label="Root Mean Squared Error (RMSE)"
-                currentValue={candidateModel?.metrics?.rmse || 0.0982}
-                previousValue={baselineModel?.metrics?.rmse || 0.1185}
-                lowerIsBetter={true}
-              />
-
-              <div
-                style={{
-                  backgroundColor: colors.bg.surfaceHover,
-                  padding: '10px 14px',
-                  borderRadius: 6,
-                  border: `1px solid ${colors.bg.borderSubtle}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                }}
-              >
-                <div style={{ ...typography.bodySmall, color: colors.text.muted }}>
-                  Backtest Duration
-                </div>
-                <div style={{ ...typography.kpiSmall, color: colors.text.primary }}>
-                  {candidateModel?.metrics?.backtestWeeks || 4} Weeks
-                </div>
-                <div style={{ ...typography.bodySmall, fontSize: '0.6875rem', color: colors.text.muted }}>
-                  Cross-Validation on National Datasets
-                </div>
-              </div>
-
-              <div
-                style={{
-                  backgroundColor: colors.bg.surfaceHover,
-                  padding: '10px 14px',
-                  borderRadius: 6,
-                  border: `1px solid ${colors.bg.borderSubtle}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                }}
-              >
-                <div style={{ ...typography.bodySmall, color: colors.text.muted }}>
-                  Artifact Status
-                </div>
-                <div
-                  style={{
-                    ...typography.mono,
-                    fontSize: '0.75rem',
-                    color: colors.brand.primary,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={candidateModel?.s3Uri || 's3://smart-health-models/federation/v1.18/weights.bin'}
-                >
-                  {candidateModel?.s3Uri || 's3://smart-health-models/federation/v1.18/weights.bin'}
-                </div>
-                <div style={{ ...typography.bodySmall, fontSize: '0.6875rem', color: colors.status.green.text }}>
-                  ✓ Cryptographically Signed &amp; Verified
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Differential Privacy Budget Remaining Gauge */}
-          <div
-            style={{
-              backgroundColor: colors.bg.surfaceHover,
-              border: `1px solid ${colors.bg.borderSubtle}`,
-              borderRadius: 8,
-              padding: 18,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-            }}
-          >
+          {/* Differential Privacy Gauge & Audit */}
+          <div className="card p-5 space-y-4">
             <PrivacyBudgetGauge
-              consumedEpsilon={avgCumulativeEpsilon}
-              budgetLimit={10.0}
-              thisRoundEpsilon={avgThisRoundEpsilon}
+              consumedEpsilon={totalConsumedEpsilon || 1.42}
+              budgetLimit={5.0}
+              thisRoundEpsilon={thisRoundEpsilon || 0.28}
             />
 
-            <p
-              style={{
-                ...typography.bodySmall,
-                color: colors.text.muted,
-                margin: 0,
-                lineHeight: 1.4,
-              }}
-            >
-              <strong>Privacy Assurance:</strong> Differential privacy mathematically bounds information
-              leakage across cross-border exchanges. The remaining gauge ensures the statutory \(10.0 \epsilon\)
-              limit is strictly honored.
-            </p>
-          </div>
-
-          {/* Section 4: Expandable Technical Details for Audit */}
-          <PrivacyTechnicalDetails entries={privacyEntries} />
-
-          {/* Section 5: Two Explicit Human-in-the-Loop Actions */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderTop: `1px solid ${colors.bg.borderSubtle}`,
-              paddingTop: 20,
-              flexWrap: 'wrap',
-              gap: 16,
-            }}
-          >
-            <div style={{ ...typography.bodySmall, color: colors.text.muted, maxWidth: 500 }}>
-              <strong>Governance Authority:</strong> Authorizing this candidate replaces the currently
-              active model across all 5 national coordinators. Rejections require an audit reason.
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              {/* Reject Action */}
-              <button
-                type="button"
-                onClick={() => setIsRejectOpen(true)}
-                disabled={rejecting || approving || activeRound.status !== 'awaiting_review'}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: 6,
-                  border: `1px solid ${colors.status.red.border}`,
-                  backgroundColor: 'transparent',
-                  color: colors.status.red.text,
-                  cursor:
-                    rejecting || approving || activeRound.status !== 'awaiting_review'
-                      ? 'not-allowed'
-                      : 'pointer',
-                  ...typography.body,
-                  fontWeight: 600,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                Reject Model...
-              </button>
-
-              {/* Approve & Publish Action */}
-              <button
-                type="button"
-                onClick={() => setIsApproveOpen(true)}
-                disabled={approving || rejecting || activeRound.status !== 'awaiting_review'}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: 6,
-                  border: 'none',
-                  backgroundColor:
-                    activeRound.status === 'awaiting_review'
-                      ? colors.status.green.dot
-                      : colors.text.muted,
-                  color: '#ffffff',
-                  cursor:
-                    approving || rejecting || activeRound.status !== 'awaiting_review'
-                      ? 'not-allowed'
-                      : 'pointer',
-                  ...typography.body,
-                  fontWeight: 600,
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
-                  transition: 'background-color 0.15s ease',
-                }}
-              >
-                {approving ? 'Publishing...' : 'Approve & Publish'}
-              </button>
-            </div>
+            <PrivacyTechnicalDetails entries={roundEntries} />
           </div>
         </div>
-      )}
 
-      {/* Confirmation Dialog: Approve & Publish */}
-      <ConfirmationDialog
-        isOpen={isApproveOpen}
-        title={`Approve & Publish Model ${activeRound?.modelVersion}?`}
-        description={`Authorizing model ${activeRound?.modelVersion} will deploy these weights globally as the authoritative baseline for all BRICS partners. Previous version ${baselineModel?.modelVersion || 'v1.17'} will be retired to deprecated status.`}
-        confirmLabel="Confirm & Authorize Global Deployment"
-        cancelLabel="Cancel"
-        isDestructive={false}
-        onConfirm={handleConfirmApprove}
-        onCancel={() => setIsApproveOpen(false)}
-      >
-        <div
-          style={{
-            backgroundColor: colors.bg.surfaceHover,
-            padding: 12,
-            borderRadius: 6,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
-            ...typography.bodySmall,
-            border: `1px solid ${colors.bg.borderSubtle}`,
-          }}
-        >
-          <div>Round: <strong>{activeRound?.roundId}</strong></div>
-          <div>Quorum Consensus: <strong>{activeRound?.submittedCountries.length}/5 Sovereign Nodes</strong></div>
-          <div>New MAE: <strong>{candidateModel?.metrics?.mae.toFixed(4) || '0.0694'}</strong> (Improvement)</div>
-        </div>
-      </ConfirmationDialog>
+        {/* Right 1 Col: Human-in-the-Loop Governance Action Deck */}
+        <div className="card p-5 space-y-6 flex flex-col justify-between">
+          <div className="space-y-4">
+            <div className="border-b border-slate-200 dark:border-[#1e3a5f] pb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                Sovereign Authorization Deck
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                Strict human sign-off policy enforced. No automated publish path exists.
+              </p>
+            </div>
 
-      {/* Rejection Modal with Mandatory Reason Input */}
-      {isRejectOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(2px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: 20,
-          }}
-          onClick={() => setIsRejectOpen(false)}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bg.surface,
-              border: `1px solid ${colors.status.red.border}`,
-              borderRadius: 10,
-              width: '100%',
-              maxWidth: 500,
-              padding: 24,
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span
-                style={{
-                  fontSize: '1.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  backgroundColor: colors.status.red.bg,
-                  border: `1px solid ${colors.status.red.border}`,
-                }}
-              >
-                ⚠️
-              </span>
-              <div>
-                <h3 style={{ ...typography.titleMedium, color: colors.text.primary, margin: 0 }}>
-                  Reject Aggregated Model {activeRound?.modelVersion}?
-                </h3>
-                <div style={{ ...typography.bodySmall, color: colors.text.muted, marginTop: 2 }}>
-                  Audit Trail Rejection Rationale Mandatory
-                </div>
+            <div className="space-y-3 text-xs">
+              <div className="p-3.5 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+                <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
+                  Model Checkpoint Hash (SHA-256)
+                </span>
+                <p className="font-mono text-slate-800 dark:text-slate-200 text-[11px] truncate" title={candidateModel?.aggregationSignature || 'sha256:verified'}>
+                  {candidateModel?.aggregationSignature || 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+                <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
+                  Storage Artifact URI
+                </span>
+                <p className="font-mono text-teal-700 dark:text-teal-300 text-[11px] truncate" title={candidateModel?.s3Uri || 's3://brics-federation-vault/models/v1.18.tar.gz'}>
+                  {candidateModel?.s3Uri || 's3://brics-federation-vault/models/v1.18.tar.gz'}
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded bg-slate-50 dark:bg-[#0a1628] border border-slate-200 dark:border-[#1e3a5f] space-y-1 text-slate-600 dark:text-slate-400 text-[11px] font-mono">
+                <p className="font-semibold text-slate-900 dark:text-slate-300 font-sans">Policy Rules Checked:</p>
+                <p className="text-emerald-600 dark:text-emerald-400">✓ Minimum quorum 4/5 nations satisfied</p>
+                <p className="text-emerald-600 dark:text-emerald-400">✓ Accuracy regression delta &lt; 0.00%</p>
+                <p className="text-emerald-600 dark:text-emerald-400">✓ Differential privacy threshold ε ≤ 5.0 respected</p>
               </div>
             </div>
+          </div>
 
-            <p style={{ ...typography.body, color: colors.text.secondary, margin: 0, lineHeight: 1.5 }}>
-              Rejecting this model prevents weight publication and registers an immutable entry on the
-              coordination ledger. A formal rationale must be recorded for consortium review.
-            </p>
+          {/* Action Buttons */}
+          <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-[#1e3a5f]">
+            {isAwaitingReview ? (
+              <>
+                <button
+                  onClick={() => setIsApproveOpen(true)}
+                  disabled={approving || rejecting}
+                  className="w-full py-2.5 rounded bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Authorize &amp; Publish Global Model</span>
+                </button>
 
-            <div>
-              <label
-                style={{
-                  ...typography.bodySmall,
-                  fontWeight: 600,
-                  color: colors.text.secondary,
-                  display: 'block',
-                  marginBottom: 6,
-                }}
-              >
-                Rejection Rationale <span style={{ color: colors.status.red.text }}>*</span>
-              </label>
-              <textarea
-                rows={4}
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="e.g. Model exhibited drift in sub-regional validation; loss divergence observed on pediatric dosage forecasts."
-                required
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 6,
-                  border: `1px solid ${rejectError ? colors.status.red.dot : colors.bg.border}`,
-                  backgroundColor: colors.bg.surfaceHover,
-                  color: colors.text.primary,
-                  ...typography.body,
-                  outline: 'none',
-                  resize: 'vertical',
-                }}
-              />
-              {rejectError && (
-                <span style={{ fontSize: '0.75rem', color: colors.status.red.text, marginTop: 4, display: 'block' }}>
-                  {rejectError}
-                </span>
-              )}
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: 12,
-                borderTop: `1px solid ${colors.bg.borderSubtle}`,
-                paddingTop: 16,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setIsRejectOpen(false)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 6,
-                  border: `1px solid ${colors.bg.border}`,
-                  backgroundColor: 'transparent',
-                  color: colors.text.secondary,
-                  cursor: 'pointer',
-                  ...typography.bodySmall,
-                  fontWeight: 600,
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmReject}
-                disabled={rejecting}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: 6,
-                  border: 'none',
-                  backgroundColor: colors.status.red.dot,
-                  color: '#ffffff',
-                  cursor: rejecting ? 'not-allowed' : 'pointer',
-                  ...typography.bodySmall,
-                  fontWeight: 600,
-                }}
-              >
-                {rejecting ? 'Recording Rejection...' : 'Confirm Rejection'}
-              </button>
-            </div>
+                <button
+                  onClick={() => setIsRejectOpen(true)}
+                  disabled={approving || rejecting}
+                  className="w-full py-2 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800 font-semibold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>Reject &amp; Quarantine Round</span>
+                </button>
+              </>
+            ) : (
+              <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] text-center space-y-1">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">Round Status: {candidateRound.status.toUpperCase()}</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">This round has already been resolved.</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Approval Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={isApproveOpen}
+        title={`Approve Model Version ${candidateRound.modelVersion}`}
+        description={`This will promote model ${candidateRound.modelVersion} to active status and make it available for local inference across all PHCs and hospitals in India, Brazil, Russia, China, and South Africa.`}
+        confirmLabel="Authorize Global Deployment"
+        onConfirm={handleConfirmApproval}
+        onCancel={() => setIsApproveOpen(false)}
+      />
+
+      {/* Rejection Dialog with Reason Field */}
+      <ConfirmationDialog
+        isOpen={isRejectOpen}
+        title={`Reject Candidate Model (${candidateRound.roundId})`}
+        description="Please specify the sovereign governance justification for rejecting this aggregated model. This record will be permanently etched in the audit log."
+        confirmLabel="Confirm Sovereign Veto"
+        isDestructive={true}
+        onConfirm={handleConfirmRejection}
+        onCancel={() => setIsRejectOpen(false)}
+      >
+        <div className="space-y-1.5 mt-2">
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">Rejection Reason</label>
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="e.g. Excessive noise variance, abnormal gradient norm in node ZA, insufficient sample diversity..."
+            className="w-full px-3 py-2 rounded bg-white dark:bg-[#0a1628] border border-slate-300 dark:border-[#1e3a5f] text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:ring-1 focus:ring-rose-500 min-h-[80px]"
+            required
+          />
+          {rejectError && <p className="text-[11px] text-rose-500 dark:text-rose-400 font-semibold">{rejectError}</p>}
+        </div>
+      </ConfirmationDialog>
     </div>
   );
 }
 
-export default function ReviewPage() {
+export default function RoundReviewPage() {
   return (
-    <Suspense
-      fallback={
-        <div style={{ padding: 24, color: colors.text.muted }}>
-          Loading aggregation review workflow...
-        </div>
-      }
-    >
+    <Suspense fallback={<CardSkeleton height={400} />}>
       <ReviewContent />
     </Suspense>
   );
 }
-

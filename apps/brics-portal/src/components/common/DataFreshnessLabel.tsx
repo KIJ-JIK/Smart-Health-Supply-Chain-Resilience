@@ -1,7 +1,4 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
-import { colors, typography } from '@/styles/theme';
 
 export interface DataFreshnessLabelProps {
   /** ISO timestamp string or Date object */
@@ -35,39 +32,32 @@ export function formatTimeAgo(dateInput: string | Date, nowMs: number = Date.now
   }
 
   if (minutesAgo === 1) {
-    return { text: '1 minute ago', minutesAgo: 1 };
+    return { text: '1m ago', minutesAgo: 1 };
   }
 
   if (minutesAgo < 60) {
-    return { text: `${minutesAgo} minutes ago`, minutesAgo };
+    return { text: `${minutesAgo}m ago`, minutesAgo };
   }
 
   const hoursAgo = Math.floor(minutesAgo / 60);
   if (hoursAgo === 1) {
-    return { text: '1 hour ago', minutesAgo };
+    return { text: '1h ago', minutesAgo };
   }
   if (hoursAgo < 24) {
-    return { text: `${hoursAgo} hours ago`, minutesAgo };
+    return { text: `${hoursAgo}h ago`, minutesAgo };
   }
 
   const daysAgo = Math.floor(hoursAgo / 24);
   if (daysAgo === 1) {
-    return { text: '1 day ago', minutesAgo };
+    return { text: '1d ago', minutesAgo };
   }
-  return { text: `${daysAgo} days ago`, minutesAgo };
+  return { text: `${daysAgo}d ago`, minutesAgo };
 }
 
-/**
- * DataFreshnessLabel
- *
- * Enforces Masterplan §59 requirement:
- * "Renders 'Last updated: X minutes ago' rather than a bare timestamp...
- * since node connectivity across five countries can never be assumed instantaneous."
- */
 export const DataFreshnessLabel: React.FC<DataFreshnessLabelProps> = ({
   timestamp,
-  prefix = 'Last updated',
-  fallbackText = 'No data recorded',
+  prefix = '',
+  fallbackText = 'No data',
   refreshIntervalMs = 30000,
   staleThresholdMinutes = 120,
 }) => {
@@ -83,13 +73,7 @@ export const DataFreshnessLabel: React.FC<DataFreshnessLabelProps> = ({
 
   if (!timestamp) {
     return (
-      <span
-        style={{
-          ...typography.bodySmall,
-          color: colors.text.muted,
-          fontStyle: 'italic',
-        }}
-      >
+      <span className="text-slate-500 font-mono text-[11px] italic">
         {fallbackText}
       </span>
     );
@@ -100,27 +84,19 @@ export const DataFreshnessLabel: React.FC<DataFreshnessLabelProps> = ({
 
   return (
     <span
-      title={typeof timestamp === 'string' ? timestamp : timestamp.toISOString()}
-      style={{
-        ...typography.bodySmall,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        color: isStale ? colors.status.amber.text : colors.text.secondary,
-      }}
+      className={`font-mono text-[11px] flex items-center gap-1 font-semibold ${
+        isStale ? 'text-amber-400' : 'text-slate-300'
+      }`}
     >
       <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          backgroundColor: isStale ? colors.status.amber.dot : colors.status.green.dot,
-          flexShrink: 0,
-        }}
+        className={`w-1.5 h-1.5 rounded-full ${
+          isStale ? 'bg-amber-400' : 'bg-emerald-400'
+        }`}
       />
-      <span>
-        {prefix}: {text}
-      </span>
+      {prefix && <span>{prefix} </span>}
+      <span>{text}</span>
     </span>
   );
 };
+
+export default DataFreshnessLabel;

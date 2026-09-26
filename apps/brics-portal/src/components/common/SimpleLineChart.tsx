@@ -1,7 +1,4 @@
-'use client';
-
 import React from 'react';
-import { colors, typography } from '@/styles/theme';
 
 export interface SimpleLineChartDataPoint {
   label: string;
@@ -22,38 +19,29 @@ export const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   data,
   line1Label = 'Loss',
   line2Label = 'Accuracy',
-  line1Color = '#f85149', // red tone
-  line2Color = '#3fb950', // green tone
+  line1Color = '#f43f5e', // rose-500
+  line2Color = '#2dd4bf', // teal-400
   height = 240,
 }) => {
   if (!data || data.length === 0) {
     return (
       <div
-        style={{
-          height,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: colors.text.muted,
-          ...typography.bodySmall,
-        }}
+        style={{ height }}
+        className="flex items-center justify-center text-slate-500 text-xs font-mono"
       >
         No training history available
       </div>
     );
   }
 
-  // Calculate coordinates for SVG rendering
   const padding = { top: 20, right: 30, bottom: 40, left: 50 };
-  const width = 600; // viewBox relative width
+  const width = 600;
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
 
-  // Scales for line 1 (Loss, e.g. 0 to 0.4)
   const minVal1 = 0;
   const maxVal1 = Math.max(0.4, ...data.map((d) => d.value1 * 1.15));
 
-  // Scales for line 2 (Accuracy, e.g. 0.7 to 1.0)
   const hasLine2 = data.some((d) => d.value2 !== undefined);
   const minVal2 = 0.7;
   const maxVal2 = 1.0;
@@ -82,137 +70,114 @@ export const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     : '';
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="w-full flex flex-col gap-3">
       {/* Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, justifyContent: 'flex-end' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...typography.bodySmall }}>
-          <span
-            style={{
-              width: 12,
-              height: 3,
-              backgroundColor: line1Color,
-              borderRadius: 2,
-            }}
-          />
-          <span style={{ color: colors.text.secondary }}>{line1Label}</span>
+      <div className="flex items-center gap-4 justify-end text-xs font-mono">
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-0.5 rounded-full" style={{ backgroundColor: line1Color }} />
+          <span className="text-slate-400">{line1Label}</span>
         </div>
         {hasLine2 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...typography.bodySmall }}>
-            <span
-              style={{
-                width: 12,
-                height: 3,
-                backgroundColor: line2Color,
-                borderRadius: 2,
-              }}
-            />
-            <span style={{ color: colors.text.secondary }}>{line2Label}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-0.5 rounded-full" style={{ backgroundColor: line2Color }} />
+            <span className="text-slate-400">{line2Label}</span>
           </div>
         )}
       </div>
 
-      {/* SVG Canvas */}
-      <div style={{ width: '100%', overflowX: 'auto' }}>
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          style={{ width: '100%', height, overflow: 'visible' }}
-        >
-          {/* Horizontal Grid Lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((p, idx) => {
-            const y = padding.top + plotHeight * p;
-            const lossVal = (maxVal1 - (maxVal1 - minVal1) * p).toFixed(2);
-            return (
-              <g key={idx}>
-                <line
-                  x1={padding.left}
-                  y1={y}
-                  x2={padding.left + plotWidth}
-                  y2={y}
-                  stroke={colors.bg.borderSubtle}
-                  strokeDasharray="4 4"
-                />
-                <text
-                  x={padding.left - 8}
-                  y={y + 4}
-                  textAnchor="end"
-                  fill={colors.text.muted}
-                  fontSize={10}
-                  fontFamily="sans-serif"
-                >
-                  {lossVal}
-                </text>
-              </g>
-            );
-          })}
+      {/* SVG Plot */}
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full overflow-visible"
+        style={{ maxHeight: height }}
+      >
+        <defs>
+          <linearGradient id="gradientLine1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={line1Color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={line1Color} stopOpacity="0.0" />
+          </linearGradient>
+          <linearGradient id="gradientLine2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={line2Color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={line2Color} stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
 
-          {/* X Axis Labels */}
-          {data.map((d, i) => (
-            <text
-              key={i}
-              x={getX(i)}
-              y={padding.top + plotHeight + 20}
-              textAnchor="middle"
-              fill={colors.text.muted}
-              fontSize={11}
-              fontFamily="sans-serif"
-            >
-              {d.label}
-            </text>
-          ))}
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
+          const y = padding.top + plotHeight * ratio;
+          return (
+            <line
+              key={idx}
+              x1={padding.left}
+              y1={y}
+              x2={width - padding.right}
+              y2={y}
+              stroke="#1e293b"
+              strokeDasharray="3 3"
+              strokeWidth="1"
+            />
+          );
+        })}
 
-          {/* Line 1 (Loss) */}
+        {/* Line 1 (Loss) */}
+        <polyline
+          fill="none"
+          stroke={line1Color}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points={points1}
+        />
+
+        {/* Line 2 (Accuracy) */}
+        {hasLine2 && (
           <polyline
             fill="none"
-            stroke={line1Color}
+            stroke={line2Color}
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            points={points1}
+            points={points2}
           />
-          {data.map((d, i) => (
+        )}
+
+        {/* Data points */}
+        {data.map((d, i) => (
+          <g key={i}>
             <circle
-              key={`dot1-${i}`}
               cx={getX(i)}
               cy={getY1(d.value1)}
-              r="4"
-              fill={colors.bg.surface}
-              stroke={line1Color}
+              r="3.5"
+              fill={line1Color}
+              stroke="#0a0f1a"
               strokeWidth="2"
-            >
-              <title>{`${d.label} - ${line1Label}: ${d.value1.toFixed(3)}`}</title>
-            </circle>
-          ))}
-
-          {/* Line 2 (Accuracy) */}
-          {hasLine2 && (
-            <>
-              <polyline
-                fill="none"
-                stroke={line2Color}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                points={points2}
+            />
+            {d.value2 !== undefined && (
+              <circle
+                cx={getX(i)}
+                cy={getY2(d.value2)}
+                r="3.5"
+                fill={line2Color}
+                stroke="#0a0f1a"
+                strokeWidth="2"
               />
-              {data.map((d, i) =>
-                d.value2 !== undefined ? (
-                  <circle
-                    key={`dot2-${i}`}
-                    cx={getX(i)}
-                    cy={getY2(d.value2)}
-                    r="4"
-                    fill={colors.bg.surface}
-                    stroke={line2Color}
-                    strokeWidth="2"
-                  >
-                    <title>{`${d.label} - ${line2Label}: ${(d.value2 * 100).toFixed(1)}%`}</title>
-                  </circle>
-                ) : null
-              )}
-            </>
-          )}
-        </svg>
-      </div>
+            )}
+            {/* X-axis labels */}
+            <text
+              x={getX(i)}
+              y={height - 12}
+              textAnchor="middle"
+              fill="#64748b"
+              fontSize="10"
+              fontFamily="monospace"
+            >
+              {d.label}
+            </text>
+          </g>
+        ))}
+      </svg>
     </div>
   );
 };
+
+export default SimpleLineChart;

@@ -1,21 +1,23 @@
 // ---------------------------------------------------------------------------
-// Settings & Country Onboarding Stub — BRICS Federated Intelligence Portal
-//
-// Features (Prompt 7):
-// - Read-only list of the 5 fixed sovereign countries (India, Brazil, Russia, China, South Africa)
-// - Configured coordinator endpoints (stubbed)
-// - Disabled "Add Country" button with accessible tooltip explaining:
-//     "Onboarding a new federation participant is an out-of-scope, Phase-5+
-//      operational process requiring legal/data-sovereignty review, not a
-//      self-service UI action for this build."
+// Settings & Country Onboarding — BRICS Federated Intelligence & Governance
 // ---------------------------------------------------------------------------
 
 import React from 'react';
 import { useQuery } from '@apollo/client';
+import {
+  Settings,
+  Server,
+  ShieldCheck,
+  Lock,
+  Globe,
+  RefreshCw,
+  Cpu,
+  Key,
+  Layers,
+} from 'lucide-react';
 import { GET_FEDERATED_NODES } from '@/graphql';
 import { StatusBadge, DataFreshnessLabel, CardSkeleton, ErrorState } from '@/components/common';
 import { DisabledCountryButton } from '@/components/settings';
-import { colors, typography } from '@/styles/theme';
 import type { FederatedNode } from '@/types/federated';
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -76,10 +78,10 @@ export default function SettingsPage() {
 
   if (error) {
     return (
-      <div style={{ maxWidth: 1200, margin: '20px auto' }}>
+      <div className="max-w-7xl mx-auto py-6">
         <ErrorState
           title="Failed to Load Federation Settings"
-          error={error}
+          message={error.message}
           onRetry={() => refetch()}
         />
       </div>
@@ -87,249 +89,119 @@ export default function SettingsPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1200 }}>
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}
-      >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2 style={{ ...typography.titleLarge, color: colors.text.primary, margin: 0 }}>
-              Federation Settings &amp; Topology Configuration
-            </h2>
-            <StatusBadge tone="green" label="Phase 5 Fixed 5-Node Cluster" size="sm" />
+          <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <Settings className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            Federation Coordinator Settings &amp; Cryptography Configuration
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">
+            Sovereign participant registry, mTLS encryption cipher suites, and multi-cloud sync endpoints.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <DisabledCountryButton />
+        </div>
+      </div>
+
+      {/* Coordinator Endpoints & Cluster Info */}
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1e3a5f] pb-3">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+              Central Federation Coordinator Topology
+            </h3>
           </div>
-          <p style={{ ...typography.body, color: colors.text.secondary, marginTop: 4, maxWidth: 750 }}>
-            Read-only registry of coordinator endpoints, sovereign legal jurisdictions, and cryptographic
-            handshake parameters.
-          </p>
-        </div>
-
-        {/* Disabled Add Country Button with Tooltip */}
-        <DisabledCountryButton />
-      </div>
-
-      {/* Legal & Data Sovereignty Architecture Notice */}
-      <div
-        style={{
-          backgroundColor: colors.bg.surface,
-          border: `1px solid ${colors.bg.border}`,
-          borderRadius: 8,
-          padding: 18,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4,
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <h4 style={{ ...typography.titleMedium, color: colors.text.primary, margin: 0 }}>
-            Consortium Expansion &amp; Sovereign Onboarding Protocol
-          </h4>
-          <p
-            style={{
-              ...typography.bodySmall,
-              color: colors.text.secondary,
-              margin: 0,
-              lineHeight: 1.5,
-            }}
-          >
-            Membership in the BRICS Federated Health AI network is governed by multilateral treaty.
-            Onboarding a candidate sovereign node cannot be performed via self-service portal actions;
-            it mandates cross-border bilateral data-protection clearance, DP-SGD budget negotiation, and
-            mutual TLS certificate pinning.
-          </p>
-        </div>
-      </div>
-
-      {/* Read-Only Participant List */}
-      <div
-        style={{
-          backgroundColor: colors.bg.surface,
-          border: `1px solid ${colors.bg.border}`,
-          borderRadius: 8,
-          overflow: 'hidden',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25)',
-        }}
-      >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: `1px solid ${colors.bg.border}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <h3 style={{ ...typography.titleMedium, color: colors.text.primary, margin: 0 }}>
-            Configured Sovereign Coordinator Endpoints
-          </h3>
-          <span style={{ ...typography.bodySmall, color: colors.text.muted }}>
-            Fixed 5-Member Consortium (Phase 5 Architectural Scope)
+          <span className="gov-badge gov-badge-emerald">
+            Cluster Online
           </span>
         </div>
 
-        {loading ? (
-          <div style={{ padding: 16 }}>
-            <CardSkeleton count={5} height={80} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+            <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
+              Central Sync Ingestion API
+            </span>
+            <p className="font-mono text-teal-600 dark:text-teal-300 font-bold text-sm">http://localhost:8000</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">FastAPI &amp; Express Telemetry Ingestion</p>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {nodes.map((node, index) => {
-              const flag = COUNTRY_FLAGS[node.countryCode] || '';
-              const config = PROTOCOL_CONFIGS[node.countryCode] || {
-                grpcPort: 8443,
-                tlsCipher: 'TLS_AES_256_GCM_SHA384',
-                authType: 'mTLS + Sovereign X.509',
-                legalJurisdiction: 'Sovereign Data Jurisdiction',
-              };
 
-              return (
-                <div
-                  key={node.countryCode}
-                  style={{
-                    padding: '20px 24px',
-                    borderBottom:
-                      index < nodes.length - 1 ? `1px solid ${colors.bg.borderSubtle}` : 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 12,
-                    backgroundColor: index % 2 === 1 ? colors.bg.surfaceHover : 'transparent',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 10,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: '1.75rem' }}>{flag}</span>
-                      <div>
-                        <div
-                          style={{
-                            ...typography.body,
-                            fontWeight: 700,
-                            color: colors.text.primary,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
-                          <span>{node.countryName}</span>
-                          <span style={{ ...typography.bodySmall, color: colors.text.muted }}>
-                            ({node.countryCode})
-                          </span>
-                        </div>
-                        <div style={{ ...typography.bodySmall, color: colors.text.muted }}>
-                          Legal Regime: {config.legalJurisdiction}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <StatusBadge status={node.status} size="sm" />
-                      <span
-                        style={{
-                          fontSize: '0.6875rem',
-                          backgroundColor: colors.bg.surfaceHover,
-                          border: `1px solid ${colors.bg.border}`,
-                          color: colors.text.secondary,
-                          padding: '3px 8px',
-                          borderRadius: 4,
-                          fontFamily: 'monospace',
-                        }}
-                      >
-                        Port {config.grpcPort}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Endpoint Details Grid */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                      gap: 12,
-                      backgroundColor: colors.bg.surface,
-                      border: `1px solid ${colors.bg.borderSubtle}`,
-                      borderRadius: 6,
-                      padding: 12,
-                      ...typography.bodySmall,
-                    }}
-                  >
-                    <div>
-                      <span style={{ color: colors.text.muted, display: 'block', fontSize: '0.6875rem' }}>
-                        Coordinator gRPC/HTTPS API Endpoint:
-                      </span>
-                      <span
-                        style={{
-                          ...typography.mono,
-                          color: colors.brand.primary,
-                          wordBreak: 'break-all',
-                        }}
-                      >
-                        {node.coordinatorEndpoint || 'https://fed-coordinator.smarthealth.gov/api'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span style={{ color: colors.text.muted, display: 'block', fontSize: '0.6875rem' }}>
-                        Authentication &amp; Transport Security:
-                      </span>
-                      <span style={{ color: colors.text.primary, fontWeight: 500 }}>
-                        {config.authType} ({config.tlsCipher.split('_')[1]})
-                      </span>
-                    </div>
-
-                    <div>
-                      <span style={{ color: colors.text.muted, display: 'block', fontSize: '0.6875rem' }}>
-                        Last Handshake Verification:
-                      </span>
-                      <DataFreshnessLabel
-                        timestamp={node.lastModelUpload || '2026-09-10T14:00:00.000Z'}
-                        prefix="Verified"
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+            <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
+              AI Demand &amp; Optimization Engine
+            </span>
+            <p className="font-mono text-cyan-600 dark:text-cyan-300 font-bold text-sm">http://localhost:5000</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Prophet &amp; FedAvg Aggregator Service</p>
           </div>
-        )}
+
+          <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] space-y-1.5">
+            <span className="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 font-semibold block">
+              District Command Bridge
+            </span>
+            <p className="font-mono text-indigo-600 dark:text-indigo-300 font-bold text-sm">http://localhost:3000</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Varanasi UP Health Administration Portal</p>
+          </div>
+        </div>
       </div>
 
-      {/* Protocol Configuration Parameters Footer */}
-      <div
-        style={{
-          backgroundColor: colors.bg.surface,
-          border: `1px solid ${colors.bg.border}`,
-          borderRadius: 8,
-          padding: 16,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-          ...typography.bodySmall,
-          color: colors.text.muted,
-        }}
-      >
-        <span>
-          Consortium Transport: <strong>Flower / FedAvg Engine</strong> | Coordination Protocol:{' '}
-          <strong>mTLS Cross-Border Channel</strong>
-        </span>
-        <span>Version: BRICS-FED-PROT-v2.4</span>
+      {/* Sovereign Nation Nodes Specification Table */}
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1e3a5f] pb-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+              Sovereign Member State Enclaves (5 Member Consortium)
+            </h3>
+          </div>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">Quorum Threshold: 4 of 5</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-[#1e3a5f] bg-slate-50 dark:bg-[#152b4d] font-mono">
+              <tr>
+                <th className="py-2.5 px-3">Sovereign Nation</th>
+                <th className="py-2.5 px-3">Node Status</th>
+                <th className="py-2.5 px-3">gRPC Port</th>
+                <th className="py-2.5 px-3">TLS Cipher</th>
+                <th className="py-2.5 px-3">Authentication</th>
+                <th className="py-2.5 px-3">Legal &amp; Privacy Framework</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-[#1e3a5f]/60 font-mono text-slate-700 dark:text-slate-300 text-[11px]">
+              {nodes.map((node) => {
+                const conf = PROTOCOL_CONFIGS[node.countryCode] || {
+                  grpcPort: 8443,
+                  tlsCipher: 'TLS_AES_256_GCM_SHA384',
+                  authType: 'mTLS + X.509',
+                  legalJurisdiction: 'Data Residency Sovereignty',
+                };
+                const flag = COUNTRY_FLAGS[node.countryCode];
+
+                return (
+                  <tr key={node.countryCode} className="hover:bg-slate-50 dark:hover:bg-[#152b4d]/40">
+                    <td className="py-3 px-3 font-sans font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="text-xl">{flag}</span>
+                      <span>{node.countryName}</span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <StatusBadge status={node.status} size="sm" pulse={node.status === 'participating'} />
+                    </td>
+                    <td className="py-3 px-3 text-cyan-600 dark:text-cyan-300">{conf.grpcPort}</td>
+                    <td className="py-3 px-3 text-slate-600 dark:text-slate-300">{conf.tlsCipher}</td>
+                    <td className="py-3 px-3 text-emerald-600 dark:text-emerald-400">{conf.authType}</td>
+                    <td className="py-3 px-3 font-sans text-slate-500 dark:text-slate-400">{conf.legalJurisdiction}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 }
-

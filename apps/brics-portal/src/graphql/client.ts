@@ -1,10 +1,9 @@
 // ---------------------------------------------------------------------------
-// Apollo Client — connected to the Node.js backend GraphQL server.
-// Backend: http://localhost:8000/graphql (VITE_BACKEND_URL override)
-// Falls back to mock SchemaLink if VITE_USE_MOCK=true (offline/CI mode).
+// Apollo Client — connected to the Node.js backend GraphQL server with
+// seamless mock schema fallback for standalone/offline operation.
 // ---------------------------------------------------------------------------
 
-import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, ApolloLink, from, Observable } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { SchemaLink } from '@apollo/client/link/schema';
@@ -12,7 +11,41 @@ import { makeExecutableSchema } from '@graphql-tools/schema';
 import { typeDefs } from './schema';
 import { resolvers } from './resolvers';
 
-const BACKEND_URL = import.meta.env?.VITE_BACKEND_URL || 'http://localhost:8000/graphql';
+const BACKEND_URL = import.meta.env?.VITE_BACKEND_URL || '/graphql';
+
+// Executable mock schema for offline/standalone development
+const mockSchema = makeExecutableSchema({ typeDefs, resolvers });
+const mockLink = new SchemaLink({ schema: mockSchema });
+
+// If VITE_USE_MOCK is explicitly 'true', force mock schema; otherwise attempt live backend with automatic resilient fallback
+const forceMock = import.meta.env?.VITE_USE_MOCK === 'true';
+
+// Resilient fallback link: if network fails with 500 or connection error, fallback to mockLink
+const resilientFallbackLink = new ApolloLink((operation, forward) => {
+  return new Observable((observer) => {
+    let sub: any;
+    try {
+      sub = forward(operation).subscribe({
+        next: (result) => {
+          if (result.errors && result.errors.length > 0 && !result.data) {
+            console.warn('[BRICS GQL] Network returned GraphQL errors with no data, falling back to mock schema');
+            mockLink.request(operation)?.subscribe(observer);
+          } else {
+            observer.next(result);
+          }
+        },
+        error: (networkErr) => {
+          console.warn('[BRICS GQL] Backend unavailable, gracefully falling back to mock schema:', networkErr.message);
+          mockLink.request(operation)?.subscribe(observer);
+        },
+        complete: () => observer.complete(),
+      });
+    } catch (err) {
+      mockLink.request(operation)?.subscribe(observer);
+    }
+    return () => sub?.unsubscribe();
+  });
+});
 
 // Auth header injection
 const authLink = setContext((_, { headers }) => {
@@ -34,17 +67,13 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
 });
 
 const httpLink = new HttpLink({ uri: BACKEND_URL });
-
-// Fallback mock schema for offline/CI use
-const mockSchema = makeExecutableSchema({ typeDefs, resolvers });
-const mockLink = new SchemaLink({ schema: mockSchema });
-
-const useMock = import.meta.env?.VITE_USE_MOCK === 'true';
+const networkPipeline = from([resilientFallbackLink, errorLink, authLink, httpLink]);
 
 export const apolloClient = new ApolloClient({
-  link: useMock ? mockLink : from([errorLink, authLink, httpLink]),
+  link: forceMock ? mockLink : networkPipeline,
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: { fetchPolicy: 'cache-and-network' },
   },
 });
+

@@ -1,5 +1,4 @@
 import React from 'react';
-import { colors, typography } from '@/styles/theme';
 import { StatusBadge, StatusTone } from './StatusBadge';
 
 export interface KpiCardProps {
@@ -24,92 +23,54 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   value,
   subtitle,
   trendText,
-  statusTone,
+  statusTone = 'green',
   statusBadge,
   icon,
 }) => {
   return (
-    <div
-      style={{
-        backgroundColor: colors.bg.surface,
-        border: `1px solid ${colors.bg.border}`,
-        borderRadius: 8,
-        padding: '16px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        minWidth: 200,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
-      >
-        <span
-          style={{
-            ...typography.bodySmall,
-            color: colors.text.secondary,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            fontWeight: 600,
-          }}
-        >
+    <div className="bg-white dark:bg-[#0f1f38] border border-slate-200 dark:border-[#1e3a5f] rounded-lg shadow-sm p-4 sm:p-5 flex flex-col justify-between hover:border-slate-300 dark:hover:border-[#2e5584] transition-colors group">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           {title}
         </span>
         {icon && (
-          <span style={{ color: colors.text.muted, display: 'flex' }}>
+          <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-[#152b4d] text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-[#1e3a5f] shrink-0">
             {icon}
-          </span>
+          </div>
         )}
-        {statusBadge && (
+        {statusBadge && !icon && (
           <StatusBadge status={statusBadge} tone={statusTone} size="sm" />
         )}
       </div>
 
-      <div
-        style={{
-          ...typography.kpi,
-          color: colors.text.primary,
-          marginTop: 2,
-        }}
-      >
-        {value}
+      <div className="mt-2.5 flex items-baseline justify-between gap-2">
+        <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
+          {value}
+        </span>
+        {statusBadge && icon && (
+          <StatusBadge status={statusBadge} tone={statusTone} size="sm" />
+        )}
       </div>
 
       {(subtitle || trendText) && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 4,
-          }}
-        >
+        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-[#1e3a5f]/60 flex items-center gap-2 flex-wrap text-xs">
           {trendText && (
             <span
-              style={{
-                ...typography.bodySmall,
-                color: statusTone
-                  ? colors.status[statusTone].text
-                  : colors.text.secondary,
-                fontWeight: 600,
-              }}
+              className={`font-semibold font-mono ${
+                statusTone === 'green'
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : statusTone === 'amber'
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : statusTone === 'red'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}
             >
               {trendText}
             </span>
           )}
           {subtitle && (
-            <span
-              style={{
-                ...typography.bodySmall,
-                color: colors.text.muted,
-              }}
-            >
+            <span className="text-slate-500 dark:text-slate-400 text-[11px] truncate">
               {subtitle}
             </span>
           )}
@@ -118,3 +79,5 @@ export const KpiCard: React.FC<KpiCardProps> = ({
     </div>
   );
 };
+
+export default KpiCard;

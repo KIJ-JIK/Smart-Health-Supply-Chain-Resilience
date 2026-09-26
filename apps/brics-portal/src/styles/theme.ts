@@ -1,104 +1,115 @@
 // ---------------------------------------------------------------------------
 // Design system tokens for BRICS Federated AI Monitoring & Coordination.
-// Follows "trust and oversight" visual language:
-//   - Neutral dark/slate theme with high contrast readability
-//   - Status-color system:
-//       green: healthy / participating / approved / completed
-//       amber: degraded / paused / collecting_updates / aggregating / awaiting_review
-//       red:   failed / excluded / rejected / voided
-//       gray:  opted-out / announced / inactive / unknown
-//   - Typography scale for KPI numbers vs body/labels
+// Aligned with the District & National Health Governance Command Center theme:
+//   - Dark slate command palette (#0a0f1a, #0d1523, #111827)
+//   - High-contrast glowing neon status accents
+//   - Cyan, Teal, Indigo brand highlights
 // ---------------------------------------------------------------------------
 
 export const colors = {
   bg: {
-    base: '#f6f8fa',
-    surface: '#ffffff',
-    surfaceHover: '#f3f4f6',
-    surfaceActive: '#e5e7eb',
-    border: '#d0d7de',
-    borderSubtle: '#eaeef2',
-    header: '#ffffff',
-    sidebar: '#ffffff',
+    base: '#0a0f1a',
+    surface: '#0d1523',
+    surfaceHover: '#111c2e',
+    surfaceActive: '#1e293b',
+    border: '#1e293b',
+    borderSubtle: '#152238',
+    header: '#0d1523',
+    sidebar: '#0d1523',
+    card: '#111827',
   },
   text: {
-    primary: '#1f2328',
-    secondary: '#57606a',
-    muted: '#6e7781',
-    inverse: '#ffffff',
+    primary: '#f8fafc',
+    secondary: '#94a3b8',
+    muted: '#64748b',
+    inverse: '#0a0f1a',
   },
   status: {
     green: {
-      bg: '#dafbe1',
-      border: '#aceebb',
-      text: '#1a7f37',
-      dot: '#1a7f37',
+      bg: 'rgba(16, 185, 129, 0.12)',
+      border: 'rgba(16, 185, 129, 0.3)',
+      text: '#34d399',
+      dot: '#10b981',
     },
     amber: {
-      bg: '#fff8c5',
-      border: '#fae17d',
-      text: '#9a6700',
-      dot: '#bf8700',
+      bg: 'rgba(245, 158, 11, 0.12)',
+      border: 'rgba(245, 158, 11, 0.3)',
+      text: '#fbbf24',
+      dot: '#f59e0b',
     },
     red: {
-      bg: '#ffebe9',
-      border: '#ffc1c0',
-      text: '#cf222e',
-      dot: '#d1242f',
+      bg: 'rgba(244, 63, 94, 0.12)',
+      border: 'rgba(244, 63, 94, 0.3)',
+      text: '#fb7185',
+      dot: '#f43f5e',
     },
     gray: {
-      bg: '#f6f8fa',
-      border: '#d0d7de',
-      text: '#57606a',
-      dot: '#8c959f',
+      bg: 'rgba(100, 116, 139, 0.12)',
+      border: 'rgba(100, 116, 139, 0.3)',
+      text: '#94a3b8',
+      dot: '#64748b',
+    },
+    blue: {
+      bg: 'rgba(14, 165, 233, 0.12)',
+      border: 'rgba(14, 165, 233, 0.3)',
+      text: '#38bdf8',
+      dot: '#0ea5e9',
+    },
+    teal: {
+      bg: 'rgba(20, 184, 166, 0.12)',
+      border: 'rgba(20, 184, 166, 0.3)',
+      text: '#2dd4bf',
+      dot: '#14b8a6',
     },
   },
   brand: {
-    primary: '#0969da',
-    primaryHover: '#0854ad',
-    primaryBg: '#ddf4ff',
+    primary: '#14b8a6',
+    primaryHover: '#0d9488',
+    primaryBg: 'rgba(20, 184, 166, 0.12)',
+    indigo: '#6366f1',
+    cyan: '#06b6d4',
   },
 } as const;
 
 export const typography = {
   kpi: {
-    fontSize: '2rem', // 32px
+    fontSize: '2rem',
     lineHeight: '2.5rem',
-    fontWeight: 700,
+    fontWeight: 800,
     letterSpacing: '-0.02em',
     fontVariantNumeric: 'tabular-nums',
   },
   kpiSmall: {
-    fontSize: '1.5rem', // 24px
+    fontSize: '1.5rem',
     lineHeight: '2rem',
     fontWeight: 700,
     letterSpacing: '-0.01em',
     fontVariantNumeric: 'tabular-nums',
   },
   titleLarge: {
-    fontSize: '1.25rem', // 20px
+    fontSize: '1.25rem',
     lineHeight: '1.75rem',
-    fontWeight: 600,
+    fontWeight: 700,
     letterSpacing: '-0.01em',
   },
   titleMedium: {
-    fontSize: '1rem', // 16px
+    fontSize: '1rem',
     lineHeight: '1.5rem',
     fontWeight: 600,
   },
   body: {
-    fontSize: '0.875rem', // 14px
+    fontSize: '0.875rem',
     lineHeight: '1.25rem',
     fontWeight: 400,
   },
   bodySmall: {
-    fontSize: '0.75rem', // 12px
+    fontSize: '0.75rem',
     lineHeight: '1rem',
     fontWeight: 400,
   },
   mono: {
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-    fontSize: '0.8125rem', // 13px
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    fontSize: '0.8125rem',
+    fontVariantNumeric: 'tabular-nums',
   },
 } as const;
