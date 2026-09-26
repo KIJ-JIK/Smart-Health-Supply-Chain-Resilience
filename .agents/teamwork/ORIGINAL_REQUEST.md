@@ -86,3 +86,41 @@ Execute an automated operational cycle confirming live cross-tier synchronizatio
 ### End-to-End Data Propagation
 - [ ] An automated test script runs through the full PHC → Governance → BRICS cycle and exits with code 0.
 - [ ] Dual-path sync to the runtime directory (`C:\Users\anshv\Documents\Codex\2026-09-26\re\work\Smart-Health-Supply-Chain-Resilience`) is 100% synchronized.
+
+## Follow-up — 2026-09-26T18:24:09Z
+
+Perform comprehensive, live end-to-end testing, verification, debugging, and auto-fixing across all three portals (AURA Vantage Governance Command on :3000, AURA Point PHC Clinic Workbench on :5173, and AURA Sovereign BRICS Federated Grid on :3001) and the PostgreSQL backend API on :8000.
+
+Working directory: c:\Users\anshv\OneDrive\Desktop\Smart_governance
+Integrity mode: development
+
+## Requirements
+
+### R1. Live Backend & PostgreSQL Integration Verification
+Verify that all 3 portals are querying and mutating live PostgreSQL database records over the backend API (http://localhost:8000), verifying the 179 PHCs across 36 Indian states/UTs, facility drug inventories, transaction logs, and real-time event streaming. Fix any disconnected hooks or mock fallbacks when the backend is live.
+
+### R2. AURA Point (PHC Portal :5173) Live Verification & Stress Testing
+Test live staff authentication, prescription camera OCR extraction with the 3-key Google Gemini API pool, Dexie.js offline mutation queueing, FEFO batch dispensing, and emergency incident reporting. Verify that OCR multi-key rotation transparently handles quota/rate-limits without failing.
+
+### R3. AURA Vantage (Governance Command :3000) Live Testing & Route Diagnostics
+Test all 16 governance modules including GIS Map layers (state boundaries & PHC pin density), crisis simulation parameters, AI stockout redistribution engine, real-time alert SSE stream, and jurisdiction management. Fix any visual clipping, broken API calls, or route latency.
+
+### R4. AURA Sovereign (BRICS Portal :3001) Federated AI Testing
+Test sovereign enclave telemetry across India, Brazil, Russia, China, and South Africa, the interactive 5-country federated training simulation engine, the human-in-the-loop candidate model review gate (/review), and differential privacy monotonic ledger bounds (ε ≤ 5.0).
+
+### R5. Automated Fixes & Verification Audit Report
+Detect and automatically fix any runtime errors, network timeouts, broken state transitions, or unhandled promise rejections across all portals. Produce a comprehensive live audit report with pass/fail telemetry logs and verification results.
+
+## Acceptance Criteria
+
+### API & Data Layer
+- [ ] All backend endpoints (/api/v1/facilities, /api/v1/inventory/*, /api/v1/ocr/*, /graphql, /health) respond with status 200 and return real PostgreSQL data.
+- [ ] Prescription OCR service seamlessly rotates through the configured GEMINI_API_KEYS pool.
+
+### Frontend Portals Execution
+- [ ] AURA Point (:5173), AURA Vantage (:3000), and AURA Sovereign (:3001) load with 0 runtime errors in console.
+- [ ] Cross-portal navigation switcher smoothly transitions between all 3 portals.
+- [ ] All data entry forms, state filters, simulation sliders, and modal workflows execute successfully.
+
+### Audit & Telemetry
+- [ ] Detailed verification results documented in a markdown audit report with exact HTTP statuses, DB query counts, and component test logs.

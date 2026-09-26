@@ -56,24 +56,8 @@ app.get('/health', (_req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/v1/facilities — returns facilities visible to the authenticated role
+// Facilities routes are routed cleanly to facilityController below (Prompt 7)
 // ---------------------------------------------------------------------------
-app.get('/api/v1/facilities', requireAuth, async (req, res) => {
-  try {
-    const rows = await req.withTenantContext(async (client) => {
-      const r = await client.query(
-        `SELECT id, name, district_id, state_id, total_beds, occupied_beds, oxygen_cylinders
-         FROM phc_facilities
-         ORDER BY name`,
-      );
-      return r.rows;
-    });
-    res.json({ data: rows, count: rows.length });
-  } catch (err) {
-    console.error('/api/v1/facilities error', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/phc/:phcId/inventory — returns inventory_batches for a PHC
@@ -303,11 +287,16 @@ app.post('/api/v1/phc/:phcId/inventory', requireAuth, requireDeviceBinding, asyn
 // ---------------------------------------------------------------------------
 // Facility & Resources Modules (Prompt 7)
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Facility & Resources Modules (Prompt 7)
+// ---------------------------------------------------------------------------
 import facilityController from './modules/facility/facilityController';
 import { FacilityService } from './modules/facility/facilityService';
 import resourceController from './modules/resource/resourceController';
+import { liveFacilitiesHandler } from './modules/facility/facilitiesRouteHelper';
 
-app.use('/api/v1/facilities', facilityController);
+app.use('/api/v1/facilities', liveFacilitiesHandler, facilityController);
+app.use('/facilities', liveFacilitiesHandler, facilityController);
 app.get('/api/v1/phc/:phcId/facility', requireAuth, async (req, res) => {
   try {
     const facility = await FacilityService.getFacility(req.params.phcId, req.tenantClaims);
@@ -327,10 +316,14 @@ app.put('/api/v1/phc/:phcId/facility', requireAuth, async (req, res) => {
 app.use('/api/v1/phc/:phcId', resourceController);
 
 // ---------------------------------------------------------------------------
-// Inventory & Batch Module (Prompt 8)
+// Inventory & Batch Module (Prompt 8 & Live Inventory Routes)
 // ---------------------------------------------------------------------------
 import inventoryController from './modules/inventory/inventoryController';
+import { liveInventoryRouter } from './modules/inventory/liveInventoryRoutes';
+app.use('/api/v1/inventory', liveInventoryRouter);
+app.use('/inventory', liveInventoryRouter);
 app.use('/api/v1', inventoryController);
+
 
 // ---------------------------------------------------------------------------
 // Billing / FEFO Dispensing Engine (Prompt 9, Architecture §3.3.1 & §5.1)
@@ -373,10 +366,21 @@ app.use('/api/v1/phc/:phcId', requestController);
 // ---------------------------------------------------------------------------
 // Alerts Module & SSE Stream (Prompt 13)
 // ---------------------------------------------------------------------------
-import alertsController from './modules/alerts/alertsController';
+import alertsController, { sseAuth } from './modules/alerts/alertsController';
 import { AlertsService } from './modules/alerts/alertsService';
+import { eventsStreamRouter, handleEventsStream, handleKpiStream } from './modules/events/eventsStreamController';
 AlertsService.registerEventConsumers(); // Wire event-bus → alerts DB + SSE fan-out
 app.use('/api/v1', alertsController);
+app.use('/governance', alertsController);
+app.use(alertsController);
+
+// Real-Time Events and Governance KPI SSE Stream Mounts
+app.use('/api/v1', eventsStreamRouter);
+app.use(eventsStreamRouter);
+app.get('/api/v1/events/stream', sseAuth, handleEventsStream);
+app.get('/events/stream', sseAuth, handleEventsStream);
+app.get('/governance/kpi/stream', sseAuth, handleKpiStream);
+app.get('/api/v1/governance/kpi/stream', sseAuth, handleKpiStream);
 
 // ---------------------------------------------------------------------------
 // PHC Alerts Endpoint (/api/v1/phc/:phcId/alerts matching openapi.yaml)
@@ -431,7 +435,10 @@ app.use('/api/v1', copilotRouter);
 // Google AI Multimodal Vision Service (Prescription & Medicine OCR)
 // ---------------------------------------------------------------------------
 import { visionRouter } from './modules/ai/visionService';
+app.use('/api/v1/ocr', visionRouter);
+app.use('/ocr', visionRouter);
 app.use('/api/v1/ai/vision', visionRouter);
+
 
 // ---------------------------------------------------------------------------
 // Google AI BRICS Multilateral Intelligence Service (Cross-Border Bulletins)
@@ -483,14 +490,24 @@ const server = http.createServer(app);
 SimulatorService.attachWebSocketServer(server);
 
 const PORT = Number(process.env.PORT || 8000);
-server.listen(PORT, () => {
-  console.log(`Smart Health Platform backend listening on :${PORT}`);
-  console.log('RLS session-claim middleware active on all /api/* routes');
-  console.log('GraphQL surface active at /graphql');
-  console.log('Simulator WebSocket session active at /api/v1/governance/simulator/session');
-  console.log('Device-binding middleware active on /api/v1/phc/:phcId/* write routes');
-  console.log('Offline Sync Engine active at /sync/push and /sync/pull');
-});
+
+if (require.main === module || !server.listening) {
+  server.listen(PORT, () => {
+    console.log(`Smart Health Platform backend listening on :${PORT}`);
+    console.log('RLS session-claim middleware active on all /api/* routes');
+    console.log('GraphQL surface active at /graphql');
+    console.log('Simulator WebSocket session active at /api/v1/governance/simulator/session');
+    console.log('Device-binding middleware active on /api/v1/phc/:phcId/* write routes');
+    console.log('Offline Sync Engine active at /sync/push and /sync/pull');
+  }).on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`[Server] Port ${PORT} already bound by active runtime process.`);
+    } else {
+      console.error('[Server] Listen error:', err);
+    }
+  });
+}
+
 
 export { app, server };
 export default app;

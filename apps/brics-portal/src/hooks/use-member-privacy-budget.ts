@@ -33,7 +33,7 @@ export function useMemberPrivacyBudget(targetCountryCode = 'ZA'): MemberPrivacyB
     : null;
 
   const cumulativeEpsilon = latestEntry?.cumulativeEpsilon ?? 0;
-  const budgetLimit = latestEntry?.budgetLimit ?? 10.0;
+  const budgetLimit = latestEntry?.budgetLimit ?? 5.0;
 
   return {
     cumulativeEpsilon,

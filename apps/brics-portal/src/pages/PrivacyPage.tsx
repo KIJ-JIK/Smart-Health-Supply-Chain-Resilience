@@ -61,7 +61,7 @@ export default function PrivacyPage() {
   });
 
   const countryList = ['IN', 'BR', 'RU', 'CN', 'ZA'];
-  const canonicalBudgetLimit = entries[0]?.budgetLimit ?? 10.0;
+  const canonicalBudgetLimit = entries[0]?.budgetLimit ?? 5.0;
 
   const timeSeriesData: PrivacyTimeSeriesDataPoint[] = React.useMemo(() => {
     if (!entries || entries.length === 0) return [];
@@ -243,7 +243,7 @@ export default function PrivacyPage() {
                 <Database className="w-3.5 h-3.5 text-amber-600" /> 3. Immutable Ledger
               </span>
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px]">
-                All epsilon additions are signed cryptographically and recorded in the PostgreSQL audit ledger. If an enclave breaches ε = 10.0, automated participation pause activates.
+                All epsilon additions are signed cryptographically and recorded in the PostgreSQL audit ledger. If an enclave breaches ε = 5.0, automated participation pause activates.
               </p>
             </div>
           </div>
@@ -252,7 +252,7 @@ export default function PrivacyPage() {
         {activeInfoTab === 'parameters' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
             <div className="p-3.5 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f]">
-              <div className="font-bold text-teal-600 dark:text-teal-300 text-sm">ε (Epsilon) ≤ 10.0</div>
+              <div className="font-bold text-teal-600 dark:text-teal-300 text-sm">ε (Epsilon) ≤ 5.0</div>
               <div className="text-[11px] text-slate-700 dark:text-slate-200 mt-1 font-semibold">Privacy Loss Parameter</div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                 Bounds the maximum probability shift for any individual patient's record being identified. Lower ε = stronger privacy.
@@ -277,7 +277,7 @@ export default function PrivacyPage() {
 
         {activeInfoTab === 'guarantee' && (
           <div className="p-4 rounded bg-slate-50 dark:bg-[#152b4d] border border-slate-200 dark:border-[#1e3a5f] text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-mono">
-            <strong>Rényi Differential Privacy (RDP) Composition Guarantee:</strong> Across 20 federated training rounds, privacy consumption accumulates under the moments accountant: <span className="text-teal-600 dark:text-teal-300 font-bold">ε_total = Σ ε_round + √(2 ln(1/δ) · Σ ε_round²)</span>. All 5 member nations remain safely below the 10.0 sovereign threshold.
+            <strong>Rényi Differential Privacy (RDP) Composition Guarantee:</strong> Across 20 federated training rounds, privacy consumption accumulates under the moments accountant: <span className="text-teal-600 dark:text-teal-300 font-bold">ε_total = Σ ε_round + √(2 ln(1/δ) · Σ ε_round²)</span>. All 5 member nations remain safely below the 5.0 sovereign threshold.
           </div>
         )}
       </div>

@@ -1169,7 +1169,7 @@ export const rootResolvers = {
           COALESCE(epsilon_consumed, epsilon_this_round, 0)::float AS "epsilonConsumed",
           COALESCE(delta_this_round, 0.00001)::float AS "deltaThisRound",
           COALESCE(cumulative_epsilon, 0)::float AS "cumulativeEpsilon",
-          COALESCE(budget_limit, 10.0)::float AS "budgetLimit",
+          COALESCE(budget_limit, 5.0)::float AS "budgetLimit",
           clip_norm::float AS "clipNorm",
           noise_multiplier::float AS "noiseMultiplier",
           local_sample_count::int AS "localSampleCount",

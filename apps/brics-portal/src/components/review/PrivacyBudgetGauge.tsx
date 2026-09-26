@@ -14,7 +14,7 @@ export interface PrivacyBudgetGaugeProps {
 
 export const PrivacyBudgetGauge: React.FC<PrivacyBudgetGaugeProps> = ({
   consumedEpsilon,
-  budgetLimit = 10.0,
+  budgetLimit = 5.0,
   thisRoundEpsilon = 0,
   height = 14,
 }) => {

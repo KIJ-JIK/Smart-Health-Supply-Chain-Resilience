@@ -4,17 +4,51 @@ import { pool } from '../../db/pool';
 export const visionRouter = Router();
 
 let keyIndex = 0;
-function getGeminiApiKeys(): string[] {
-  const keysStr = process.env.GEMINI_API_KEYS || process.env.GOOGLE_AI_API_KEYS || process.env.GEMINI_API_KEY || '';
-  return keysStr.split(',').map((k) => k.trim()).filter(Boolean);
+
+/**
+ * Discover Gemini API keys across all configured environment variables:
+ * - GEMINI_API_KEYS (comma-separated list)
+ * - GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3 (individual slot variables)
+ * - GEMINI_API_KEY (single key)
+ * - GOOGLE_AI_API_KEYS (comma-separated list)
+ */
+export function getGeminiApiKeys(): string[] {
+  const rawSources: (string | undefined)[] = [
+    process.env.GEMINI_API_KEYS,
+    process.env.GEMINI_API_KEY_1,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3,
+    process.env.GEMINI_API_KEY,
+    process.env.GOOGLE_AI_API_KEYS,
+  ];
+
+  const keysSet = new Set<string>();
+  for (const src of rawSources) {
+    if (!src) continue;
+    for (const k of src.split(',')) {
+      const trimmed = k.trim();
+      if (trimmed.length > 0) {
+        keysSet.add(trimmed);
+      }
+    }
+  }
+
+  return Array.from(keysSet);
 }
 
-function getNextGeminiApiKey(): string {
+export function getNextGeminiApiKey(): string {
   const keys = getGeminiApiKeys();
   if (keys.length === 0) return '';
   const key = keys[keyIndex % keys.length];
-  keyIndex++;
+  keyIndex = (keyIndex + 1) % keys.length;
   return key;
+}
+
+export function rotateGeminiApiKey(): void {
+  const keys = getGeminiApiKeys();
+  if (keys.length > 0) {
+    keyIndex = (keyIndex + 1) % keys.length;
+  }
 }
 
 const VISION_MODELS = [
@@ -61,65 +95,104 @@ interface VisionExtractionResult {
   summary: string;
 }
 
+/**
+ * Call Gemini Vision with outer key rotation loop across the 3-key pool on 429 / rate limits.
+ */
 async function callGeminiVision(
   imageBase64: string,
   mimeType: string,
   userInstruction: string
 ): Promise<{ text: string; model: string } | null> {
-  const apiKey = getNextGeminiApiKey();
-  if (!apiKey) return null;
+  const keys = getGeminiApiKeys();
+  if (keys.length === 0) return null;
 
   // Clean base64 string if data URL prefix was included
   const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '').trim();
 
-  for (const model of VISION_MODELS) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const body = {
-        contents: [
-          {
-            parts: [
-              { text: userInstruction },
-              {
-                inlineData: {
-                  mimeType: mimeType || 'image/jpeg',
-                  data: cleanBase64,
+  const startIdx = keyIndex % keys.length;
+
+  // Outer key rotation loop across the key pool
+  for (let attempt = 0; attempt < keys.length; attempt++) {
+    const currentKeyIdx = (startIdx + attempt) % keys.length;
+    const apiKey = keys[currentKeyIdx];
+    const maskedKey = apiKey.length > 8 ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : '***';
+    let keyExhausted = false;
+
+    for (const model of VISION_MODELS) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const body = {
+          contents: [
+            {
+              parts: [
+                { text: userInstruction },
+                {
+                  inlineData: {
+                    mimeType: mimeType || 'image/jpeg',
+                    data: cleanBase64,
+                  },
                 },
-              },
-            ],
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
           },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-        },
-      };
+        };
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(12000),
-      });
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(12000),
+        });
 
-      if (!res.ok) continue;
+        if (res.status === 429) {
+          console.warn(`[Gemini Vision] HTTP 429 Rate Limit encountered on key pool slot ${currentKeyIdx + 1}/${keys.length} (${maskedKey}). Rotating to next key in pool.`);
+          keyExhausted = true;
+          keyIndex = (currentKeyIdx + 1) % keys.length;
+          break; // Break model loop to advance to next key in pool
+        }
 
-      const data: any = await res.json();
-      const textPart = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (textPart) {
-        return { text: textPart.trim(), model };
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => '');
+          if (errBody.includes('RESOURCE_EXHAUSTED') || errBody.includes('quota') || errBody.includes('RATE_LIMIT')) {
+            console.warn(`[Gemini Vision] Quota/Rate Limit response (${errBody.slice(0, 80)}) on key slot ${currentKeyIdx + 1}/${keys.length} (${maskedKey}). Rotating.`);
+            keyExhausted = true;
+            keyIndex = (currentKeyIdx + 1) % keys.length;
+            break;
+          }
+          continue; // Try next candidate model with same key
+        }
+
+        const data: any = await res.json();
+        const textPart = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (textPart) {
+          // Success: advance round-robin index for subsequent requests
+          keyIndex = (currentKeyIdx + 1) % keys.length;
+          return { text: textPart.trim(), model };
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          console.warn(`[Gemini Vision] Request timeout on model ${model} with key ${maskedKey}`);
+        }
+        continue;
       }
-    } catch {
-      continue;
+    }
+
+    if (keyExhausted) {
+      continue; // Immediately retry with next key in pool
     }
   }
+
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// POST /api/v1/ai/vision/extract-prescription
-// ---------------------------------------------------------------------------
-visionRouter.post('/extract-prescription', async (req: Request, res: Response) => {
+/**
+ * Shared prescription & packaging OCR extraction handler
+ */
+async function handleVisionExtraction(req: Request, res: Response) {
   try {
     const { imageBase64, mimeType = 'image/jpeg', phcId, sampleType } = req.body;
 
@@ -261,7 +334,24 @@ Extract all clinical information and return strictly valid JSON matching this sc
     console.error('[VisionService Error]', err);
     return res.status(500).json({ error: err.message || 'Vision analysis failed' });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Route Bindings: extract-prescription, process, root POST/GET
+// ---------------------------------------------------------------------------
+visionRouter.post('/extract-prescription', handleVisionExtraction);
+visionRouter.post('/process', handleVisionExtraction);
+visionRouter.post('/', handleVisionExtraction);
+visionRouter.get('/', (_req: Request, res: Response) => {
+  const keys = getGeminiApiKeys();
+  res.json({
+    service: 'google-gemini-vision-ocr',
+    status: 'online',
+    keyPoolCount: keys.length,
+    activeModels: VISION_MODELS,
+  });
 });
+
 
 /**
  * Cross-references medicines identified by Gemini Vision against the PostgreSQL database

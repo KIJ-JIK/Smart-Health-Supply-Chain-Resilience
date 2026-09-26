@@ -3,8 +3,42 @@ import { pool } from '../../db/pool';
 
 export const bricsAiRouter = Router();
 
-function getGeminiApiKey(): string {
-  return process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEYS || process.env.GEMINI_API_KEYS || '';
+let bricsKeyIndex = 0;
+
+/**
+ * Discover and parse Gemini API keys for BRICS intelligence.
+ * Correctly splits comma-separated strings so raw comma-delimited values are never passed into query parameters.
+ */
+export function getBricsGeminiApiKeys(): string[] {
+  const rawSources: (string | undefined)[] = [
+    process.env.GEMINI_API_KEYS,
+    process.env.GEMINI_API_KEY_1,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3,
+    process.env.GEMINI_API_KEY,
+    process.env.GOOGLE_AI_API_KEYS,
+  ];
+
+  const keysSet = new Set<string>();
+  for (const src of rawSources) {
+    if (!src) continue;
+    for (const k of src.split(',')) {
+      const trimmed = k.trim();
+      if (trimmed.length > 0) {
+        keysSet.add(trimmed);
+      }
+    }
+  }
+
+  return Array.from(keysSet);
+}
+
+export function getNextBricsGeminiApiKey(): string {
+  const keys = getBricsGeminiApiKeys();
+  if (keys.length === 0) return '';
+  const key = keys[bricsKeyIndex % keys.length];
+  bricsKeyIndex = (bricsKeyIndex + 1) % keys.length;
+  return key;
 }
 
 const BRICS_MODELS = [
@@ -48,39 +82,73 @@ async function callGeminiBriefing(
   systemPrompt: string,
   userPrompt: string
 ): Promise<{ text: string; model: string } | null> {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) return null;
+  const keys = getBricsGeminiApiKeys();
+  if (keys.length === 0) return null;
 
-  for (const model of BRICS_MODELS) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const body = {
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-        },
-      };
+  const startIdx = bricsKeyIndex % keys.length;
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(12000),
-      });
+  for (let attempt = 0; attempt < keys.length; attempt++) {
+    const currentKeyIdx = (startIdx + attempt) % keys.length;
+    const apiKey = keys[currentKeyIdx];
+    const maskedKey = apiKey.length > 8 ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : '***';
+    let keyExhausted = false;
 
-      if (!res.ok) continue;
+    for (const model of BRICS_MODELS) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const body = {
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            responseMimeType: 'application/json',
+          },
+        };
 
-      const data: any = await res.json();
-      const textPart = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (textPart) {
-        return { text: textPart.trim(), model };
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(12000),
+        });
+
+        if (res.status === 429) {
+          console.warn(`[BRICS AI] HTTP 429 Rate Limit on key slot ${currentKeyIdx + 1}/${keys.length} (${maskedKey}). Rotating to next key.`);
+          keyExhausted = true;
+          bricsKeyIndex = (currentKeyIdx + 1) % keys.length;
+          break;
+        }
+
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => '');
+          if (errBody.includes('RESOURCE_EXHAUSTED') || errBody.includes('quota') || errBody.includes('RATE_LIMIT')) {
+            console.warn(`[BRICS AI] Quota/Rate Limit response on key slot ${currentKeyIdx + 1}/${keys.length} (${maskedKey}). Rotating.`);
+            keyExhausted = true;
+            bricsKeyIndex = (currentKeyIdx + 1) % keys.length;
+            break;
+          }
+          continue;
+        }
+
+        const data: any = await res.json();
+        const textPart = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (textPart) {
+          bricsKeyIndex = (currentKeyIdx + 1) % keys.length;
+          return { text: textPart.trim(), model };
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          console.warn(`[BRICS AI] Request timeout on model ${model} with key ${maskedKey}`);
+        }
+        continue;
       }
-    } catch {
+    }
+
+    if (keyExhausted) {
       continue;
     }
   }
+
   return null;
 }
 

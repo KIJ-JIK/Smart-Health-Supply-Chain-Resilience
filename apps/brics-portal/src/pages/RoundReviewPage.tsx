@@ -124,7 +124,10 @@ function ReviewContent() {
 
   const candidateRound =
     rounds.find((r) => r.roundId === queryRoundId || r.id === queryRoundId) ||
-    rounds.find((r) => r.status === 'awaiting_review') ||
+    rounds.find((r) => {
+      const s = r.status as string;
+      return s === 'awaiting_review' || s === 'training' || s === 'started';
+    }) ||
     rounds[0];
 
   const candidateModel =
@@ -203,7 +206,11 @@ function ReviewContent() {
     );
   }
 
-  const isAwaitingReview = candidateRound.status === 'awaiting_review';
+  const roundStatus = candidateRound.status as string;
+  const isAwaitingReview =
+    roundStatus === 'awaiting_review' ||
+    roundStatus === 'training' ||
+    roundStatus === 'started';
   const quorumMet = (candidateRound.submittedCountries?.length || 0) >= candidateRound.quorumRequired;
 
   return (

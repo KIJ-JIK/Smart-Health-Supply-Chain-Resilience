@@ -149,10 +149,13 @@ export class BillingService {
            VALUES ($1, $2, $3, $4, $5)`,
           [transactionId, batch.id, item.medicine_id, deduct, unitPrice],
         );
+        const dateOnly = (txnTs ? new Date(txnTs) : new Date()).toISOString().split('T')[0];
         await client.query(
-          `INSERT INTO consumption_velocity (time, phc_id, medicine_id, qty_dispensed)
-           VALUES ($1, $2, $3, $4)`,
-          [txnTs, phcId, item.medicine_id, deduct],
+          `INSERT INTO consumption_velocity (phc_id, medicine_id, date, daily_qty)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (phc_id, medicine_id, date) DO UPDATE
+           SET daily_qty = consumption_velocity.daily_qty + EXCLUDED.daily_qty`,
+          [phcId, item.medicine_id, dateOnly, deduct],
         );
         dispensedItems.push({ batch_id: batch.id, medicine_id: item.medicine_id, quantity_deducted: deduct, unit_price: unitPrice });
         needed -= deduct;
@@ -192,6 +195,7 @@ export class BillingService {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query(`SELECT set_config('app.current_role', 'phc_user', true)`);
       await client.query(`SELECT set_config('app.current_phc_id', $1, true)`, [phcId]);
       const result = await BillingService.checkout(client, phcId, input);
       if (result.outcome === 'success') {
