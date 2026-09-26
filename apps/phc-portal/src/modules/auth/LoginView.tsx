@@ -252,9 +252,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           <ArrowLeft className="w-4 h-4" />
           <span>BACK TO AURA HUB</span>
         </a>
-        <div className="flex items-center gap-2 text-xs font-mono text-neutral-600">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>AURA POINT · FRONTLINE CLINIC WORKBENCH</span>
+        <div className="flex items-center gap-2 text-xs font-mono text-neutral-500">
+          <span>Clinic Access</span>
         </div>
       </header>
 

@@ -76,9 +76,8 @@ export function LoginPage() {
           <ArrowLeft className="w-4 h-4" />
           <span>BACK TO AURA HUB</span>
         </a>
-        <div className="flex items-center gap-2 text-xs font-mono text-neutral-600">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>AURA SOVEREIGN · BRICS FEDERATED AI GRID</span>
+        <div className="flex items-center gap-2 text-xs font-mono text-neutral-500">
+          <span>Council Access</span>
         </div>
       </header>
 

@@ -66,16 +66,6 @@ export default function PlatformHomePage() {
             </div>
           </div>
 
-          {/* Status & Sync Indicator */}
-          <div className="hidden sm:flex items-center gap-3 text-xs font-mono text-neutral-600">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Sovereign Sync Active</span>
-            </div>
-            <span className="text-neutral-400">·</span>
-            <span>{currentTime || 'SYNCHRONIZING…'}</span>
-          </div>
-
           {/* Action */}
           <Link
             href="/login"
@@ -88,13 +78,7 @@ export default function PlatformHomePage() {
       </header>
 
       {/* ── HERO SECTION ── */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-12 flex flex-col items-center text-center flex-1 w-full">
-        {/* Minimal pill badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-neutral-200 text-neutral-700 text-xs font-medium shadow-xs mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span>AURA Architecture · 3 Integrated Sovereign Gateways</span>
-        </div>
-
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-14 sm:pt-20 pb-12 flex flex-col items-center text-center flex-1 w-full">
         {/* Crisp Headline */}
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-neutral-900 max-w-3xl leading-[1.12]">
           Autonomous Universal Resilience Architecture
@@ -318,18 +302,13 @@ export default function PlatformHomePage() {
       </main>
 
       {/* ── MINIMAL FOOTER ── */}
-      <footer className="border-t border-neutral-200 bg-white/60 py-6 px-6 text-xs font-mono text-neutral-500">
+      <footer className="border-t border-neutral-200/80 bg-white/60 py-6 px-6 text-xs text-neutral-500">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-neutral-800 font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Mesh Operational
-            </span>
-            <span>·</span>
-            <span>AES-256-GCM</span>
-            <span>·</span>
-            <span>JWT RLS</span>
+          <div className="flex items-center gap-2 font-medium text-neutral-700">
+            <AuraLogo size={18} />
+            <span>AURA Health Platform</span>
           </div>
-          <div>Smart Health Platform v2.4 · National Health Infrastructure</div>
+          <div>Autonomous Universal Resilience Architecture</div>
         </div>
       </footer>
     </div>

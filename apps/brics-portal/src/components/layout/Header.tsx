@@ -43,12 +43,8 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3 text-slate-300">
-          <span className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px]">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Paillier SMPC Certified · Zero Raw Data Egress</span>
-          </span>
           <span className="text-[10px] text-slate-400 font-mono">
-            ID: AURA-SOV-HQ-01
+            Sovereign Enclaves Online
           </span>
         </div>
       </div>
