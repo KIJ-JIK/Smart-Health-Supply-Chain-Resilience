@@ -28,4 +28,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 5000
 
 # Start FastAPI via uvicorn with shell variable expansion for $PORT
-CMD ["sh", "-c", "uvicorn main.py:app --host 0.0.0.0 --port ${PORT:-5000}"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-5000}"]
