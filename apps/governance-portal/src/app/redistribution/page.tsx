@@ -310,39 +310,6 @@ export default function RedistributionPage() {
         <ScopeSelector />
       </div>
 
-      {/* Mandatory Human Review Governance Banner */}
-      <div
-        style={{
-          background: '#FEF3C7',
-          border: '1px solid #FCD34D',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 18px',
-          marginBottom: 20,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}
-      >
-        <div
-          style={{
-            padding: 8,
-            borderRadius: '50%',
-            background: '#F59E0B',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <AlertOctagon size={20} />
-        </div>
-        <div style={{ fontSize: 13, color: '#92400E', lineHeight: 1.5 }}>
-          <strong>Masterplan §88 Governance Protocol Enforced:</strong> Every resource movement requires individual human review.
-          Automated batch approvals or bulk "Approve All" actions are strictly prohibited to prevent unverified physical diversion of medicine stocks. Each recommendation requires an explicit <strong>Approve</strong>, <strong>Reject</strong>, or <strong>Modify</strong> action.
-        </div>
-      </div>
-
       {/* Tab Selectors & Filter Bar */}
       <div
         className="card"

@@ -128,7 +128,7 @@ export function RiskBadge({
         boxShadow: normalizedLevel === 'CRITICAL' ? '0 1px 2px rgba(220, 38, 38, 0.15)' : 'none',
         ...style,
       }}
-      title={`Risk Level: ${config.displayName} (Masterplan §35)`}
+      title={`Risk Level: ${config.displayName}`}
     >
       {/* Animated pulse dot */}
       {shouldPulse && (

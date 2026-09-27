@@ -44,23 +44,6 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-[#0b1424] border-b border-slate-200 dark:border-slate-800 shadow-sm shrink-0 transition-colors">
-      {/* Compact institutional identity strip */}
-      <div className="bg-slate-50 dark:bg-[#070d18] border-b border-slate-100 dark:border-slate-800/80 px-4 lg:px-6 py-1 flex items-center justify-between text-[11px] font-medium transition-colors">
-        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-          <span className="font-semibold text-slate-700 dark:text-slate-200">
-            AURA Sovereign · BRICS Federated Intelligence Council
-          </span>
-          <span className="hidden md:inline text-slate-300 dark:text-slate-600">|</span>
-          <span className="hidden md:inline text-slate-400 dark:text-slate-500">
-            Differential Privacy & Data Residency
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 font-mono">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span>Enclaves Online</span>
-        </div>
-      </div>
-
       {/* Main Header Bar */}
       <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-4">
         {/* Left: Organization Identity */}

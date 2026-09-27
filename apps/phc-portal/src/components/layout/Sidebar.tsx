@@ -196,17 +196,11 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className={`p-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center gap-2 ${collapsed ? 'justify-center' : 'justify-between'}`}>
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 live-dot" />
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">v1.0.4</span>
-          </div>
-        )}
+      <div className="p-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-end">
         <button
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="p-1.5 rounded-lg text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all"
+          className="p-1.5 rounded-lg text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all mx-auto"
         >
           {collapsed
             ? <ChevronRight className="w-4 h-4" />

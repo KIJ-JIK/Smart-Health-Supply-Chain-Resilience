@@ -11,8 +11,6 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { getDaysUntil } from '../../utils/date';
 import { getMedicineStockStatus } from '../../utils/fefo';
 import { FootfallBarChart, InventoryStatusDonut, BedOccupancyGauge } from './DashboardCharts';
-import { TelemetryDotGrid } from '../../components/common/TelemetryDotGrid';
-import { ShinyText } from '../../components/common/ShinyText';
 import { MagneticButton } from '../../components/common/MagneticButton';
 
 const lastNDays = (n: number) => {
@@ -126,33 +124,26 @@ export const DashboardView: React.FC = () => {
     <div className="space-y-5">
 
       {/* ── Header banner ─────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-primary-800 via-primary-700 to-teal-700 dark:from-[#0a1526] dark:via-primary-950 dark:to-[#071d24] p-6 rounded-3xl border border-primary-500/20 dark:border-teal-500/20 shadow-[0_8px_32px_rgba(13,148,136,0.25)] scan-line-container">
-        {/* Paper Shaders & Haikei Interactive Telemetry Dot Grid */}
-        <TelemetryDotGrid dotSpacing={22} dotBaseRadius={1.2} dotColor="rgba(45, 212, 191, 0.22)" glowColor="rgba(94, 234, 212, 0.9)" />
-
-        {/* Ambient background glow */}
-        <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-teal-500/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-emerald-500/10 blur-3xl" />
+      <div className="relative overflow-hidden bg-gradient-to-r from-primary-800 via-primary-700 to-teal-700 dark:from-[#0a1526] dark:via-primary-950 dark:to-[#071d24] p-6 rounded-3xl border border-primary-500/20 dark:border-teal-500/20 shadow-[0_8px_32px_rgba(13,148,136,0.25)]">
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="max-w-2xl">
-            {/* Motionsites-style Iridescent Pill */}
+            {/* Status pill */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full pill-iridescent text-white mb-2.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 live-dot shadow-[0_0_8px_#34d399]" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-teal-200">
                 LIVE OPERATIONAL · 24/7 SURVEILLANCE
               </span>
             </div>
 
-            {/* ReactBits ShinyText Title */}
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              <ShinyText text="PHC Operations Command Center" speed={3.5} />
+              PHC Operations Command Center
             </h2>
             <p className="text-xs sm:text-sm text-primary-100/85 mt-1 font-medium leading-relaxed">
               Real-Time Bed Telemetry · Oxygen Reserves · FEFO Pharmacy · Clinical Triage
             </p>
 
-            {/* Neuform-inspired Quick Telemetry Chips */}
+            {/* Quick Telemetry Chips */}
             <div className="flex items-center gap-2 flex-wrap mt-3">
               <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-black/30 text-teal-300 border border-teal-500/30 backdrop-blur-md">
                 Beds: <strong className="text-white font-bold">{occupiedBeds}/{totalBeds}</strong> ({bedOccupancyRate}%)
@@ -173,9 +164,9 @@ export const DashboardView: React.FC = () => {
             </div>
             <button
               onClick={() => setEmergencyModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 backdrop-blur-md transition-all active:scale-95 group"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 backdrop-blur-md transition-all active:scale-95"
             >
-              <Siren className="w-3.5 h-3.5 text-rose-400 group-hover:animate-bounce" />
+              <Siren className="w-3.5 h-3.5 text-rose-400" />
               <span>Broadcast Protocol</span>
             </button>
           </div>

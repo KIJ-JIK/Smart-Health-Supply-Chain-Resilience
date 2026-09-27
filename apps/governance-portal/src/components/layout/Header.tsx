@@ -358,23 +358,6 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
             <span>Jurisdiction Setup</span>
           </Link>
 
-          {/* Dev-mode role switcher */}
-          {isDevMode && (
-            <div className="role-switcher" title="Dev mode: switch role">
-              <span>👤 Role:</span>
-              <select
-                id="dev-role-switcher"
-                value={user.role}
-                onChange={(e) => switchRole(e.target.value as UserRole)}
-                aria-label="Switch role (dev mode)"
-              >
-                <option value="national_admin">National Admin</option>
-                <option value="state_admin">State Admin</option>
-                <option value="district_admin">District Admin</option>
-              </select>
-            </div>
-          )}
-
           {/* Copilot Docked Side Panel Toggle Button */}
           <button
             id="header-copilot-toggle-btn"

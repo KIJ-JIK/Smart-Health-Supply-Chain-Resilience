@@ -23,11 +23,63 @@ interface AlertState {
   clearAlerts: () => void;
 }
 
+export function normalizeAlert(raw: any): Alert {
+  if (!raw) return raw;
+  const alertType = raw.alertType || raw.alert_type || 'system_alert';
+  const category = (raw.category || alertType || 'general') as any;
+
+  let alertClass = raw.alertClass;
+  if (!alertClass) {
+    if (alertType === 'emergency_report') alertClass = 'emergency';
+    else if (
+      ['outbreak_suspected', 'outbreak_risk', 'abnormal_consumption', 'forecast_risk', 'demand_spike', 'anomaly'].includes(
+        alertType
+      )
+    ) {
+      alertClass = 'statistical';
+    } else {
+      alertClass = 'deterministic';
+    }
+  }
+
+  const title =
+    raw.title ||
+    alertType
+      .split('_')
+      .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  const message =
+    raw.message ||
+    raw.payload?.message ||
+    raw.payload?.affected_patients ||
+    raw.payload?.recommendation ||
+    title;
+  const timestamp = raw.timestamp || raw.created_at || new Date().toISOString();
+  const acknowledged = raw.acknowledged ?? (raw.status === 'acknowledged');
+
+  return {
+    ...raw,
+    alertType,
+    category,
+    alertClass,
+    title,
+    message,
+    timestamp,
+    acknowledged,
+    districtId: raw.districtId || raw.district_id,
+    stateId: raw.stateId || raw.state_id,
+    entityId: raw.entityId || raw.phc_id || raw.district_id,
+    entityType: raw.entityType || (raw.phc_id ? 'phc' : 'system'),
+  };
+}
+
 export const useAlertStore = create<AlertState>((set) => ({
   alerts: [],
   unacknowledgedCount: 0,
 
-  addAlert: (alert) => {
+  addAlert: (rawAlert) => {
+    const alert = normalizeAlert(rawAlert);
+    if (!alert || !alert.id) return;
     set((state) => {
       // Deduplicate by ID
       if (state.alerts.some((a) => a.id === alert.id)) {
@@ -41,7 +93,8 @@ export const useAlertStore = create<AlertState>((set) => ({
     });
   },
 
-  setAlerts: (alerts) => {
+  setAlerts: (rawAlerts) => {
+    const alerts = (rawAlerts || []).map(normalizeAlert);
     set({
       alerts,
       unacknowledgedCount: alerts.filter((a) => !a.acknowledged).length,

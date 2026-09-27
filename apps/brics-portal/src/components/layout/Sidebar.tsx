@@ -14,9 +14,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Radio,
   FileCheck2,
-  Globe2,
 } from 'lucide-react';
 import { useUIStore } from '@/store';
 import { useMemberPrivacyBudget } from '@/hooks';
@@ -168,26 +166,6 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-
-      {/* Bottom: Enclave status + Platform link */}
-      {!collapsed && (
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span className="font-medium">FedAvg · 5/5 Ready</span>
-            </span>
-            <span className="font-mono text-slate-400 dark:text-slate-500">ε=1.42</span>
-          </div>
-          <a
-            href="http://localhost:3000"
-            className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
-          >
-            <Globe2 className="w-3 h-3" />
-            <span>← Platform Hub</span>
-          </a>
-        </div>
-      )}
     </aside>
   );
 }

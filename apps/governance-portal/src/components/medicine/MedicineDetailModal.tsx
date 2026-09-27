@@ -389,29 +389,9 @@ export function MedicineDetailModal({
 
         {/* ── Tab Content ──────────────────────────────────────────────────── */}
         <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
-          {/* TAB 1: AI PREDICTIVE FORECAST BAND (MASTERPLAN §88.9 MANDATORY UNCERTAINTY BAND) */}
+          {/* TAB 1: AI PREDICTIVE FORECAST BAND */}
           {activeTab === 'forecast' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Masterplan §88.9 Explicit Compliance Callout */}
-              <div
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  backgroundColor: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 12,
-                }}
-              >
-                <ShieldAlert size={20} color="#1d4ed8" style={{ marginTop: 2, flexShrink: 0 }} />
-                <div style={{ fontSize: '12px', color: '#1e3a8a', lineHeight: 1.4 }}>
-                  <strong>Masterplan §88.9 Compliance Requirement:</strong>
-                  <br />
-                  AI predictive models MUST render uncertainty bands (90% Confidence Corridor: Lower Bound to Upper Bound) rather than presenting a single deterministic line as fact. Decision-makers must plan buffers according to the uncertainty spread.
-                </div>
-              </div>
-
               {/* Chart: Historical + Uncertainty Corridor */}
               <div style={{ backgroundColor: '#ffffff', borderRadius: 10, border: '1px solid #e2e8f0', padding: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>

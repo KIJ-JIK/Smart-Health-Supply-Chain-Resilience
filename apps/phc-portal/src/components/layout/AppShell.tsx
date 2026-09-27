@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
+import { Footer } from './Footer';
 import { useUIStore } from '../../stores/uiStore';
 import { useThemeStore } from '../../stores/themeStore';
 import { DashboardView } from '../../modules/dashboard/DashboardView';
@@ -114,6 +115,7 @@ export const AppShell: React.FC = () => {
             >
               {renderActiveView()}
             </div>
+            <Footer />
           </div>
         </main>
 

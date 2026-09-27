@@ -314,35 +314,7 @@ export default function CommandCenterPage() {
           </p>
         </div>
 
-        {/* Live SSE status indicator badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '4px 10px',
-              borderRadius: '99px',
-              backgroundColor: sseStatus === 'connected' ? '#ecfdf5' : '#fffbeb',
-              border: `1px solid ${sseStatus === 'connected' ? '#a7f3d0' : '#fde68a'}`,
-              fontSize: '11px',
-              fontWeight: 600,
-              color: sseStatus === 'connected' ? '#065f46' : '#92400e',
-            }}
-            title="Wired to /governance/kpi/stream SSE feed"
-          >
-            <Radio
-              size={12}
-              style={{
-                color: sseStatus === 'connected' ? '#059669' : '#d97706',
-                animation: sseStatus === 'connected' ? 'pulse 2s infinite' : 'none',
-              }}
-            />
-            <span>
-              {sseStatus === 'connected' ? 'SSE Live Stream Active' : 'Connecting to Stream…'}
-            </span>
-          </div>
-
           <RiskBadge
             level={
               Number(kpi3.value) > 50 || Number(kpi9.value) > 10

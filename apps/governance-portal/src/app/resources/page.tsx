@@ -214,20 +214,6 @@ export default function ResourcesPage() {
             <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: '#0f172a' }}>
               Resource Capacity & Preparedness
             </h1>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                padding: '3px 8px',
-                borderRadius: 9999,
-                background: '#e0f2fe',
-                color: '#0369a1',
-                border: '1px solid #bae6fd',
-              }}
-            >
-              Masterplan §29
-            </span>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
             Tri-pillar allocation metrics: Inpatient Beds, Oxygen logistics, and Clinical Equipment with threshold classifications
@@ -458,11 +444,11 @@ export default function ResourcesPage() {
               </div>
             </div>
 
-            {/* System Classification per Masterplan §29 */}
+            {/* System Classification */}
             <div className="card" style={{ padding: 18, background: '#ffffff' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
-                  Masterplan §29 Classification
+                  Capacity Classification
                 </span>
                 <Info size={16} color="#64748b" />
               </div>
@@ -488,44 +474,6 @@ export default function ResourcesPage() {
                   ? 'Standard operating equilibrium (65-80%).'
                   : 'Sufficient surplus buffer (<65% occupancy).'}
               </div>
-            </div>
-          </div>
-
-          {/* Masterplan §29 Rule Banner */}
-          <div
-            style={{
-              padding: '12px 18px',
-              borderRadius: 8,
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              fontSize: 12,
-              color: '#475569',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Info size={16} color="#3b82f6" />
-              <span>
-                <strong>Masterplan §29 Bed Thresholds:</strong> &lt;65% (SURPLUS) | 65%–80% (BALANCED) | 80%–92% (DEFICIT) | &gt;92% (CRITICAL DEFICIT).
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
-                Surplus / Balanced
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316' }} />
-                Deficit
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }} />
-                Critical Deficit
-              </span>
             </div>
           </div>
 
@@ -562,7 +510,7 @@ export default function ResourcesPage() {
                       <th>Available</th>
                       <th>Utilization %</th>
                       <th>7-Day Trend</th>
-                      <th>Masterplan §29</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -873,7 +821,7 @@ export default function ResourcesPage() {
             <div className="card" style={{ padding: 18, background: '#ffffff' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
-                  Masterplan §29 Oxygen Flag
+                  Oxygen Buffer Status
                 </span>
                 <Info size={16} color="#64748b" />
               </div>
@@ -899,30 +847,6 @@ export default function ResourcesPage() {
                   ? 'Balanced buffer (2.5–5.0 days). Normal replenishment cadence.'
                   : 'Surplus buffer (>5.0 days).'}
               </div>
-            </div>
-          </div>
-
-          {/* Masterplan §29 Rule Banner */}
-          <div
-            style={{
-              padding: '12px 18px',
-              borderRadius: 8,
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              fontSize: 12,
-              color: '#475569',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Info size={16} color="#0284c7" />
-              <span>
-                <strong>Masterplan §29 Oxygen Thresholds:</strong> &gt;5.0 days (SURPLUS) | 2.5–5.0 days (BALANCED) | 1.2–2.5 days (DEFICIT) | &lt;1.2 days (CRITICAL DEFICIT).
-              </span>
             </div>
           </div>
 
@@ -959,7 +883,7 @@ export default function ResourcesPage() {
                     <th>Est. Days Left</th>
                     <th>Purity %</th>
                     <th>Consumption Trend</th>
-                    <th>Masterplan §29</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1142,30 +1066,6 @@ export default function ResourcesPage() {
             </div>
           </div>
 
-          {/* Masterplan §29 Rule Banner */}
-          <div
-            style={{
-              padding: '12px 18px',
-              borderRadius: 8,
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              fontSize: 12,
-              color: '#475569',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Info size={16} color="#059669" />
-              <span>
-                <strong>Masterplan §29 Equipment Thresholds:</strong> 0 Deficit & 100% Working (SURPLUS) | &lt;10% Deficit (BALANCED) | 10%–25% Deficit (DEFICIT) | &gt;25% Deficit or 0 Working (CRITICAL DEFICIT).
-              </span>
-            </div>
-          </div>
-
           {/* Search, Filter Bar & Equipment Inventory Table */}
           <div className="card" style={{ background: '#ffffff', overflow: 'hidden' }}>
             <div
@@ -1242,7 +1142,7 @@ export default function ResourcesPage() {
                     <th>Deficit</th>
                     <th>Operability %</th>
                     <th>Replacement Urgency</th>
-                    <th>Masterplan §29</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>

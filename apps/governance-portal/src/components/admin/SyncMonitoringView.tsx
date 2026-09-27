@@ -212,9 +212,6 @@ export function SyncMonitoringView() {
               <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)' }}>
                 Field Tablet Sync & Mutation Queue Engine
               </h2>
-              <span className="badge badge-info" style={{ fontSize: 11 }}>
-                Dataset 12 Masterplan §59
-              </span>
             </div>
             <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--color-text-muted)' }}>
               Guarantees governance officers never mistake silently stale or queued offline PHC data for live telemetry

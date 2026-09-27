@@ -6,6 +6,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar, Header } from '@/components/layout';
+import { Footer } from '@/components/layout/Footer';
 
 export function AppLayout() {
   return (
@@ -20,6 +21,7 @@ export function AppLayout() {
         <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 pb-20 lg:pb-6 bg-[#f8fafc] dark:bg-[#070d18]">
           <div className="max-w-7xl mx-auto space-y-6">
             <Outlet />
+            <Footer />
           </div>
         </main>
       </div>

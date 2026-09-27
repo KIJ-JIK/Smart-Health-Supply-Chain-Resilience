@@ -124,20 +124,6 @@ export default function ForecastsPage() {
             <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: '#0f172a' }}>
               Unified AI Forecasts Engine
             </h1>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                padding: '3px 8px',
-                borderRadius: 9999,
-                background: '#eff6ff',
-                color: '#1d4ed8',
-                border: '1px solid #bfdbfe',
-              }}
-            >
-              Masterplan §33 Contract
-            </span>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
             Multi-domain predictive modeling: Medicine Consumption, Bed Occupancy, Oxygen Burn Rate, Staffing Shifts, and Patient Influx
@@ -166,35 +152,6 @@ export default function ForecastsPage() {
 
       {/* ── Breadcrumb Scope Selector ── */}
       <ScopeSelector showFreshness={false} showSummaryChip={true} />
-
-      {/* ── Masterplan §33 Contract Explanation Banner ── */}
-      <div
-        style={{
-          padding: '14px 18px',
-          borderRadius: 8,
-          background: '#f8fafc',
-          border: '1px solid #e2e8f0',
-          fontSize: 12,
-          color: '#334155',
-          lineHeight: 1.5,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
-        <Info size={18} color="#2563eb" style={{ flexShrink: 0 }} />
-        <div>
-          <strong>Masterplan §33 Forecast Output Contract:</strong> Every prediction card renders all 8 mandated contract fields:{' '}
-          <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4 }}>entity</code>,{' '}
-          <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4 }}>metric</code>,{' '}
-          <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4 }}>forecast_start/end</code>,{' '}
-          <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4 }}>predicted_value [lower..upper]</code>,{' '}
-          <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4 }}>model_version</code>,{' '}
-          <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4 }}>training_window</code>,{' '}
-          <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4 }}>generated_at</code>, and{' '}
-          <code style={{ background: '#e2e8f0', padding: '1px 5px', borderRadius: 4 }}>confidence</code>. Model version captions are permanently displayed for human auditing.
-        </div>
-      </div>
 
       {/* ── Domain Filter Tabs ── */}
       <div

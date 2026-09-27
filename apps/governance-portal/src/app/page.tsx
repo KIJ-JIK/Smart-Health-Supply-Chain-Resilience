@@ -21,6 +21,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { AuraLogo } from '@/components/brand/AuraLogo';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 
 export default function PlatformHomePage() {
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -78,10 +79,6 @@ export default function PlatformHomePage() {
 
           {/* Action */}
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-50 border border-neutral-200 text-[11px] font-mono text-neutral-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {currentTime || 'LIVE SYNC'}
-            </span>
             <Link
               href="/login"
               className="px-4 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium transition-all flex items-center gap-1.5 active:scale-95"
@@ -106,37 +103,37 @@ export default function PlatformHomePage() {
           and sovereign multilateral intelligence (<span className="font-semibold text-neutral-800">AURA Sovereign</span>).
         </p>
 
-        {/* ── REAL-TIME STATS STRIP (Clean White Bento Cards) ── */}
+        {/* ── REAL-TIME STATS STRIP (Clean Bento Cards) ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 w-full mt-10 max-w-4xl text-left">
           <div className="p-4 rounded-2xl bg-white/90 backdrop-blur-sm border border-neutral-200/90 shadow-xs hover:border-neutral-300 hover:shadow-sm hover:-translate-y-0.5 transition-all">
-            <div className="text-xs font-mono text-neutral-500 uppercase">Clinics Linked</div>
+            <div className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Clinics Linked</div>
             <div className="text-2xl font-bold text-neutral-900 mt-1 font-mono">3,682</div>
-            <div className="text-[11px] text-emerald-600 flex items-center gap-1 mt-1 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Dexie Sync Active
+            <div className="text-[11px] text-neutral-500 mt-1">
+              Registered Health Facilities
             </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/90 backdrop-blur-sm border border-neutral-200/90 shadow-xs hover:border-neutral-300 hover:shadow-sm hover:-translate-y-0.5 transition-all">
-            <div className="text-xs font-mono text-neutral-500 uppercase">FEFO Shipments</div>
+            <div className="text-xs font-medium text-neutral-500 uppercase tracking-wide">FEFO Shipments</div>
             <div className="text-2xl font-bold text-neutral-900 mt-1 font-mono">14,290</div>
-            <div className="text-[11px] text-neutral-600 flex items-center gap-1 mt-1 font-mono">
-              In Transit Tracking
+            <div className="text-[11px] text-neutral-500 mt-1">
+              Active Consignments
             </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/90 backdrop-blur-sm border border-neutral-200/90 shadow-xs hover:border-neutral-300 hover:shadow-sm hover:-translate-y-0.5 transition-all">
-            <div className="text-xs font-mono text-neutral-500 uppercase">AI Optimization</div>
+            <div className="text-xs font-medium text-neutral-500 uppercase tracking-wide">AI Optimization</div>
             <div className="text-2xl font-bold text-neutral-900 mt-1 font-mono">P90 Guard</div>
-            <div className="text-[11px] text-neutral-600 flex items-center gap-1 mt-1 font-mono">
-              MILP PuLP Solver
+            <div className="text-[11px] text-neutral-500 mt-1">
+              Automated Redistribution
             </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/90 backdrop-blur-sm border border-neutral-200/90 shadow-xs hover:border-neutral-300 hover:shadow-sm hover:-translate-y-0.5 transition-all">
-            <div className="text-xs font-mono text-neutral-500 uppercase">BRICS Nations</div>
+            <div className="text-xs font-medium text-neutral-500 uppercase tracking-wide">BRICS Nations</div>
             <div className="text-2xl font-bold text-neutral-900 mt-1 font-mono">5 Nodes</div>
-            <div className="text-[11px] text-neutral-600 flex items-center gap-1 mt-1 font-mono">
-              DP-SGD ε = 0.50
+            <div className="text-[11px] text-neutral-500 mt-1">
+              Sovereign Federated Grid
             </div>
           </div>
         </div>
@@ -330,16 +327,8 @@ export default function PlatformHomePage() {
         </section>
       </main>
 
-      {/* ── MINIMAL FOOTER ── */}
-      <footer className="border-t border-neutral-200/80 bg-white/60 py-6 px-6 text-xs text-neutral-500 relative z-10">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 font-medium text-neutral-700">
-            <AuraLogo size={18} />
-            <span>AURA Health Platform</span>
-          </div>
-          <div>Autonomous Universal Resilience Architecture</div>
-        </div>
-      </footer>
+      {/* ── WEBSITE FOOTER ── */}
+      <SiteFooter />
     </div>
   );
 }

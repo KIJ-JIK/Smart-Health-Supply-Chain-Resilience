@@ -160,8 +160,8 @@ export default function EarlyWarningsPage() {
       // Search term
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchesTitle = a.title.toLowerCase().includes(q);
-        const matchesMsg = a.message.toLowerCase().includes(q);
+        const matchesTitle = (a.title || '').toLowerCase().includes(q);
+        const matchesMsg = (a.message || '').toLowerCase().includes(q);
         const matchesEntity = (a.entityName ?? '').toLowerCase().includes(q);
         if (!matchesTitle && !matchesMsg && !matchesEntity) return false;
       }
@@ -693,13 +693,13 @@ export default function EarlyWarningsPage() {
 
                     {/* Category Label */}
                     <span className="badge badge-muted" style={{ textTransform: 'capitalize' }}>
-                      {alert.category.replace('_', ' ')}
+                      {((alert.category || alert.alertType || (alert as any).alert_type || 'General') + '').replace(/_/g, ' ')}
                     </span>
 
                     {/* Relative Time */}
                     <span style={{ fontSize: 12, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Clock size={12} />
-                      {timeAgo(alert.timestamp)}
+                      {timeAgo(alert.timestamp || (alert as any).created_at || new Date().toISOString())}
                     </span>
                   </div>
 
@@ -744,10 +744,10 @@ export default function EarlyWarningsPage() {
                 {/* Title & Description */}
                 <div>
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', margin: '0 0 6px' }}>
-                    {alert.title}
+                    {alert.title || ((alert.alertType || (alert as any).alert_type || 'Alert') + '').replace(/_/g, ' ')}
                   </h3>
                   <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.5, margin: 0 }}>
-                    {alert.message}
+                    {alert.message || (alert as any).payload?.message || (alert as any).payload?.affected_patients || ''}
                   </p>
                 </div>
 

@@ -142,20 +142,6 @@ export default function PatientsPage() {
             <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: '#0f172a' }}>
               Patient Intelligence & Surge Detection
             </h1>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                padding: '3px 8px',
-                borderRadius: 9999,
-                background: '#eff6ff',
-                color: '#1d4ed8',
-                border: '1px solid #bfdbfe',
-              }}
-            >
-              Masterplan §42
-            </span>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
             Integrated patient flow trajectories, disease category breakdowns, and multi-facility outbreak verification
@@ -380,36 +366,6 @@ export default function PatientsPage() {
             >
               Regional Cluster
             </button>
-          </div>
-        </div>
-
-        {/* Masterplan §42 Mandate Notice Banner */}
-        <div
-          style={{
-            padding: '12px 16px',
-            borderRadius: 8,
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            marginBottom: 20,
-            fontSize: 12,
-            color: '#334155',
-            lineHeight: 1.5,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <Info size={18} color="#2563eb" style={{ flexShrink: 0 }} />
-          <div>
-            <strong>Masterplan §42 Epidemiological Guardrail:</strong> A lone sudden spike from a single facility is strictly designated as{' '}
-            <span style={{ fontWeight: 700, color: '#ca8a04', background: '#fefce8', padding: '1px 6px', borderRadius: 4 }}>
-              "Flagged for Review"
-            </span>{' '}
-            to prevent false outbreak alarms caused by batched digital entries or isolated localized clusters. Strong language like{' '}
-            <span style={{ fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '1px 6px', borderRadius: 4 }}>
-              "Outbreak Detected"
-            </span>{' '}
-            is reserved solely for cross-checked <strong>Regional Clusters</strong> affecting contiguous facilities.
           </div>
         </div>
 

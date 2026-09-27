@@ -255,7 +255,7 @@ export function DataFreshnessLabel({
               lineHeight: 1.3,
             }}
           >
-            <strong>Masterplan §59 Notice:</strong> PHC data syncs asynchronously via offline-first queues. Verify field connectivity before dispatching resources based on high latency data.
+            <strong>Operational Advisory:</strong> Field facilities sync asynchronously via offline queues. Verify connectivity before dispatching resources.
           </div>
         </div>
       )}
