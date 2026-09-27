@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useUIStore } from '@/store';
 import { useMemberPrivacyBudget } from '@/hooks';
+import { AuraLogo } from '../brand/AuraLogo';
 
 interface NavItem {
   key: string;
@@ -73,15 +74,18 @@ export function Sidebar() {
       }`}
     >
       {/* Sidebar Top Identity Header */}
-      <div className="h-12 px-3 border-b border-slate-700/60 flex items-center justify-between bg-[#0b1e36]">
+      <div className="h-14 px-3 border-b border-slate-700/60 flex items-center justify-between bg-[#0b1e36]">
         {!collapsed && (
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-5 h-5 rounded bg-blue-700 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-sm">
-              🌐
+          <div className="flex items-center gap-2.5 min-w-0">
+            <AuraLogo size={24} />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-bold text-slate-100 tracking-tight leading-tight truncate">
+                AURA Sovereign
+              </span>
+              <span className="text-[10px] text-amber-400 font-medium tracking-wide uppercase truncate">
+                BRICS Federated Grid
+              </span>
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-200 truncate">
-              Federated Council
-            </span>
           </div>
         )}
         <button

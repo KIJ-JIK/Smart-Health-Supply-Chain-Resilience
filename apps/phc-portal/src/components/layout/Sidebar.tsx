@@ -10,6 +10,7 @@ import { useMutationQueue } from '../../hooks/useMutationQueue';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { PHCNavTab } from '../../types';
+import { AuraLogo } from '../brand/AuraLogo';
 
 interface NavItem {
   id: PHCNavTab;
@@ -162,13 +163,11 @@ export const Sidebar: React.FC = () => {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 p-4 border-b border-[#1e2d3d] ${collapsed ? 'justify-center' : ''}`}>
-        <div className="shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-[0_0_12px_rgba(13,148,136,0.4)]">
-          <HeartPulse className="w-4 h-4 text-white" />
-        </div>
+        <AuraLogo size={28} />
         {!collapsed && (
           <div className="overflow-hidden">
-            <div className="text-sm font-bold text-white leading-tight whitespace-nowrap">Smart Health</div>
-            <div className="text-[10px] text-slate-500 whitespace-nowrap">Offline-First Edge Portal</div>
+            <div className="text-sm font-bold text-white leading-tight whitespace-nowrap">AURA Point</div>
+            <div className="text-[10px] text-teal-400 font-medium whitespace-nowrap">Frontline Clinic Workbench</div>
           </div>
         )}
       </div>

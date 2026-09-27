@@ -77,7 +77,7 @@ export function LoginPage() {
           <span>BACK TO AURA HUB</span>
         </a>
         <div className="flex items-center gap-2 text-xs font-mono text-neutral-500">
-          <span>Council Access</span>
+          <span>Sovereign Enclave Access</span>
         </div>
       </header>
 

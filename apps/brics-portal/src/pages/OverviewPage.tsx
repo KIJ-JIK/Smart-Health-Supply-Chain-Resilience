@@ -152,7 +152,7 @@ export default function OverviewPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              BRICS Sovereign AI Federated Council
+              AURA Sovereign — BRICS Federated AI Grid
             </h2>
             <span className="gov-badge bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
               5-NATION CONSENSUS ACTIVE
