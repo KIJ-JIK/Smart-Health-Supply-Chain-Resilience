@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   BedDouble, Wind, Users, Pill, Activity, AlertTriangle,
-  ArrowRight, PlusCircle, PackagePlus, Zap, Siren,
+  ArrowRight, PlusCircle, PackagePlus, Zap, Siren, TrendingUp,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
@@ -122,6 +122,55 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-5">
+      {/* ── Header panel (clean institutional theme, no green background) ── */}
+      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-[#1e2d3d] p-5 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_12px_rgba(0,0,0,0.3)]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="max-w-2xl">
+            {/* Status pill */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 mb-2.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-700 dark:text-slate-300 font-mono">
+                LIVE OPERATIONAL · 24/7 SURVEILLANCE
+              </span>
+            </div>
+
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+              PHC Operations Command Center
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">
+              Real-Time Bed Telemetry · Oxygen Reserves · FEFO Pharmacy · Clinical Triage
+            </p>
+
+            {/* Quick Telemetry Chips */}
+            <div className="flex items-center gap-2 flex-wrap mt-3">
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#1e2d3d] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                Beds: <strong className="text-slate-900 dark:text-slate-100 font-bold">{occupiedBeds}/{totalBeds}</strong> ({bedOccupancyRate}%)
+              </span>
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#1e2d3d] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                O₂ Cylinders: <strong className="text-slate-900 dark:text-slate-100 font-bold">{cylinders}</strong>
+              </span>
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#1e2d3d] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                Staff: <strong className="text-slate-900 dark:text-slate-100 font-bold">{presentCount}/{totalStaff}</strong> On Duty
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-2.5">
+            <div className="flex items-center gap-2 text-xs font-semibold bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-3.5 py-2 rounded-xl text-slate-700 dark:text-slate-300 shadow-sm">
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+              <span>Telemetry Sync Active · {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <button
+              onClick={() => setEmergencyModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 shadow-sm transition-all active:scale-95 cursor-pointer"
+            >
+              <Siren className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+              <span>Broadcast Protocol</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ── Metric tiles ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <MetricCard title="Beds Available" value={availableBeds} subtitle={`${occupiedBeds} occupied / ${totalBeds} total`} icon={BedDouble}
