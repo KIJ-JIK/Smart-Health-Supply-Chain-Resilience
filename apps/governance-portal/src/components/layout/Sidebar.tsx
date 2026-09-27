@@ -99,6 +99,11 @@ const useNavSections = (): NavSection[] => {
       label: 'AI & Analytics',
       items: [
         {
+          label: 'AI Copilot',
+          href: '/copilot',
+          icon: <Bot size={sz} className={iconClass} />,
+        },
+        {
           label: 'AI Forecasts',
           href: '/forecasts',
           icon: <BrainCircuit size={sz} className={iconClass} />,
@@ -147,11 +152,6 @@ const useNavSections = (): NavSection[] => {
           href: '/simulator',
           icon: <Swords size={sz} className={iconClass} />,
           roles: ['national_admin', 'state_admin'],
-        },
-        {
-          label: 'AI Copilot',
-          href: '/copilot',
-          icon: <Bot size={sz} className={iconClass} />,
         },
       ],
     },
@@ -300,11 +300,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
                     >
                       {item.icon}
                       <span className="nav-item-label">{item.label}</span>
-                      {item.href === '/manage-jurisdiction' && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-teal-500/20 text-teal-400 border border-teal-500/30">
-                          NEW
-                        </span>
-                      )}
                       {badge && badge > 0 && (
                         <span className="nav-item-badge">
                           {badge > 99 ? '99+' : badge}
