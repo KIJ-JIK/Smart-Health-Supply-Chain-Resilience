@@ -83,6 +83,50 @@ export const PrescriptionScannerModal: React.FC<PrescriptionScannerModalProps> =
     onClose();
   };
 
+  const optimizeImageFile = (file: File): Promise<{ base64: string; mimeType: string }> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_DIM = 1600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            } else {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            resolve({ base64: compressedDataUrl, mimeType: 'image/jpeg' });
+            return;
+          }
+          resolve({ base64: e.target?.result as string, mimeType: file.type || 'image/jpeg' });
+        };
+        img.onerror = () => {
+          resolve({ base64: e.target?.result as string, mimeType: file.type || 'image/jpeg' });
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => {
+        resolve({ base64: '', mimeType: file.type || 'image/jpeg' });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -98,16 +142,11 @@ export const PrescriptionScannerModal: React.FC<PrescriptionScannerModalProps> =
     setVisionResult(null);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = reader.result as string;
-        await sendToVisionApi({ imageBase64: base64, mimeType: file.type });
-      };
-      reader.onerror = () => {
-        setError('Failed to read image file');
-        setIsAnalyzing(false);
-      };
-      reader.readAsDataURL(file);
+      const { base64, mimeType } = await optimizeImageFile(file);
+      if (!base64) {
+        throw new Error('Failed to read image file');
+      }
+      await sendToVisionApi({ imageBase64: base64, mimeType });
     } catch (err: any) {
       setError(err.message || 'Vision analysis failed');
       setIsAnalyzing(false);
@@ -128,8 +167,8 @@ export const PrescriptionScannerModal: React.FC<PrescriptionScannerModalProps> =
 
   const sendToVisionApi = async (bodyPayload: any) => {
     try {
-      const backendBase = (import.meta as any).env?.VITE_BACKEND_URL?.replace('/graphql', '') || '';
-      const endpoint = backendBase ? `${backendBase}/api/v1/ai/vision/extract-prescription` : '/api/v1/ai/vision/extract-prescription';
+      const backendBase = (import.meta as any).env?.VITE_BACKEND_URL?.replace('/graphql', '') || 'http://localhost:8000';
+      const endpoint = `${backendBase}/api/v1/ai/vision/extract-prescription`;
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -139,7 +178,17 @@ export const PrescriptionScannerModal: React.FC<PrescriptionScannerModalProps> =
         }),
       });
 
-      const json = await res.json();
+      const responseText = await res.text();
+      let json: any;
+      try {
+        json = JSON.parse(responseText);
+      } catch {
+        if (!res.ok) {
+          throw new Error(`Vision service error (HTTP ${res.status}): ${responseText.slice(0, 120)}`);
+        }
+        throw new Error('Invalid JSON received from AI Vision service');
+      }
+
       if (!res.ok || !json.success) {
         throw new Error(json.error || 'Failed to analyze prescription');
       }
