@@ -69,20 +69,20 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`hidden lg:flex flex-col h-full bg-white text-slate-900 border-r border-slate-200 select-none z-30 transition-all duration-200 shrink-0 ${
+      className={`hidden lg:flex flex-col h-full bg-white dark:bg-[#0b1424] text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800 select-none z-30 transition-all duration-200 shrink-0 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Sidebar Top Identity Header */}
-      <div className="h-14 px-3 border-b border-slate-100 flex items-center justify-between">
+      <div className="h-14 px-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
             <AuraLogo size={24} />
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-slate-900 tracking-tight leading-tight truncate">
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight truncate">
                 AURA Sovereign
               </span>
-              <span className="text-[10px] text-slate-500 font-medium tracking-wide uppercase truncate">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase truncate">
                 BRICS Federated Grid
               </span>
             </div>
@@ -90,7 +90,7 @@ export function Sidebar() {
         )}
         <button
           onClick={toggleSidebar}
-          className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors mx-auto"
+          className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors mx-auto"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
@@ -103,7 +103,7 @@ export function Sidebar() {
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="space-y-0.5">
             {!collapsed && (
-              <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 {group.label}
               </div>
             )}
@@ -124,18 +124,18 @@ export function Sidebar() {
                   to={item.href}
                   className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors relative ${
                     isActive
-                      ? 'bg-slate-50 text-slate-900 font-semibold'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                   title={collapsed ? item.label : undefined}
                 >
                   {/* Active left bar */}
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-slate-900 rounded-r-full" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-slate-900 dark:bg-blue-400 rounded-r-full" />
                   )}
                   <Icon
                     className={`w-4 h-4 shrink-0 ${
-                      isActive ? 'text-slate-900' : 'text-slate-400'
+                      isActive ? 'text-slate-900 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
                     }`}
                   />
                   {!collapsed && (
@@ -171,17 +171,17 @@ export function Sidebar() {
 
       {/* Bottom: Enclave status + Platform link */}
       {!collapsed && (
-        <div className="p-3 border-t border-slate-100 space-y-2">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span className="flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-emerald-600" />
+              <Radio className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span className="font-medium">FedAvg · 5/5 Ready</span>
             </span>
-            <span className="font-mono text-slate-400">ε=1.42</span>
+            <span className="font-mono text-slate-400 dark:text-slate-500">ε=1.42</span>
           </div>
           <a
             href="http://localhost:3000"
-            className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-700 transition-colors"
+            className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
           >
             <Globe2 className="w-3 h-3" />
             <span>← Platform Hub</span>

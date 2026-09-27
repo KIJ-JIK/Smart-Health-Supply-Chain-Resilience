@@ -26,8 +26,9 @@ export const Header: React.FC = () => {
   const { isSyncing, triggerSync } = useSyncEngine(isOnline);
   const { setActiveTab, setEmergencyModalOpen } = useUIStore();
   const { isDark, toggleTheme } = useThemeStore();
-  const { currentStaff, selectedFacility, logout } = usePhcAuthStore();
+  const { currentStaff, selectedFacility, logout, isAuthenticated } = usePhcAuthStore();
   const [portalMenuOpen, setPortalMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const facility = useLiveQuery(() => db.phc_facilities.toCollection().first());
 
@@ -124,82 +125,134 @@ export const Header: React.FC = () => {
               : <Moon className="w-3.5 h-3.5" />}
           </button>
 
-          {/* User chip */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-[#1e2d3d]">
-            <UserCircle2 className="w-3.5 h-3.5 text-primary-500 dark:text-primary-400 shrink-0" />
-            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-              {currentStaff?.name || 'Dr. R. Sharma'}
-            </span>
-          </div>
-
-          {/* Global Platform Switcher */}
-          <div className="relative">
+          {/* User Avatar Circle with Hover/Click Expansion (Pic 2 Standard) */}
+          <div
+            className="relative"
+            onMouseEnter={() => setUserMenuOpen(true)}
+            onMouseLeave={() => setUserMenuOpen(false)}
+          >
             <button
-              onClick={() => setPortalMenuOpen((o) => !o)}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-[#1e2d3d] text-slate-700 dark:text-slate-300 hover:text-teal-400 transition-colors"
-              title="Switch Platform Portals"
+              onClick={() => setUserMenuOpen((o) => !o)}
+              aria-label="User profile and session details"
+              className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center ring-2 ring-blue-500/20 shadow-sm transition-all focus:outline-none"
             >
-              <Layers className="w-3.5 h-3.5 text-teal-500" />
-              <span className="hidden sm:inline">Portals</span>
-              <ChevronDown className="w-3 h-3" />
+              DR
             </button>
 
-            {portalMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-60 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 z-50 text-xs text-left">
-                <div className="px-2 py-1.5 text-[10px] font-mono text-slate-400 uppercase border-b border-slate-800 mb-1">
-                  Cross-Portal Navigation
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-3.5 z-50 text-xs text-left">
+                <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                    DR
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      {currentStaff?.name || 'Dr. Anjali Sharma'}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      {currentStaff?.roleLabel || 'Primary Medical Officer (MO)'}
+                    </div>
+                  </div>
                 </div>
-                <a
-                  href={(import.meta as any).env?.VITE_GOVERNANCE_URL ?? '/'}
-                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:bg-slate-800 transition-colors"
-                >
-                  <Building2 className="w-4 h-4 text-cyan-400" />
-                  <div>
-                    <div className="font-semibold text-white">AURA Hub</div>
-                    <div className="text-[10px] text-slate-400">Platform Gateway</div>
+                <div className="pt-2.5 space-y-1.5 text-[11px]">
+                  <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                    <span className="text-slate-400 dark:text-slate-500">Facility:</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[170px]">{activeFacName}</span>
                   </div>
-                </a>
-                <a
-                  href="/"
-                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-teal-500/10 text-teal-300"
-                >
-                  <HeartPulse className="w-4 h-4 text-teal-400" />
-                  <div>
-                    <div className="font-semibold">AURA Point</div>
-                    <div className="text-[10px] text-teal-400/80">Active · Frontline Clinic</div>
+                  <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                    <span className="text-slate-400 dark:text-slate-500">Jurisdiction:</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{activeDistrict}, {activeState}</span>
                   </div>
-                </a>
-                <a
-                  href={(import.meta as any).env?.VITE_GOVERNANCE_URL ?? '/governance'}
-                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:bg-slate-800 transition-colors"
-                >
-                  <Building2 className="w-4 h-4 text-blue-400" />
-                  <div>
-                    <div className="font-semibold text-white">AURA Vantage</div>
-                    <div className="text-[10px] text-slate-400">Governance Command</div>
+                  <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                    <span className="text-slate-400 dark:text-slate-500">Session:</span>
+                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Active Duty · Dexie L2
+                    </span>
                   </div>
-                </a>
-                <a
-                  href={(import.meta as any).env?.VITE_BRICS_URL ?? '/brics'}
-                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:bg-slate-800 transition-colors"
-                >
-                  <Globe2 className="w-4 h-4 text-amber-400" />
-                  <div>
-                    <div className="font-semibold text-white">AURA Sovereign</div>
-                    <div className="text-[10px] text-slate-400">BRICS Federated AI Grid</div>
-                  </div>
-                </a>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Sign Out Button */}
+          {/* Global Platform Switcher with Hover/Click Expansion (Pic 2 Standard) */}
+          <div
+            className="relative"
+            onMouseEnter={() => setPortalMenuOpen(true)}
+            onMouseLeave={() => setPortalMenuOpen(false)}
+          >
+            <button
+              onClick={() => setPortalMenuOpen((o) => !o)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors shadow-sm"
+              title="Switch Platform Portals"
+            >
+              <Layers className="w-4 h-4 text-cyan-500" />
+              <span className="hidden sm:inline">Portals</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+
+            {portalMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2.5 z-50 text-xs text-left">
+                <div className="px-2.5 py-1.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1.5">
+                  Platform Portals Switcher
+                </div>
+                <div className="space-y-1">
+                  <a
+                    href={(import.meta as any).env?.VITE_GOVERNANCE_URL ?? 'http://localhost:3000/'}
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
+                  >
+                    <Building2 className="w-4 h-4 text-cyan-500 shrink-0" />
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">AURA Hub</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Platform Gateway & Overview</div>
+                    </div>
+                  </a>
+
+                  <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60">
+                    <HeartPulse className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                    <div className="flex-1">
+                      <div className="font-semibold flex items-center justify-between">
+                        <span>AURA Point</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-200/70 dark:bg-teal-800/80 font-mono text-teal-900 dark:text-teal-100 font-bold">Active</span>
+                      </div>
+                      <div className="text-[10px] text-teal-700 dark:text-teal-400/80">Frontline Clinic Workbench</div>
+                    </div>
+                  </div>
+
+                  <a
+                    href="http://localhost:3000/governance"
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
+                  >
+                    <Building2 className="w-4 h-4 text-blue-500 shrink-0" />
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">AURA Vantage</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Governance Command Center</div>
+                    </div>
+                  </a>
+
+                  <a
+                    href="http://localhost:3001"
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
+                  >
+                    <Globe2 className="w-4 h-4 text-amber-500 shrink-0" />
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">AURA Sovereign</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">BRICS Federated AI Grid</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sign Out Button (Pic 2 Standard: Red Icon with Rounded Border) */}
           <button
             onClick={logout}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 border border-slate-200 dark:border-[#1e2d3d] transition-colors"
-            title="Sign Out to Facility Login"
+            className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shadow-sm"
+            title="Sign Out (End Clinic Session)"
+            aria-label="Sign Out"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4" />
           </button>
 
           {/* EMERGENCY — pulse ring */}

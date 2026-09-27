@@ -249,6 +249,7 @@ export const SUPPLY_CHAIN_SHIPMENTS = gql`
       expectedDelivery
       actualDelivery
       status
+      stage
       supplier
       destinationPhcId
       destinationPhcName

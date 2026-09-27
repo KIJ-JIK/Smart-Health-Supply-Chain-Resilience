@@ -133,9 +133,23 @@ export default function EarlyWarningsPage() {
         // If not on acknowledged tab, hide acknowledged unless specifically looking at all
         if (a.acknowledged && activeTab !== 'all') return false;
 
-        if (activeTab === 'deterministic' && a.alertClass !== 'deterministic') return false;
-        if (activeTab === 'statistical' && a.alertClass !== 'statistical') return false;
-        if (activeTab === 'emergency' && a.alertType !== 'emergency_report') return false;
+        const isEmergency =
+          a.alertType === 'emergency_report' ||
+          a.alertClass === 'emergency';
+
+        const isStatistical =
+          a.alertClass === 'statistical' ||
+          ['outbreak_risk', 'consumption_surge', 'demand_spike', 'anomaly', 'disease_outbreak'].includes(a.alertType || '');
+
+        const isDeterministic =
+          a.alertClass === 'deterministic' ||
+          a.alertClass === 'operational' ||
+          ['medicine_stockout', 'cold_chain_breach', 'oxygen_low', 'stockout', 'equipment_failure', 'expiry_warning', 'bed_capacity_critical'].includes(a.alertType || '') ||
+          (!isEmergency && !isStatistical);
+
+        if (activeTab === 'deterministic' && !isDeterministic) return false;
+        if (activeTab === 'statistical' && !isStatistical) return false;
+        if (activeTab === 'emergency' && !isEmergency) return false;
       }
 
       // Severity filter
@@ -159,11 +173,25 @@ export default function EarlyWarningsPage() {
   // Statistics breakdown
   const stats = useMemo(() => {
     const unack = alerts.filter((a) => !a.acknowledged);
+    const isEmerg = (a: Alert) =>
+      a.alertType === 'emergency_report' ||
+      a.alertClass === 'emergency';
+
+    const isStat = (a: Alert) =>
+      a.alertClass === 'statistical' ||
+      ['outbreak_risk', 'consumption_surge', 'demand_spike', 'anomaly', 'disease_outbreak'].includes(a.alertType || '');
+
+    const isDet = (a: Alert) =>
+      a.alertClass === 'deterministic' ||
+      a.alertClass === 'operational' ||
+      ['medicine_stockout', 'cold_chain_breach', 'oxygen_low', 'stockout', 'equipment_failure', 'expiry_warning', 'bed_capacity_critical'].includes(a.alertType || '') ||
+      (!isEmerg(a) && !isStat(a));
+
     return {
       totalUnack: unack.length,
-      emergencyCount: unack.filter((a) => a.alertType === 'emergency_report').length,
-      deterministicCount: unack.filter((a) => a.alertClass === 'deterministic').length,
-      statisticalCount: unack.filter((a) => a.alertClass === 'statistical').length,
+      emergencyCount: unack.filter(isEmerg).length,
+      deterministicCount: unack.filter(isDet).length,
+      statisticalCount: unack.filter(isStat).length,
     };
   }, [alerts]);
 
@@ -532,9 +560,19 @@ export default function EarlyWarningsPage() {
           </div>
         ) : (
           paginatedAlerts.map((alert) => {
-            const isEmergency = alert.alertType === 'emergency_report';
-            const isDeterministic = alert.alertClass === 'deterministic';
-            const isStatistical = alert.alertClass === 'statistical';
+            const isEmergency =
+              alert.alertType === 'emergency_report' ||
+              alert.alertClass === 'emergency';
+
+            const isStatistical =
+              alert.alertClass === 'statistical' ||
+              ['outbreak_risk', 'consumption_surge', 'demand_spike', 'anomaly', 'disease_outbreak'].includes(alert.alertType || '');
+
+            const isDeterministic =
+              alert.alertClass === 'deterministic' ||
+              alert.alertClass === 'operational' ||
+              ['medicine_stockout', 'cold_chain_breach', 'oxygen_low', 'stockout', 'equipment_failure', 'expiry_warning', 'bed_capacity_critical'].includes(alert.alertType || '') ||
+              (!isEmergency && !isStatistical);
 
             // Distinct Visual Treatment per Masterplan:
             // 1. Emergency Report: High-intensity crimson border with pulsating badge
@@ -586,7 +624,9 @@ export default function EarlyWarningsPage() {
                   }}
                 >
                   <ShieldAlert size={12} />
-                  DETERMINISTIC THRESHOLD BREACH
+                  {alert.alertClass === 'operational'
+                    ? 'OPERATIONAL THRESHOLD TRIGGER'
+                    : 'DETERMINISTIC THRESHOLD BREACH'}
                 </span>
               );
             } else if (isStatistical) {

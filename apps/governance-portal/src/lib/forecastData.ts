@@ -42,7 +42,7 @@ export interface MasterplanForecastContract {
   points: ForecastTimePoint[];
 }
 
-export function getQualityBadgeProps(quality: MasterplanForecastContract['qualityIndicator']): {
+export function getQualityBadgeProps(quality?: MasterplanForecastContract['qualityIndicator'] | string): {
   level: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
   label: string;
 } {
@@ -55,6 +55,8 @@ export function getQualityBadgeProps(quality: MasterplanForecastContract['qualit
       return { level: 'MODERATE', label: 'MODERATE CONFIDENCE (70%-80%)' };
     case 'LOW_CONFIDENCE':
       return { level: 'HIGH', label: 'WIDE UNCERTAINTY BAND (<70%)' };
+    default:
+      return { level: 'MODERATE', label: 'PREDICTIVE ESTIMATE (75%)' };
   }
 }
 

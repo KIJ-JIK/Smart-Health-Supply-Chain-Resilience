@@ -73,7 +73,7 @@ export default function RedistributionPage() {
     return getEnforcedScope(user, { level, stateId, districtId });
   }, [user, level, stateId, districtId]);
 
-  const currentDistrict = enforcedScope.districtId ?? 'dist-pune';
+  const currentDistrict = enforcedScope.districtId ?? undefined;
 
   const [recommendations, setRecommendations] = useState<RedistributionRecommendation[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'decided'>('pending');
@@ -99,7 +99,7 @@ export default function RedistributionPage() {
 
   // GraphQL query against real backend
   const { data: gqlData, refetch } = useQuery(REDISTRIBUTION_RECOMMENDATIONS, {
-    variables: { district: currentDistrict },
+    variables: currentDistrict ? { district: currentDistrict } : {},
     fetchPolicy: 'cache-and-network',
   });
 

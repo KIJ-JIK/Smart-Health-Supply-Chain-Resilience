@@ -90,10 +90,14 @@ export async function withTenantContext<T>(
     await client.query('BEGIN');
 
     // Inject JWT claims as Postgres session variables (scope: this transaction only)
-    await client.query(`SELECT set_config('app.current_role', $1, true)`, [claims.role]);
-    await client.query(`SELECT set_config('app.current_phc_id', $1, true)`, [claims.phcId ?? '']);
-    await client.query(`SELECT set_config('app.current_district_id', $1, true)`, [claims.districtId ?? '']);
-    await client.query(`SELECT set_config('app.current_state_id', $1, true)`, [claims.stateId ?? '']);
+    await client.query(
+      `SELECT
+        set_config('app.current_role', $1, true),
+        set_config('app.current_phc_id', $2, true),
+        set_config('app.current_district_id', $3, true),
+        set_config('app.current_state_id', $4, true)`,
+      [claims.role, claims.phcId ?? '', claims.districtId ?? '', claims.stateId ?? ''],
+    );
 
     const result = await fn(client);
 

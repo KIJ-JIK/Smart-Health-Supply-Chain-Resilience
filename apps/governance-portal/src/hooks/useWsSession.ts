@@ -64,7 +64,7 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
     protocols,
   } = options;
 
-  const [status, setStatus] = useState<WsStatus>('connecting');
+  const [status, setStatus] = useState<WsStatus>(enabled ? 'connecting' : 'closed');
   const [messages, setMessages] = useState<WsMessage<TIn>[]>([]);
   const [lastMessage, setLastMessage] = useState<WsMessage<TIn> | null>(null);
 
@@ -78,9 +78,14 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
   cbRefs.current = { onMessage, onOpen, onClose, onError };
 
   const close = useCallback((code = 1000, reason = 'manual close') => {
-    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
     if (wsRef.current) {
-      wsRef.current.close(code, reason);
+      try {
+        wsRef.current.close(code, reason);
+      } catch {}
       wsRef.current = null;
     }
     if (mountedRef.current) setStatus('closed');
@@ -92,9 +97,18 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
     if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) return;
 
     setStatus('connecting');
+
+    // Resolve relative URL to backend port 8000 if needed
+    let resolvedUrl = url;
+    if (typeof window !== 'undefined' && !url.startsWith('ws://') && !url.startsWith('wss://')) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = `${protocol}//${window.location.hostname}:8000`;
+      resolvedUrl = url.startsWith('/') ? `${host}${url}` : `${host}/${url}`;
+    }
+
     let ws: WebSocket;
     try {
-      ws = protocols ? new WebSocket(url, protocols) : new WebSocket(url);
+      ws = protocols ? new WebSocket(resolvedUrl, protocols) : new WebSocket(resolvedUrl);
     } catch {
       setStatus('error');
       return;
@@ -104,6 +118,10 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
     ws.onopen = () => {
       if (!mountedRef.current) return;
       retryCountRef.current = 0;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
       setStatus('open');
       cbRefs.current.onOpen?.();
     };
@@ -111,7 +129,15 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
     ws.onmessage = (event: MessageEvent) => {
       if (!mountedRef.current) return;
       try {
-        const msg = JSON.parse(event.data as string) as WsMessage<TIn>;
+        const parsed = JSON.parse(event.data as string);
+        const isStructured = parsed && typeof parsed === 'object' && 'payload' in parsed;
+        const msg: WsMessage<TIn> = {
+          id: parsed?.id || nextId(),
+          type: parsed?.type || 'message',
+          payload: (isStructured ? parsed.payload : parsed) as TIn,
+          timestamp: parsed?.timestamp || new Date().toISOString(),
+          ...(typeof parsed === 'object' && parsed !== null ? parsed : {}),
+        };
         setLastMessage(msg);
         setMessages((prev) => [...prev.slice(-499), msg]); // keep last 500
         cbRefs.current.onMessage?.(msg);
@@ -136,9 +162,12 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
 
       if (!event.wasClean && autoReconnect && retryCountRef.current < maxRetries) {
         retryCountRef.current += 1;
-        const delay = baseDelayMs * 2 ** (retryCountRef.current - 1);
+        const delay = Math.min(baseDelayMs * 2 ** (retryCountRef.current - 1), 30_000);
         setStatus('reconnecting');
-        retryTimerRef.current = setTimeout(() => connect(), delay);
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => {
+          if (mountedRef.current) connect();
+        }, delay);
       } else {
         setStatus('closed');
       }
@@ -153,6 +182,10 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
 
   const reconnect = useCallback(() => {
     retryCountRef.current = 0;
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
     close();
     connect();
   }, [close, connect]);
@@ -162,11 +195,14 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
       console.warn('[useWsSession] Cannot send — socket is not open');
       return;
     }
-    const msg: WsMessage<TOut> = {
+    const isObj = typeof payload === 'object' && payload !== null;
+    const baseMsg = isObj ? (payload as Record<string, unknown>) : {};
+    const msg = {
       id: nextId(),
       type,
       payload,
       timestamp: new Date().toISOString(),
+      ...baseMsg,
     };
     wsRef.current.send(JSON.stringify(msg));
   }, []);
@@ -175,7 +211,11 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
 
   useEffect(() => {
     mountedRef.current = true;
-    if (enabled) connect();
+    if (enabled) {
+      connect();
+    } else {
+      close();
+    }
     return () => {
       mountedRef.current = false;
       close();

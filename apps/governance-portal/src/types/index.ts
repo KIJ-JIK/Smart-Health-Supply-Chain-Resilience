@@ -37,7 +37,7 @@ export type AlertCategory =
   | 'redistribution'
   | 'system';
 
-export type AlertClass = 'deterministic' | 'statistical' | 'emergency';
+export type AlertClass = 'deterministic' | 'statistical' | 'emergency' | 'operational';
 
 export interface Alert {
   id: string;

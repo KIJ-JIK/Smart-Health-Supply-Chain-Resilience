@@ -49,40 +49,43 @@ export default function ForecastsPage() {
   const [selectedCategory, setSelectedCategory] = useState<'all' | ForecastDomainCategory>('all');
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
-  const { data: forecastData, loading: forecastLoading, refetch } = useQuery(FORECASTS, {
+  const { data: forecastData, loading: forecastLoading, error: forecastError, refetch } = useQuery(FORECASTS, {
     variables: {
       entity: {
         entityType: level,
         entityId: level === 'phc' ? 'phc-01' : undefined,
       },
     },
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
+    errorPolicy: 'all',
   });
 
   // Scope-reactive forecast cards dataset augmented with live backend AI predictions
   const forecastCards: MasterplanForecastContract[] = useMemo(() => {
     const baseCards = getForecastCardsByScope(level, selectedCategory);
-    if (!forecastData?.forecasts || forecastData.forecasts.length === 0) {
+    if (!forecastData?.forecasts || !Array.isArray(forecastData.forecasts) || forecastData.forecasts.length === 0) {
       return baseCards;
     }
     return baseCards.map((card) => {
       const match = forecastData.forecasts.find((f: any) =>
-        f.metric?.toLowerCase().includes(card.category) ||
-        card.metricKey?.toLowerCase().includes(f.metric?.toLowerCase())
+        (f?.metric && card.category && f.metric.toLowerCase().includes(card.category.toLowerCase())) ||
+        (f?.metric && card.metricKey && card.metricKey.toLowerCase().includes(f.metric.toLowerCase()))
       );
       if (match) {
         return {
           ...card,
           modelName: match.model || card.modelName,
-          confidenceScorePct: Math.round((match.confidence || 0.92) * 100),
-          generatedAt: match.generatedAt || card.generatedAt,
-          points: match.points && match.points.length > 0 ? match.points.map((p: any, idx: number) => ({
-            date: p.date,
-            dayLabel: `Day ${idx + 1}`,
-            predictedValue: p.value,
-            lowerBound: p.lowerBound,
-            upperBound: p.upperBound,
-          })) : card.points,
+          confidenceScorePct: Math.round(Number(match.confidence || 0.92) * 100),
+          generatedAt: match.generatedAt ? String(match.generatedAt) : card.generatedAt,
+          points: Array.isArray(match.points) && match.points.length > 0
+            ? match.points.map((p: any, idx: number) => ({
+                date: p?.date || new Date().toISOString().slice(0, 10),
+                dayLabel: `Day ${idx + 1}`,
+                predictedValue: Number(p?.value ?? card.predictedValue ?? 0),
+                lowerBound: Number(p?.lowerBound ?? card.lowerBound ?? 0),
+                upperBound: Number(p?.upperBound ?? card.upperBound ?? 0),
+              }))
+            : card.points,
         };
       }
       return card;
@@ -94,7 +97,10 @@ export default function ForecastsPage() {
     setMounted(true);
   }, []);
 
-  if (!mounted) return null;
+  const formatNum = (val: number | string | undefined | null): string => {
+    if (val == null || isNaN(Number(val))) return '0';
+    return Number(val).toLocaleString();
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -139,11 +145,19 @@ export default function ForecastsPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-          <DataFreshnessLabel
-            timestamp={lastRefreshed}
-            onRefresh={() => setLastRefreshed(new Date())}
-            source="LSTM / NeuralProphet Pipeline"
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {forecastLoading && (
+              <span style={{ fontSize: 11, color: '#2563eb', fontWeight: 600 }}>Syncing AI models...</span>
+            )}
+            <DataFreshnessLabel
+              timestamp={lastRefreshed}
+              onRefresh={() => {
+                setLastRefreshed(new Date());
+                refetch?.();
+              }}
+              source="LSTM / NeuralProphet Pipeline"
+            />
+          </div>
           <div style={{ fontSize: 12, color: '#64748b' }}>
             Current Jurisdiction: <strong style={{ color: '#0f172a' }}>{getScopeLabel()}</strong>
           </div>
@@ -236,7 +250,10 @@ export default function ForecastsPage() {
       {/* ── Grid of Masterplan §33 Forecast Cards ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {forecastCards.map((card) => {
-          const badge = getQualityBadgeProps(card.qualityIndicator);
+          const badge = getQualityBadgeProps(card?.qualityIndicator) || {
+            level: 'MODERATE' as const,
+            label: 'PREDICTIVE ESTIMATE',
+          };
           const DomainIcon =
             card.category === 'medicine'
               ? Pill
@@ -370,10 +387,10 @@ export default function ForecastsPage() {
                     Predicted Value & Band (§33.3)
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: '#2563eb', marginTop: 2 }}>
-                    {card.predictedValue.toLocaleString()} {card.unit}
+                    {(card.predictedValue ?? 0).toLocaleString()} {card.unit}
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>
-                    Band: [{card.lowerBound.toLocaleString()} – {card.upperBound.toLocaleString()}]
+                    Band: [{(card.lowerBound ?? 0).toLocaleString()} – {(card.upperBound ?? 0).toLocaleString()}]
                   </div>
                 </div>
 
@@ -398,56 +415,73 @@ export default function ForecastsPage() {
                       Forward Trajectory with Lower / Upper Confidence Bounds (Uncertainty Band)
                     </span>
                     <span style={{ fontSize: 11, color: '#64748b' }}>
-                      Visualized Band: {card.lowerBound.toLocaleString()} to {card.upperBound.toLocaleString()} {card.unit}
+                      Visualized Band: {(card.lowerBound ?? 0).toLocaleString()} to {(card.upperBound ?? 0).toLocaleString()} {card.unit}
                     </span>
                   </div>
 
                   <div style={{ height: 220, width: '100%' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={card.points} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id={`ciGrad-${card.id}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
-                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0.02} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="dayLabel" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} stroke="#64748b" />
-                        <Tooltip
-                          formatter={(val: number, name: string) => [
-                            `${val.toLocaleString()} ${card.unit}`,
-                            name === 'predictedValue'
-                              ? 'Predicted Value'
-                              : name === 'upperBound'
-                              ? 'Upper Bound'
-                              : 'Lower Bound',
-                          ]}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="upperBound"
-                          stroke="none"
-                          fill={`url(#ciGrad-${card.id})`}
-                          name="Upper Bound"
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="lowerBound"
-                          stroke="none"
-                          fill="#ffffff"
-                          name="Lower Bound"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="predictedValue"
-                          stroke="#2563eb"
-                          strokeWidth={2.5}
-                          dot={{ r: 4, fill: '#2563eb' }}
-                          name="Predicted Value"
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
+                    {mounted ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={card.points} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id={`ciGrad-${card.id}`} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
+                              <stop offset="95%" stopColor="#2563eb" stopOpacity={0.02} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis dataKey="dayLabel" tick={{ fontSize: 11 }} />
+                          <YAxis tick={{ fontSize: 11 }} stroke="#64748b" />
+                          <Tooltip
+                            formatter={(val: any, name: string) => [
+                              `${formatNum(val)} ${card.unit ?? ''}`,
+                              name === 'predictedValue'
+                                ? 'Predicted Value'
+                                : name === 'upperBound'
+                                ? 'Upper Bound'
+                                : 'Lower Bound',
+                            ]}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="upperBound"
+                            stroke="none"
+                            fill={`url(#ciGrad-${card.id})`}
+                            name="Upper Bound"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="lowerBound"
+                            stroke="none"
+                            fill="#ffffff"
+                            name="Lower Bound"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="predictedValue"
+                            stroke="#2563eb"
+                            strokeWidth={2.5}
+                            dot={{ r: 4, fill: '#2563eb' }}
+                            name="Predicted Value"
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div
+                        style={{
+                          height: '100%',
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: '#f8fafc',
+                          borderRadius: 8,
+                          border: '1px dashed #cbd5e1',
+                        }}
+                      >
+                        <span style={{ fontSize: 12, color: '#94a3b8' }}>Rendering forward trajectory...</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

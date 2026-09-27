@@ -18,8 +18,12 @@ export default function SimulatorPage() {
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [sessionActive, setSessionActive] = useState(false);
 
-  const { status, messages, send, close, reconnect } = useWsSession<string, SimMsg>(
-    '/api/v1/governance/simulator/session',
+  const wsUrl = typeof window !== 'undefined'
+    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8000/api/v1/governance/simulator/session`
+    : 'ws://localhost:8000/api/v1/governance/simulator/session';
+
+  const { status, messages, send, close, reconnect } = useWsSession<any, any>(
+    wsUrl,
     {
       enabled: sessionActive,
       autoReconnect: false,
@@ -39,7 +43,17 @@ export default function SimulatorPage() {
     if (!selectedScenario) return;
     setSessionActive(true);
     setTimeout(() => {
-      send('start_scenario', selectedScenario);
+      const scenarioObj = SCENARIOS.find((s) => s.id === selectedScenario);
+      const scenarioName = scenarioObj?.label || selectedScenario;
+      send('start_scenario', {
+        action: 'RUN_SIMULATION',
+        scenario: {
+          id: selectedScenario,
+          name: scenarioName,
+          description: scenarioObj?.description || '',
+        },
+        payload: selectedScenario,
+      });
     }, 800);
   };
 
@@ -154,14 +168,43 @@ export default function SimulatorPage() {
                 Start a scenario to begin the simulation session.
               </div>
             )}
-            {messages.map((m, i) => (
-              <div key={i} style={{ color: m.payload.role === 'model' ? 'var(--color-primary)' : 'var(--color-text-secondary)' }}>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: 10 }}>
-                  [{new Date(m.timestamp).toLocaleTimeString('en-IN')}]
-                </span>{' '}
-                {m.payload.text}
-              </div>
-            ))}
+            {messages.map((m: any, i) => {
+              const text =
+                m?.payload?.text ||
+                (typeof m?.payload === 'string' ? m.payload : '') ||
+                m?.message ||
+                (typeof m?.result === 'object' ? JSON.stringify(m.result, null, 2) : m?.result) ||
+                (typeof m?.payload?.result === 'object' ? JSON.stringify(m.payload.result, null, 2) : m?.payload?.result) ||
+                m?.text ||
+                (m?.error ? `Error: ${m.error}` : '') ||
+                (typeof m?.payload === 'object' ? JSON.stringify(m.payload) : String(m?.payload || ''));
+
+              const isModel =
+                m?.payload?.role === 'model' ||
+                m?.role === 'model' ||
+                m?.type === 'SIMULATION_RESULT' ||
+                m?.type === 'CONNECTED';
+
+              const timeStr = m?.timestamp
+                ? new Date(m.timestamp).toLocaleTimeString('en-IN')
+                : new Date().toLocaleTimeString('en-IN');
+
+              return (
+                <div
+                  key={i}
+                  style={{
+                    color: isModel ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <span style={{ color: 'var(--color-text-muted)', fontSize: 10 }}>
+                    [{timeStr}]
+                  </span>{' '}
+                  {text}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

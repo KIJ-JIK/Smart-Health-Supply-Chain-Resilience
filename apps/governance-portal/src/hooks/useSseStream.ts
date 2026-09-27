@@ -63,6 +63,8 @@ export function useSseStream<T = unknown>(
   const esRef = useRef<EventSource | null>(null);
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const connectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
 
@@ -73,14 +75,70 @@ export function useSseStream<T = unknown>(
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
+  const stopPolling = useCallback(() => {
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+  }, []);
+
+  const startPolling = useCallback(() => {
+    if (!enabledRef.current || pollingTimerRef.current) return;
+
+    const pollFallback = async () => {
+      if (!enabledRef.current) return;
+      try {
+        const endpoints = [
+          '/api/v1/governance/alerts',
+          'http://localhost:8000/api/v1/governance/alerts',
+          'http://localhost:8000/api/v1/alerts',
+        ];
+        let data: any = null;
+        for (const ep of endpoints) {
+          try {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+            const res = await fetch(ep, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+              cache: 'no-store',
+            });
+            if (res.ok) {
+              data = await res.json();
+              break;
+            }
+          } catch {}
+        }
+        if (data) {
+          const payload = (Array.isArray(data) ? data : data.data || data.alerts || data) as T;
+          setLastMessage(payload);
+          setStatus('connected');
+          onMessageRef.current?.(payload);
+        }
+      } catch (err) {
+        console.warn('[useSseStream] Fallback poll error:', err);
+      }
+    };
+
+    // Execute immediately once, then every 10 seconds
+    pollFallback();
+    pollingTimerRef.current = setInterval(pollFallback, 10_000);
+  }, []);
+
   const close = useCallback(() => {
-    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+    stopPolling();
     if (esRef.current) {
       esRef.current.close();
       esRef.current = null;
     }
     setStatus('closed');
-  }, []);
+  }, [stopPolling]);
 
   const connect = useCallback(() => {
     if (!enabledRef.current) return;
@@ -89,16 +147,65 @@ export function useSseStream<T = unknown>(
     if (esRef.current && esRef.current.readyState !== EventSource.CLOSED) return;
 
     setStatus('connecting');
-    const es = new EventSource(url, { withCredentials: true });
+
+    // Build URL with optional token query parameter for non-cookie auth
+    let streamUrl = url;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth_token');
+      if (token && !streamUrl.includes('token=')) {
+        streamUrl = `${streamUrl}${streamUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+      }
+    }
+
+    // Connect without withCredentials: true to avoid W3C CORS wildcard origin issues
+    let es: EventSource;
+    try {
+      es = new EventSource(streamUrl);
+    } catch {
+      setStatus('error');
+      startPolling();
+      return;
+    }
     esRef.current = es;
 
-    es.onopen = () => {
+    // Fallback timer if SSE stays stuck in connecting > 8s
+    if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+    connectionTimeoutRef.current = setTimeout(() => {
+      if (es.readyState === EventSource.CONNECTING) {
+        console.warn('[useSseStream] Connection timeout — activating HTTP fallback polling');
+        startPolling();
+      }
+    }, 8_000);
+
+    const handleOpenSuccess = () => {
       retryCountRef.current = 0;
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+      stopPolling();
       setStatus('connected');
       setError(null);
       onOpenRef.current?.();
     };
 
+    es.onopen = handleOpenSuccess;
+
+    // Listen for custom 'connected' event
+    es.addEventListener('connected', handleOpenSuccess);
+
+    // Listen for custom 'alert' event
+    es.addEventListener('alert', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data) as T;
+        setLastMessage(payload);
+        onMessageRef.current?.(payload);
+      } catch {
+        // Non-JSON or keep-alive
+      }
+    });
+
+    // Default message listener
     es.onmessage = (event: MessageEvent) => {
       try {
         const payload = JSON.parse(event.data) as T;
@@ -113,6 +220,14 @@ export function useSseStream<T = unknown>(
       es.close();
       esRef.current = null;
 
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+
+      // Activate fallback polling on error
+      startPolling();
+
       if (retryCountRef.current < maxRetries) {
         retryCountRef.current += 1;
         const delay = baseDelayMs * 2 ** (retryCountRef.current - 1);
@@ -124,7 +239,7 @@ export function useSseStream<T = unknown>(
         onErrorRef.current?.(event);
       }
     };
-  }, [url, maxRetries, baseDelayMs]);
+  }, [url, maxRetries, baseDelayMs, startPolling, stopPolling]);
 
   const reconnect = useCallback(() => {
     retryCountRef.current = 0;

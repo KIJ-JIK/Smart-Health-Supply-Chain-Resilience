@@ -116,8 +116,14 @@ export default function SupplyChainPage() {
       phc: 0,
     };
     shipments.forEach((s) => {
-      if (s.stage && counts[s.stage] !== undefined) {
-        counts[s.stage]++;
+      const stage: ChainStage = s.stage || (
+        s.status === 'ordered' ? 'manufacturer' :
+        s.status === 'dispatched' ? 'warehouse' :
+        s.status === 'in_transit' ? 'district' :
+        s.status === 'delayed' ? 'state' : 'phc'
+      );
+      if (counts[stage] !== undefined) {
+        counts[stage]++;
       }
     });
     return counts;
@@ -126,8 +132,14 @@ export default function SupplyChainPage() {
   // Filtered shipments
   const filteredShipments = useMemo(() => {
     return shipments.filter((s) => {
+      const stage: ChainStage = s.stage || (
+        s.status === 'ordered' ? 'manufacturer' :
+        s.status === 'dispatched' ? 'warehouse' :
+        s.status === 'in_transit' ? 'district' :
+        s.status === 'delayed' ? 'state' : 'phc'
+      );
       // Stage filter
-      if (selectedStage !== 'all' && s.stage !== selectedStage) {
+      if (selectedStage !== 'all' && stage !== selectedStage) {
         return false;
       }
       // Status filter

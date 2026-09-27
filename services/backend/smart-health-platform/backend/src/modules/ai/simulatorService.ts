@@ -210,6 +210,27 @@ export class SimulatorService {
     }));
   }
 
+  static describeResult(result: SimulationResult): string {
+    const lines = [
+      `Simulation Run: ${result.scenario?.name || 'Custom Scenario'} (${result.mode} mode)`,
+      `Projected days to depletion: ${result.days_to_depletion} days.`,
+      `Critical facilities impacted: ${result.critical_facilities_count}.`,
+      `Projected stockout medicines: ${result.projected_stockout_medicines?.join(', ') || 'None'}.`,
+    ];
+    if (result.recommended_transfers && result.recommended_transfers.length > 0) {
+      lines.push(
+        `Recommended transfers: ` +
+        result.recommended_transfers.map((t) => `${t.qty} units from ${t.from} to ${t.to}`).join('; ')
+      );
+    }
+    if (result.monte_carlo_bands) {
+      lines.push(
+        `Monte Carlo bands — P10: ${result.monte_carlo_bands.p10}d, P50: ${result.monte_carlo_bands.p50}d, P90: ${result.monte_carlo_bands.p90}d.`
+      );
+    }
+    return lines.join('\n');
+  }
+
   /**
    * Attach WebSocket server on /api/v1/governance/simulator/session
    */
@@ -226,14 +247,50 @@ export class SimulatorService {
     });
 
     wss.on('connection', (ws: WebSocket) => {
-      ws.send(JSON.stringify({ type: 'CONNECTED', message: 'Crisis simulator session initialized' }));
+      ws.send(JSON.stringify({
+        id: `conn-${Date.now()}`,
+        type: 'CONNECTED',
+        payload: {
+          role: 'system',
+          text: 'Crisis simulator session initialized. Ready for scenarios.',
+          timestamp: new Date().toISOString(),
+        },
+        message: 'Crisis simulator session initialized',
+      }));
 
       ws.on('message', (data: string) => {
         try {
           const payload = JSON.parse(data.toString());
-          if (payload.action === 'RUN_SIMULATION') {
-            const result = SimulatorService.runLegacySimulation(payload.scenario || { name: 'Custom Scenario' });
-            ws.send(JSON.stringify({ type: 'SIMULATION_RESULT', result }));
+          if (payload.action === 'RUN_SIMULATION' || payload.type === 'start_scenario') {
+            let scenarioInput: ScenarioInput;
+            if (payload.scenario) {
+              scenarioInput = payload.scenario;
+            } else if (payload.type === 'start_scenario') {
+              const scName = typeof payload.payload === 'string'
+                ? payload.payload
+                : (payload.payload?.name || payload.payload?.scenario || 'Crisis Scenario');
+              scenarioInput = {
+                name: scName,
+                supply_reduction_pct: 35,
+                demand_surge_pct: 50,
+                isolation_days: 7,
+                mode: 'deterministic',
+              };
+            } else {
+              scenarioInput = { name: 'Custom Scenario' };
+            }
+            const result = SimulatorService.runLegacySimulation(scenarioInput);
+            const msgId = payload.id || `sim-${Date.now()}`;
+            ws.send(JSON.stringify({
+              id: msgId,
+              type: 'SIMULATION_RESULT',
+              payload: {
+                role: 'model',
+                text: SimulatorService.describeResult(result),
+                timestamp: new Date().toISOString(),
+              },
+              result,
+            }));
           } else {
             ws.send(JSON.stringify({ type: 'ECHO', payload }));
           }

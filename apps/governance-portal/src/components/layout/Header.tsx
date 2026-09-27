@@ -18,9 +18,12 @@ import {
   Bot,
   Flame,
   AlertTriangle,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuthStore, DEV_PERSONAS } from '@/store/authStore';
 import { useAlertStore } from '@/store/alertStore';
+import { useThemeStore } from '@/store/themeStore';
 import { UserRole, Alert } from '@/types';
 import { useSseStream } from '@/hooks/useSseStream';
 
@@ -151,12 +154,13 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
   const { isOpen: isCopilotOpen, toggleCopilot } = useCopilotStore();
   const [alertPanelOpen, setAlertPanelOpen] = useState(false);
   const [portalMenuOpen, setPortalMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { isDark, toggleTheme } = useThemeStore();
 
-  // SSE — wire the live alert stream. In dev the backend isn't live so we
-  // absorb the error silently; mocked alerts come from the store seed.
+  // SSE — wire the live alert stream in both development and production.
   useSseStream<Alert>('/api/v1/governance/alerts/stream', {
     onMessage: (alert) => addAlert(alert),
-    enabled: process.env.NODE_ENV === 'production',
+    enabled: true,
   });
 
   // Build breadcrumb
@@ -402,18 +406,133 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
             )}
           </button>
 
-          {/* User avatar */}
-          <div
-            id="user-avatar"
-            className="user-avatar"
-            title={`${user.name} (${user.role})`}
-            aria-label={`User: ${user.name}`}
+          {/* Theme Toggle Button */}
+          <button
+            id="theme-toggle-btn"
+            className="header-toggle-btn"
+            onClick={toggleTheme}
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Slate Mode'}
+            aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Slate Mode'}
+            style={{
+              padding: '6px 8px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              background: 'var(--color-surface)',
+              color: isDark ? '#FBBF24' : 'var(--color-text-secondary)',
+            }}
           >
-            {initials}
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+
+          {/* User Avatar Circle with Hover/Click Expansion (Pic 2 Standard) */}
+          <div
+            className="relative"
+            style={{ position: 'relative' }}
+            onMouseEnter={() => setUserMenuOpen(true)}
+            onMouseLeave={() => setUserMenuOpen(false)}
+          >
+            <button
+              id="user-avatar-btn"
+              onClick={() => setUserMenuOpen((o) => !o)}
+              aria-label={`User: ${user.name}`}
+              className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center ring-2 ring-blue-500/20 shadow-sm transition-all focus:outline-none"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                backgroundColor: '#2563EB',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                fontSize: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              DR
+            </button>
+
+            {userMenuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '100%',
+                  marginTop: 8,
+                  width: 280,
+                  backgroundColor: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 12,
+                  boxShadow: 'var(--shadow-lg)',
+                  padding: 14,
+                  zIndex: 110,
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 10, borderBottom: '1px solid var(--color-border)' }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      backgroundColor: '#2563EB',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    DR
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+                      {user.role.replace('_', ' ').toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-secondary)' }}>
+                    <span style={{ color: 'var(--color-text-muted)' }}>Jurisdiction:</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                      {user.role === 'national_admin' ? 'National Command (India)' : user.role === 'state_admin' ? 'State Node' : 'District Node'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-secondary)' }}>
+                    <span style={{ color: 'var(--color-text-muted)' }}>Email:</span>
+                    <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{user.email}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--color-text-secondary)' }}>
+                    <span style={{ color: 'var(--color-text-muted)' }}>Session:</span>
+                    <span style={{ color: '#10B981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981' }} />
+                      Authorized · Live
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Global Platform Switcher */}
-          <div className="relative" style={{ position: 'relative' }}>
+          {/* Global Platform Switcher with Hover/Click Expansion (Pic 2 Standard) */}
+          <div
+            className="relative"
+            style={{ position: 'relative' }}
+            onMouseEnter={() => setPortalMenuOpen(true)}
+            onMouseLeave={() => setPortalMenuOpen(false)}
+          >
             <button
               id="global-portal-switcher-btn"
               onClick={() => setPortalMenuOpen((o) => !o)}
@@ -421,19 +540,22 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5,
-                padding: '0 10px',
+                gap: 6,
+                padding: '5px 10px',
                 width: 'auto',
                 fontSize: 12,
                 fontWeight: 600,
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)',
+                color: 'var(--color-text-primary)',
+                cursor: 'pointer',
               }}
               title="Switch Platform Portals"
             >
               <Layers size={14} style={{ color: '#06B6D4' }} />
               <span className="hidden sm:inline">Portals</span>
-              <ChevronDown size={11} />
+              <ChevronDown size={11} style={{ color: 'var(--color-text-muted)' }} />
             </button>
 
             {portalMenuOpen && (
@@ -443,13 +565,14 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   right: 0,
                   top: '100%',
                   marginTop: 6,
-                  width: 250,
-                  background: '#0F172A',
-                  border: '1px solid #1E293B',
+                  width: 270,
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: 12,
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.6)',
+                  boxShadow: 'var(--shadow-lg)',
                   padding: 8,
-                  zIndex: 100,
+                  zIndex: 110,
+                  textAlign: 'left',
                 }}
               >
                 <div
@@ -457,99 +580,113 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                     padding: '6px 8px',
                     fontSize: 10,
                     fontFamily: 'monospace',
-                    color: '#94A3B8',
+                    color: 'var(--color-text-muted)',
                     textTransform: 'uppercase',
-                    borderBottom: '1px solid #1E293B',
-                    marginBottom: 4,
+                    letterSpacing: '0.05em',
+                    borderBottom: '1px solid var(--color-border)',
+                    marginBottom: 6,
                   }}
                 >
-                  Cross-Portal Navigation
+                  Platform Portals Switcher
                 </div>
-                <a
-                  href="/"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    color: '#E2E8F0',
-                    textDecoration: 'none',
-                    fontSize: 12,
-                  }}
-                  className="hover:bg-slate-800"
-                >
-                  <Building2 size={15} style={{ color: '#06B6D4' }} />
-                  <div>
-                    <div style={{ fontWeight: 600 }}>AURA Hub</div>
-                    <div style={{ fontSize: 10, color: '#64748B' }}>Platform Gateway</div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <a
+                    href="/"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      color: 'var(--color-text-primary)',
+                      textDecoration: 'none',
+                      fontSize: 12,
+                      transition: 'background 150ms',
+                    }}
+                    className="hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <Building2 size={16} style={{ color: '#06B6D4', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 600 }}>AURA Hub</div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Platform Gateway & Overview</div>
+                    </div>
+                  </a>
+
+                  <a
+                    href={process.env.NEXT_PUBLIC_PHC_URL ?? 'http://localhost:5173'}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      color: 'var(--color-text-primary)',
+                      textDecoration: 'none',
+                      fontSize: 12,
+                      transition: 'background 150ms',
+                    }}
+                    className="hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <HeartPulse size={16} style={{ color: '#14B8A6', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 600 }}>AURA Point</div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Frontline Clinic Workbench</div>
+                    </div>
+                  </a>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      color: 'var(--color-primary)',
+                      background: 'var(--color-primary-light)',
+                      fontSize: 12,
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                    }}
+                  >
+                    <Building2 size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>AURA Vantage</span>
+                        <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#2563EB', color: '#FFF', fontWeight: 700 }}>
+                          Active
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 10, opacity: 0.85 }}>Governance Command Center</div>
+                    </div>
                   </div>
-                </a>
-                <a
-                  href={process.env.NEXT_PUBLIC_PHC_URL ?? '/phc'}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    color: '#E2E8F0',
-                    textDecoration: 'none',
-                    fontSize: 12,
-                  }}
-                  className="hover:bg-slate-800"
-                >
-                  <HeartPulse size={15} style={{ color: '#14B8A6' }} />
-                  <div>
-                    <div style={{ fontWeight: 600 }}>AURA Point</div>
-                    <div style={{ fontSize: 10, color: '#64748B' }}>Frontline Clinic Workbench</div>
-                  </div>
-                </a>
-                <a
-                  href="/governance"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    color: '#3B82F6',
-                    textDecoration: 'none',
-                    fontSize: 12,
-                    background: 'rgba(59,130,246,0.12)',
-                  }}
-                >
-                  <Building2 size={15} style={{ color: '#3B82F6' }} />
-                  <div>
-                    <div style={{ fontWeight: 600 }}>AURA Vantage</div>
-                    <div style={{ fontSize: 10, color: '#60A5FA' }}>Active · Governance Command</div>
-                  </div>
-                </a>
-                <a
-                  href={process.env.NEXT_PUBLIC_BRICS_URL ?? '/brics'}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    color: '#E2E8F0',
-                    textDecoration: 'none',
-                    fontSize: 12,
-                  }}
-                  className="hover:bg-slate-800"
-                >
-                  <Globe2 size={15} style={{ color: '#F59E0B' }} />
-                  <div>
-                    <div style={{ fontWeight: 600 }}>AURA Sovereign</div>
-                    <div style={{ fontSize: 10, color: '#64748B' }}>BRICS Federated AI Grid</div>
-                  </div>
-                </a>
+
+                  <a
+                    href={process.env.NEXT_PUBLIC_BRICS_URL ?? 'http://localhost:3001'}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      color: 'var(--color-text-primary)',
+                      textDecoration: 'none',
+                      fontSize: 12,
+                      transition: 'background 150ms',
+                    }}
+                    className="hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <Globe2 size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 600 }}>AURA Sovereign</div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>BRICS Federated AI Grid</div>
+                    </div>
+                  </a>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Sign Out Button */}
+          {/* Sign Out Button (Pic 2 Standard: Red Icon with Rounded Border) */}
           <button
             id="header-logout-btn"
             className="header-toggle-btn"
@@ -557,9 +694,20 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
               logout();
               router.push('/login');
             }}
-            style={{ color: '#EF4444' }}
-            title="Sign Out to Login"
-            aria-label="Sign Out to Login"
+            style={{
+              padding: '6px 8px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid #FECDD3',
+              color: '#EF4444',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              background: 'transparent',
+              transition: 'background 150ms, border-color 150ms',
+            }}
+            title="Sign Out (End Governance Session)"
+            aria-label="Sign Out"
           >
             <LogOut size={15} />
           </button>

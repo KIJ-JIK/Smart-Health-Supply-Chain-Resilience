@@ -65,7 +65,7 @@ router.get('/governance/alerts', requireAuth, async (req: Request, res: Response
 });
 
 // Handler for alerts SSE streaming
-function handleAlertsStream(req: Request, res: Response) {
+async function handleAlertsStream(req: Request, res: Response) {
   // SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -75,10 +75,26 @@ function handleAlertsStream(req: Request, res: Response) {
 
   const clientId = randomUUID();
 
-  // Send a hello ping so the client knows the connection is live
-  res.write(`event: connected\ndata: ${JSON.stringify({ clientId, ts: new Date().toISOString() })}\n\n`);
+  // Send initial connected frame without named event tag so default es.onmessage receives it
+  res.write(`data: ${JSON.stringify({ type: 'connected', clientId, ts: new Date().toISOString() })}\n\n`);
 
   AlertsSseManager.add(clientId, res);
+
+  // Immediately write initial batch of recent open alerts so the client receives active alerts immediately
+  try {
+    const claims = req.tenantClaims || {
+      role: 'national_admin',
+      sub: '00000000-0000-0000-0000-000000000000',
+    };
+    const openAlerts = await AlertsService.listAlerts(claims, { status: 'open', limit: 25 });
+    if (openAlerts && openAlerts.length > 0) {
+      for (const alert of openAlerts) {
+        res.write(`data: ${JSON.stringify(alert)}\n\n`);
+      }
+    }
+  } catch (err: any) {
+    console.error('[SSE] Failed to send initial open alerts:', err?.message);
+  }
 
   // Heartbeat every 25 s to prevent proxy timeouts
   const heartbeat = setInterval(() => {

@@ -74,6 +74,57 @@
   --font-brand: 'Outfit', system-ui, sans-serif;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Global design tokens — dark theme (Institutional Slate / Deep Navy)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root.dark, .dark {
+  /* ── Brand palette ── */
+  --color-primary:       #3b82f6;
+  --color-primary-light: rgba(59, 130, 246, 0.15);
+  --color-primary-dark:  #1d4ed8;
+  --color-accent:        #10b981;
+  --color-accent-light:  rgba(16, 185, 129, 0.15);
+
+  /* ── Semantic status ── */
+  --color-ok:       #34d399;
+  --color-warn:     #fbbf24;
+  --color-critical: #f87171;
+  --color-info:     #60a5fa;
+
+  --color-ok-bg:       rgba(16, 185, 129, 0.12);
+  --color-warn-bg:     rgba(245, 158, 11, 0.12);
+  --color-critical-bg: rgba(239, 68, 68, 0.12);
+  --color-info-bg:     rgba(59, 130, 246, 0.12);
+
+  /* ── Surface (Institutional Slate — matches PHC Portal) ── */
+  --color-bg:           #090d16;
+  --color-surface:      #0f172a;
+  --color-surface-2:    #1e293b;
+  --color-border:       #1e293b;
+  --color-border-light: #334155;
+
+  /* ── Text ── */
+  --color-text-primary:   #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted:     #64748b;
+  --color-text-inverse:   #0f172a;
+
+  /* ── Sidebar ── */
+  --sidebar-bg:     #0b121e;
+  --sidebar-border: #1e293b;
+
+  /* ── Header ── */
+  --header-bg:      #0b121e;
+  --header-border:  #1e293b;
+
+  /* ── Shadows ── */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.6);
+}
+
 /* ── Reset ─────────────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
