@@ -221,6 +221,28 @@ export const PrescriptionScannerModal: React.FC<PrescriptionScannerModalProps> =
           </div>
         </div>
 
+        {/* Image Preview & Optical Scanner HUD */}
+        {previewUrl && (
+          <div className="relative rounded-xl overflow-hidden border border-neutral-200 bg-neutral-900 max-h-56 flex items-center justify-center">
+            <img
+              src={previewUrl}
+              alt="Prescription Preview"
+              className="max-h-56 w-auto object-contain opacity-85"
+            />
+            {/* Laser Scan Line Overlay */}
+            {isAnalyzing && (
+              <>
+                <div className="animate-laser-scan" />
+                <div className="absolute inset-0 bg-blue-500/10 backdrop-blur-[1px] pointer-events-none" />
+                <div className="absolute top-2 left-2 font-mono text-[10px] text-blue-300 bg-slate-950/80 px-2 py-0.5 rounded border border-blue-500/40 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                  OPTICAL SCAN IN PROGRESS
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Upload or Drop Area */}
         <div className="border-2 border-dashed border-neutral-300 hover:border-blue-500 rounded-xl p-4 text-center bg-neutral-50/50 transition-colors">
           <input
@@ -243,10 +265,10 @@ export const PrescriptionScannerModal: React.FC<PrescriptionScannerModalProps> =
 
         {/* Loading Spinner */}
         {isAnalyzing && (
-          <div className="p-6 rounded-xl bg-blue-50/50 border border-blue-200 flex flex-col items-center justify-center gap-2 text-blue-800">
-            <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+          <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 flex flex-col items-center justify-center gap-1.5 text-blue-900 shadow-sm">
+            <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
             <div className="text-xs font-semibold">Gemini Vision is analyzing medical prescription...</div>
-            <div className="text-[11px] text-blue-600 font-mono">OCR extraction & PostgreSQL inventory cross-referencing in progress</div>
+            <div className="text-[10px] text-blue-600 font-mono">OCR extraction & PostgreSQL inventory cross-referencing in progress</div>
           </div>
         )}
 

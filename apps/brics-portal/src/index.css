@@ -95,3 +95,22 @@
            transition-colors duration-150;
   }
 }
+
+/* ── Radar Pulse & Sovereign Shimmer ─────────────────────────────────────── */
+@keyframes radarSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes enclavePulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.15); opacity: 0.4; }
+}
+
+.animate-radar-sweep {
+  animation: radarSweep 6s linear infinite;
+}
+
+.animate-enclave-pulse {
+  animation: enclavePulse 2.4s ease-in-out infinite;
+}

@@ -110,6 +110,12 @@ body {
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+@keyframes meshDrift {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.08); }
+  66% { transform: translate(-25px, 20px) scale(0.95); }
+}
+
 .animate-shimmer {
   animation: shimmer 2.5s infinite linear;
 }
@@ -118,6 +124,30 @@ body {
 }
 .animate-swoosh {
   animation: swoosh 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-mesh-slow {
+  animation: meshDrift 18s ease-in-out infinite;
+}
+
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  top: var(--mouse-y, -200px);
+  left: var(--mouse-x, -200px);
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, var(--spotlight-color, rgba(16, 185, 129, 0.12)) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.spotlight-card:hover::before {
+  opacity: 1;
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────────────────────── */
