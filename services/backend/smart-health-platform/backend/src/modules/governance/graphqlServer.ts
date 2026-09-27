@@ -14,8 +14,8 @@ const schemaText = `
   scalar DateTime
   scalar JSON
 
-  enum ScopeLevel { NATIONAL STATE DISTRICT PHC }
-  enum RiskLevel { LOW MODERATE HIGH CRITICAL }
+  enum ScopeLevel { NATIONAL STATE DISTRICT PHC national state district phc }
+  enum RiskLevel { LOW MODERATE HIGH CRITICAL low moderate high critical }
   enum RoundStatus { PENDING IN_PROGRESS AGGREGATING COMPLETED FAILED ACTIVE REJECTED active aggregating completed rejected }
 
   input ScopeInput { level: ScopeLevel stateId: ID districtId: ID phcId: ID }
@@ -349,10 +349,13 @@ const schemaText = `
     countryId: String!
     countryCode: String
     federationRoundId: ID
+    roundId: ID
     roundNumber: Int
     epsilonThisRound: Float
     deltaThisRound: Float
     cumulativeEpsilon: Float!
+    epsilonTotal: Float
+    allocatedEpsilon: Float
     budgetLimit: Float!
     clipNorm: Float
     noiseMultiplier: Float
@@ -360,6 +363,8 @@ const schemaText = `
     submitted: Boolean
     withinBudget: Boolean
     recordedAt: DateTime
+    timestamp: DateTime
+    reason: String
     epsilonConsumed: Float
   }
 
@@ -1164,18 +1169,22 @@ export const rootResolvers = {
           country_id AS "countryId",
           country_id AS "countryCode",
           federation_round_id AS "federationRoundId",
+          federation_round_id AS "roundId",
           COALESCE(round_number, 1)::int AS "roundNumber",
           COALESCE(epsilon_this_round, epsilon_consumed, 0)::float AS "epsilonThisRound",
+          COALESCE(epsilon_this_round, epsilon_consumed, 0)::float AS "allocatedEpsilon",
           COALESCE(epsilon_consumed, epsilon_this_round, 0)::float AS "epsilonConsumed",
           COALESCE(delta_this_round, 0.00001)::float AS "deltaThisRound",
           COALESCE(cumulative_epsilon, 0)::float AS "cumulativeEpsilon",
+          COALESCE(cumulative_epsilon, 0)::float AS "epsilonTotal",
           COALESCE(budget_limit, 5.0)::float AS "budgetLimit",
           clip_norm::float AS "clipNorm",
           noise_multiplier::float AS "noiseMultiplier",
           local_sample_count::int AS "localSampleCount",
           COALESCE(submitted, true) AS submitted,
           COALESCE(within_budget, true) AS "withinBudget",
-          COALESCE(recorded_at, created_at, now()) AS "recordedAt"
+          COALESCE(recorded_at, created_at, now()) AS "recordedAt",
+          COALESCE(recorded_at, created_at, now()) AS "timestamp"
         FROM privacy_budget_ledger
         ORDER BY COALESCE(recorded_at, created_at) DESC NULLS LAST
       `);
