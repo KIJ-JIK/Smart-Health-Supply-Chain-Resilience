@@ -93,18 +93,29 @@ const COLOR_MAP = {
   routeScheduled: [217, 119, 6, 220] as RGBA, // Amber
 };
 
+export interface StateHotspot {
+  stateId: string;
+  stateName: string;
+  count: number;
+  criticalCount: number;
+  highRiskCount: number;
+  centroid: [number, number]; // [lng, lat]
+  phcs: PhcGisFeature[];
+}
+
 export function GisMap() {
   const { user } = useAuthStore();
   const { level, stateId, districtId, phcId, setPhc } = useScopeStore();
 
   // Active overlay visibility toggles
   const [layers, setLayers] = useState<GisLayerVisibility>(DEFAULT_LAYERS);
+  const [clusterMode, setClusterMode] = useState<'auto' | 'clusters' | 'pins'>('auto');
   const [selectedPhc, setSelectedPhc] = useState<PhcGisFeature | null>(null);
   const [hoveredInfo, setHoveredInfo] = useState<{
     x: number;
     y: number;
-    object: PhcGisFeature | PhcSupplyRoute | null;
-    type: 'phc' | 'route';
+    object: PhcGisFeature | PhcSupplyRoute | StateHotspot | null;
+    type: 'phc' | 'route' | 'hotspot';
   } | null>(null);
 
   // Pulse timer for emergency and live routes animation
@@ -373,9 +384,158 @@ export function GisMap() {
     });
   }, [isDistrictAdmin, isStateAdmin, user.districtId, user.stateId, districtId, stateId]);
 
+  // ── Compute State-level Hotspot Aggregations for LOD / National Zoom ────────
+  const stateHotspots: StateHotspot[] = useMemo(() => {
+    const map: Record<string, StateHotspot> = {};
+    for (const phc of scopedPhcs) {
+      const sId = phc.stateId || 'unknown';
+      if (!map[sId]) {
+        map[sId] = {
+          stateId: sId,
+          stateName: phc.stateName || 'State',
+          count: 0,
+          criticalCount: 0,
+          highRiskCount: 0,
+          centroid: [0, 0],
+          phcs: [],
+        };
+      }
+      const h = map[sId];
+      h.count++;
+      if (phc.riskLevel === 'CRITICAL') h.criticalCount++;
+      if (phc.riskLevel === 'HIGH') h.highRiskCount++;
+      h.centroid[0] += phc.coordinates[0];
+      h.centroid[1] += phc.coordinates[1];
+      h.phcs.push(phc);
+    }
+    return Object.values(map).map((h) => ({
+      ...h,
+      centroid: [
+        Math.round((h.centroid[0] / h.count) * 10000) / 10000,
+        Math.round((h.centroid[1] / h.count) * 10000) / 10000,
+      ] as [number, number],
+    }));
+  }, [scopedPhcs]);
+
+  const showHotspots =
+    clusterMode === 'clusters' ||
+    (clusterMode === 'auto' && viewState.zoom < 6.2 && !activeStateId && !activeDistrictId);
+
   // ── Deck.gl Layer Implementations ──────────────────────────────────────────
   const deckLayers = useMemo(() => {
     const layersList = [];
+
+    // ── HOTSPOT MODE (Zoom < 6.2 on National Overview): State Aggregate Clusters ──
+    if (showHotspots && stateHotspots.length > 0) {
+      // 1. Hotspot outer pulsing glow
+      layersList.push(
+        new ScatterplotLayer<StateHotspot>({
+          id: 'layer-state-hotspot-halos',
+          data: stateHotspots,
+          pickable: false,
+          getPosition: (d) => d.centroid,
+          getRadius: (d) => (28 + Math.min(d.count * 2.5, 35)) * (d.criticalCount > 0 ? pulseScale : 1),
+          radiusUnits: 'pixels',
+          getFillColor: (d) =>
+            d.criticalCount > 0
+              ? [220, 38, 38, 45]
+              : d.highRiskCount > 0
+              ? [234, 88, 12, 40]
+              : [37, 99, 235, 35],
+          getLineColor: (d) =>
+            d.criticalCount > 0
+              ? [220, 38, 38, 180]
+              : d.highRiskCount > 0
+              ? [234, 88, 12, 160]
+              : [37, 99, 235, 140],
+          getLineWidth: 2,
+          stroked: true,
+        })
+      );
+
+      // 2. Hotspot solid circular badge
+      layersList.push(
+        new ScatterplotLayer<StateHotspot>({
+          id: 'layer-state-hotspot-cores',
+          data: stateHotspots,
+          pickable: true,
+          getPosition: (d) => d.centroid,
+          getRadius: (d) => 20 + Math.min(d.count * 2, 25),
+          radiusUnits: 'pixels',
+          getFillColor: (d) =>
+            d.criticalCount > 0
+              ? [220, 38, 38, 230]
+              : d.highRiskCount > 0
+              ? [217, 119, 6, 230]
+              : [26, 86, 219, 230],
+          getLineColor: [255, 255, 255, 255],
+          getLineWidth: 2.5,
+          stroked: true,
+          onClick: (info) => {
+            if (info.object) {
+              const h = info.object;
+              setViewState((prev) => ({
+                ...prev,
+                longitude: h.centroid[0],
+                latitude: h.centroid[1],
+                zoom: 7.5,
+              }));
+            }
+          },
+          onHover: (info) => {
+            if (info.object) {
+              setHoveredInfo({
+                x: info.x,
+                y: info.y,
+                object: info.object,
+                type: 'hotspot',
+              });
+            } else {
+              setHoveredInfo(null);
+            }
+          },
+        })
+      );
+
+      // 3. Hotspot facility count inside core
+      layersList.push(
+        new TextLayer<StateHotspot>({
+          id: 'layer-state-hotspot-counts',
+          data: stateHotspots,
+          pickable: false,
+          getPosition: (d) => d.centroid,
+          getText: (d) => d.count.toString(),
+          getSize: 13,
+          getColor: [255, 255, 255, 255],
+          getTextAnchor: 'middle',
+          getAlignmentBaseline: 'center',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontWeight: 800,
+        })
+      );
+
+      // 4. Hotspot State Name Label below core
+      layersList.push(
+        new TextLayer<StateHotspot>({
+          id: 'layer-state-hotspot-labels',
+          data: stateHotspots,
+          pickable: false,
+          getPosition: (d) => d.centroid,
+          getText: (d) => d.stateName,
+          getSize: 12,
+          getColor: [15, 23, 42, 240],
+          getTextAnchor: 'middle',
+          getAlignmentBaseline: 'top',
+          getPixelOffset: [0, 26],
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontWeight: 700,
+          backgroundColor: [255, 255, 255, 220],
+          backgroundPadding: [4, 2],
+        })
+      );
+
+      return layersList;
+    }
 
     // ── 8. Supply Chain Layer (Lines with Direction from PHC to PHC only) ─────
     if (layers.supply_chain && scopedRoutes.length > 0) {
@@ -562,8 +722,7 @@ export function GisMap() {
       );
     }
 
-    // ── 3. Medicine Layer: Shortage / Stockout Shading ────────────────────────
-    // ── 1. PHC Layer: Base Facility Marker Point ──────────────────────────────
+    // ── 3. Medicine Layer & 1. PHC Facility Marker Point ──────────────────────
     if (layers.phc || layers.medicine) {
       layersList.push(
         new ScatterplotLayer<PhcGisFeature>({
@@ -632,7 +791,7 @@ export function GisMap() {
     }
 
     return layersList;
-  }, [layers, scopedPhcs, scopedRoutes, pulseScale]);
+  }, [layers, scopedPhcs, scopedRoutes, pulseScale, showHotspots, stateHotspots]);
 
   // Toggle single layer
   const toggleLayer = (layerKey: keyof GisLayerVisibility) => {
@@ -952,6 +1111,94 @@ export function GisMap() {
         </div>
       </div>
 
+      {/* ── Cluster & Level-of-Detail (LOD) Controls (Floating Top Right) ──── */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 14,
+          right: selectedPhc ? 380 : 14,
+          zIndex: 10,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(8px)',
+          borderRadius: '10px',
+          border: '1px solid #cbd5e1',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          padding: '6px 10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          transition: 'right 0.2s ease',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#475569' }}>
+          <span>View Mode:</span>
+        </div>
+        <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: 6, padding: 2, gap: 2 }}>
+          <button
+            onClick={() => setClusterMode('auto')}
+            style={{
+              padding: '4px 8px',
+              fontSize: 11,
+              fontWeight: clusterMode === 'auto' ? 700 : 500,
+              borderRadius: 4,
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: clusterMode === 'auto' ? '#1a56db' : 'transparent',
+              color: clusterMode === 'auto' ? '#ffffff' : '#64748b',
+              transition: 'all 0.15s ease',
+            }}
+            title="Auto-aggregate into State Hotspots at national zoom and expand into Facility Pins on zoom-in"
+          >
+            Auto (LOD)
+          </button>
+          <button
+            onClick={() => setClusterMode('clusters')}
+            style={{
+              padding: '4px 8px',
+              fontSize: 11,
+              fontWeight: clusterMode === 'clusters' ? 700 : 500,
+              borderRadius: 4,
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: clusterMode === 'clusters' ? '#1a56db' : 'transparent',
+              color: clusterMode === 'clusters' ? '#ffffff' : '#64748b',
+              transition: 'all 0.15s ease',
+            }}
+            title="Always show aggregated State Hotspots"
+          >
+            Hotspots
+          </button>
+          <button
+            onClick={() => setClusterMode('pins')}
+            style={{
+              padding: '4px 8px',
+              fontSize: 11,
+              fontWeight: clusterMode === 'pins' ? 700 : 500,
+              borderRadius: 4,
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: clusterMode === 'pins' ? '#1a56db' : 'transparent',
+              color: clusterMode === 'pins' ? '#ffffff' : '#64748b',
+              transition: 'all 0.15s ease',
+            }}
+            title="Always show individual PHC facility pins"
+          >
+            Pins
+          </button>
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: '#64748b',
+            paddingLeft: 6,
+            borderLeft: '1px solid #e2e8f0',
+            fontWeight: 600,
+          }}
+        >
+          Zoom: {viewState.zoom.toFixed(1)}x
+        </div>
+      </div>
+
       {/* ── Bounding Confinement Notice (For district_admin or state_admin) ── */}
       {isDistrictAdmin && (
         <div
@@ -995,10 +1242,42 @@ export function GisMap() {
             border: '1px solid #e2e8f0',
             fontSize: 12,
             color: '#0f172a',
-            maxWidth: 280,
+            maxWidth: 300,
           }}
         >
-          {hoveredInfo.type === 'phc' ? (
+          {hoveredInfo.type === 'hotspot' ? (
+            (() => {
+              const hotspot = hoveredInfo.object as StateHotspot;
+              return (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <MapPin size={14} color="#1a56db" />
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{hotspot.stateName} State Cluster</div>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>
+                    {hotspot.count} Monitored Health Facilities (PHCs)
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11, backgroundColor: '#f8fafc', padding: '6px 8px', borderRadius: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#dc2626', fontWeight: 600 }}>Critical Risk:</span>
+                      <strong>{hotspot.criticalCount} facilities</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#d97706', fontWeight: 600 }}>High Risk:</span>
+                      <strong>{hotspot.highRiskCount} facilities</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#0e9f6e', fontWeight: 600 }}>Normal / Low Risk:</span>
+                      <strong>{hotspot.count - hotspot.criticalCount - hotspot.highRiskCount} facilities</strong>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 10, color: '#1a56db', fontWeight: 600 }}>
+                    Click cluster to zoom in & reveal individual facility pins
+                  </div>
+                </div>
+              );
+            })()
+          ) : hoveredInfo.type === 'phc' ? (
             (() => {
               const phc = hoveredInfo.object as PhcGisFeature;
               return (
