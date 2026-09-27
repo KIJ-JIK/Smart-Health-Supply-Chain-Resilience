@@ -69,20 +69,20 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`hidden lg:flex flex-col h-full bg-[#0b1e36] text-white border-r border-slate-700/60 select-none z-30 transition-all duration-200 shrink-0 ${
+      className={`hidden lg:flex flex-col h-full bg-white text-slate-900 border-r border-slate-200 select-none z-30 transition-all duration-200 shrink-0 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Sidebar Top Identity Header */}
-      <div className="h-14 px-3 border-b border-slate-700/60 flex items-center justify-between bg-[#0b1e36]">
+      <div className="h-14 px-3 border-b border-slate-100 flex items-center justify-between">
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
             <AuraLogo size={24} />
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-slate-100 tracking-tight leading-tight truncate">
+              <span className="text-xs font-bold text-slate-900 tracking-tight leading-tight truncate">
                 AURA Sovereign
               </span>
-              <span className="text-[10px] text-amber-400 font-medium tracking-wide uppercase truncate">
+              <span className="text-[10px] text-slate-500 font-medium tracking-wide uppercase truncate">
                 BRICS Federated Grid
               </span>
             </div>
@@ -90,7 +90,7 @@ export function Sidebar() {
         )}
         <button
           onClick={toggleSidebar}
-          className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors mx-auto"
+          className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors mx-auto"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
@@ -101,7 +101,7 @@ export function Sidebar() {
       {/* Navigation Groups List */}
       <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-4">
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} className="space-y-1">
+          <div key={group.label} className="space-y-0.5">
             {!collapsed && (
               <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 {group.label}
@@ -122,16 +122,20 @@ export function Sidebar() {
                 <Link
                   key={item.key}
                   to={item.href}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors ${
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors relative ${
                     isActive
-                      ? 'bg-blue-800 text-white font-bold border-l-4 border-blue-400 shadow-sm'
-                      : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                      ? 'bg-slate-50 text-slate-900 font-semibold'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                   title={collapsed ? item.label : undefined}
                 >
+                  {/* Active left bar */}
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-slate-900 rounded-r-full" />
+                  )}
                   <Icon
                     className={`w-4 h-4 shrink-0 ${
-                      isActive ? 'text-white' : 'text-slate-400'
+                      isActive ? 'text-slate-900' : 'text-slate-400'
                     }`}
                   />
                   {!collapsed && (
@@ -144,12 +148,12 @@ export function Sidebar() {
                         if (!badgeText) return null;
                         return (
                           <span
-                            className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                            className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border ${
                               item.badgeVariant === 'emerald'
-                                ? 'bg-emerald-600 text-white'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                 : item.badgeVariant === 'amber'
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-blue-600 text-white'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
                             }`}
                           >
                             {badgeText}
@@ -165,19 +169,23 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Bottom Node Security Banner */}
+      {/* Bottom: Enclave status + Platform link */}
       {!collapsed && (
-        <div className="p-3 m-2 rounded-md bg-[#08172b] border border-slate-700/60 text-slate-300 space-y-1">
-          <div className="flex items-center justify-between text-[11px] font-semibold">
-            <span className="flex items-center gap-1.5 text-emerald-400">
-              <Radio className="w-3.5 h-3.5" />
-              Sovereign FedAvg
+        <div className="p-3 border-t border-slate-100 space-y-2">
+          <div className="flex items-center justify-between text-[11px] text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="font-medium">FedAvg · 5/5 Ready</span>
             </span>
-            <span className="text-[10px] font-mono text-emerald-400 font-bold">5/5 Ready</span>
+            <span className="font-mono text-slate-400">ε=1.42</span>
           </div>
-          <p className="text-[10px] text-slate-400 leading-tight">
-            Paillier homomorphic encryption and Gaussian DP noise active.
-          </p>
+          <a
+            href="http://localhost:3000"
+            className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-700 transition-colors"
+          >
+            <Globe2 className="w-3 h-3" />
+            <span>← Platform Hub</span>
+          </a>
         </div>
       )}
     </aside>

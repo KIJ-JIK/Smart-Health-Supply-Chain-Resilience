@@ -59,35 +59,32 @@ export default function PlatformHomePage() {
       }}
       className="min-h-screen w-full text-neutral-900 flex flex-col font-sans select-none relative overflow-hidden"
     >
-      {/* ── AMBIENT MESH GRADIENT GLOWS (Haikei/Neuform Inspired) ── */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-emerald-300/20 blur-3xl pointer-events-none animate-mesh-slow" />
-      <div className="absolute top-1/3 -right-40 w-[450px] h-[450px] rounded-full bg-blue-300/20 blur-3xl pointer-events-none animate-mesh-slow" style={{ animationDelay: '-6s' }} />
-      <div className="absolute -bottom-40 left-1/4 w-[500px] h-[500px] rounded-full bg-indigo-300/15 blur-3xl pointer-events-none animate-mesh-slow" style={{ animationDelay: '-12s' }} />
 
-      {/* ── MINIMALIST FLOATING NAVBAR ── */}
-      <header className="sticky top-4 z-40 max-w-6xl mx-auto w-[94%] my-2">
-        <div className="flex items-center justify-between px-5 py-3 rounded-full bg-white/90 border border-neutral-200/90 backdrop-blur-md shadow-sm hover:border-neutral-300 transition-all">
+
+      {/* ── FULL-WIDTH SOLID HEADER ── */}
+      <header className="sticky top-0 z-40 w-full bg-white border-b border-neutral-200">
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <AuraLogo size={32} />
+            <AuraLogo size={28} />
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-sm tracking-tight text-neutral-900">
+              <span className="font-bold text-sm tracking-tight text-neutral-900">
                 AURA
               </span>
-              <span className="text-neutral-400 font-mono text-xs">/</span>
-              <span className="text-xs text-neutral-600 font-semibold tracking-tight">Health Platform</span>
+              <span className="text-neutral-300 font-mono text-xs">/</span>
+              <span className="text-xs text-neutral-600 font-medium tracking-tight">Health Platform</span>
             </div>
           </div>
 
           {/* Action */}
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-[11px] font-mono text-neutral-600">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-50 border border-neutral-200 text-[11px] font-mono text-neutral-600">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {currentTime || 'LIVE SYNC'}
             </span>
             <Link
               href="/login"
-              className="px-4 py-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+              className="px-4 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium transition-all flex items-center gap-1.5 active:scale-95"
             >
               <span>Sign In</span>
               <ChevronRight className="w-3.5 h-3.5" />

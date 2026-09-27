@@ -15,3 +15,5 @@ export type { DataFreshnessLabelProps } from './DataFreshnessLabel';
 
 export { StalePhcSyncBanner } from './StalePhcSyncBanner';
 
+export { EmptyState } from './EmptyState';
+export type { } from './EmptyState';

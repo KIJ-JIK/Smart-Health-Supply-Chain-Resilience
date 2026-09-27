@@ -60,7 +60,7 @@ export function MedicineDetailModal({
 
   // Combine 12-week history with 6-week forecast into a unified trend chart
   const unifiedChartData = [
-    ...medicine.consumptionHistory12Weeks.map((h) => ({
+    ...(medicine.consumptionHistory12Weeks || []).map((h) => ({
       period: h.week,
       historicalActual: h.actualDispensed,
       wastage: h.wastage,
@@ -68,7 +68,7 @@ export function MedicineDetailModal({
       lowerBound: undefined as number | undefined,
       upperBound: undefined as number | undefined,
     })),
-    ...medicine.forecastPoints.map((f) => ({
+    ...(medicine.forecastPoints || []).map((f) => ({
       period: f.period,
       historicalActual: undefined as number | undefined,
       wastage: undefined as number | undefined,
@@ -262,36 +262,36 @@ export function MedicineDetailModal({
         >
           <div>
             <div style={{ fontSize: 11, color: '#64748b' }}>Current Stock</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: scopeMetrics.stock === 0 ? '#dc2626' : '#0f172a' }}>
-              {scopeMetrics.stock.toLocaleString()} {medicine.unit}
+            <div style={{ fontSize: 18, fontWeight: 700, color: (scopeMetrics.stock ?? 0) === 0 ? '#dc2626' : '#0f172a' }}>
+              {(scopeMetrics.stock ?? 0).toLocaleString()} {medicine.unit}
             </div>
           </div>
 
           <div>
             <div style={{ fontSize: 11, color: '#64748b' }}>Coverage Remaining</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: scopeMetrics.coverageDays < 3 ? '#dc2626' : '#0e9f6e' }}>
-              {scopeMetrics.coverageDays} Days
+            <div style={{ fontSize: 18, fontWeight: 700, color: (scopeMetrics.coverageDays ?? 0) < 3 ? '#dc2626' : '#0e9f6e' }}>
+              {scopeMetrics.coverageDays ?? 0} Days
             </div>
           </div>
 
           <div>
             <div style={{ fontSize: 11, color: '#64748b' }}>Projected Stockout</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: scopeMetrics.projectedDays <= 3 ? '#dc2626' : '#d97706' }}>
-              {scopeMetrics.projectedDays === 0 ? 'Zero Stock Today' : `In ${scopeMetrics.projectedDays} Days`}
+            <div style={{ fontSize: 18, fontWeight: 700, color: (scopeMetrics.projectedDays ?? 0) <= 3 ? '#dc2626' : '#d97706' }}>
+              {(scopeMetrics.projectedDays ?? 0) === 0 ? 'Zero Stock Today' : `In ${scopeMetrics.projectedDays ?? 0} Days`}
             </div>
           </div>
 
           <div>
             <div style={{ fontSize: 11, color: '#64748b' }}>Nearest Batch Expiry</div>
             <div style={{ fontSize: 15, fontWeight: 600, color: '#475569', marginTop: 2 }}>
-              {new Date(medicine.nearestExpiry).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+              {new Date(medicine.nearestExpiry || Date.now()).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
             </div>
           </div>
 
           <div>
             <div style={{ fontSize: 11, color: '#64748b' }}>Wastage Rate</div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: medicine.wastageRatePct > 2 ? '#dc2626' : '#0e9f6e', marginTop: 2 }}>
-              {medicine.wastageRatePct}% ({medicine.wastageUnits} units)
+            <div style={{ fontSize: 15, fontWeight: 600, color: (medicine.wastageRatePct ?? 0) > 2 ? '#dc2626' : '#0e9f6e', marginTop: 2 }}>
+              {medicine.wastageRatePct ?? 0}% ({medicine.wastageUnits ?? 0} units)
             </div>
           </div>
         </div>
@@ -363,7 +363,7 @@ export function MedicineDetailModal({
             }}
           >
             <Package size={15} />
-            <span>Batch & Expiry Ledger ({medicine.batches.length})</span>
+            <span>Batch & Expiry Ledger ({(medicine.batches || []).length})</span>
           </button>
 
           <button
@@ -383,7 +383,7 @@ export function MedicineDetailModal({
             }}
           >
             <Truck size={15} />
-            <span>Stock Movements ({medicine.recentMovements.length})</span>
+            <span>Stock Movements ({(medicine.recentMovements || []).length})</span>
           </button>
         </div>
 

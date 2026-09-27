@@ -290,7 +290,7 @@ body {
   text-decoration: none;
   color: var(--color-text-secondary);
   font-size: 13px;
-  font-weight: 450;
+  font-weight: 400;
   transition: background var(--transition-fast), color var(--transition-fast);
   white-space: nowrap;
   overflow: hidden;

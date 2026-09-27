@@ -541,34 +541,54 @@ export function getMedicineScopeMetrics(
   item: MedicineDetailItem,
   level: 'national' | 'state' | 'district' | 'phc'
 ) {
+  if (!item) {
+    return {
+      stock: 0,
+      coverageDays: 0,
+      status: 'adequate' as const,
+      projectedDays: 0,
+    };
+  }
+
+  // Gracefully handle both naming schemes: stockNational vs nationalStock
+  const stockNat = item.stockNational ?? (item as any).nationalStock ?? 0;
+  const stockSt = item.stockState ?? (item as any).stateStock ?? stockNat;
+  const stockDist = item.stockDistrict ?? (item as any).districtStock ?? stockSt;
+  const stockP = item.stockPhc ?? (item as any).phcStock ?? stockDist;
+
+  const covNat = item.coverageDaysNational ?? (item as any).nationalCoverageDays ?? (stockNat > 0 ? Math.round(stockNat / 80) : 0);
+  const covSt = item.coverageDaysState ?? (item as any).stateCoverageDays ?? covNat;
+  const covDist = item.coverageDaysDistrict ?? (item as any).districtCoverageDays ?? covSt;
+  const covP = item.coverageDaysPhc ?? (item as any).phcCoverageDays ?? covDist;
+
   switch (level) {
     case 'phc':
       return {
-        stock: item.stockPhc,
-        coverageDays: item.coverageDaysPhc,
-        status: item.status,
-        projectedDays: item.projectedShortageDays,
+        stock: stockP,
+        coverageDays: covP,
+        status: item.status || (stockP === 0 ? 'stockout' : covP < 3 ? 'critical' : covP < 7 ? 'low' : 'adequate'),
+        projectedDays: item.projectedShortageDays ?? covP,
       };
     case 'district':
       return {
-        stock: item.stockDistrict,
-        coverageDays: item.coverageDaysDistrict,
-        status: item.coverageDaysDistrict < 7 ? (item.coverageDaysDistrict < 3 ? 'critical' : 'low') : 'adequate',
-        projectedDays: item.coverageDaysDistrict,
+        stock: stockDist,
+        coverageDays: covDist,
+        status: covDist < 7 ? (covDist < 3 ? 'critical' : 'low') : 'adequate',
+        projectedDays: item.projectedShortageDays ?? covDist,
       };
     case 'state':
       return {
-        stock: item.stockState,
-        coverageDays: item.coverageDaysState,
-        status: item.coverageDaysState < 10 ? 'low' : 'adequate',
-        projectedDays: item.coverageDaysState,
+        stock: stockSt,
+        coverageDays: covSt,
+        status: covSt < 10 ? 'low' : 'adequate',
+        projectedDays: item.projectedShortageDays ?? covSt,
       };
     default:
       return {
-        stock: item.stockNational,
-        coverageDays: item.coverageDaysNational,
-        status: item.coverageDaysNational < 15 ? 'low' : 'adequate',
-        projectedDays: item.coverageDaysNational,
+        stock: stockNat,
+        coverageDays: covNat,
+        status: covNat < 15 ? 'low' : 'adequate',
+        projectedDays: item.projectedShortageDays ?? covNat,
       };
   }
 }

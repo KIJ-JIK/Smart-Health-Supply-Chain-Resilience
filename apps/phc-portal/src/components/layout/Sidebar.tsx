@@ -31,7 +31,11 @@ const groups = [
   },
   {
     label: 'Governance & Sync',
-    items: ['requests', 'alerts', 'emergency', 'sync', 'testing', 'settings'] as PHCNavTab[],
+    items: ['requests', 'alerts', 'emergency', 'sync', 'settings'] as PHCNavTab[],
+  },
+  {
+    label: 'Developer Tools',
+    items: ['testing'] as PHCNavTab[],
   },
 ];
 
@@ -104,24 +108,24 @@ export const Sidebar: React.FC = () => {
         aria-current={isActive ? 'page' : undefined}
         aria-label={labelMap[id]}
         className={`
-          relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium
-          transition-all duration-200 group select-none
+          relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium
+          transition-all duration-150 group select-none
           ${isActive
-            ? 'bg-gradient-to-r from-primary-600/20 to-primary-500/10 text-primary-400 font-semibold nav-active-glow'
-            : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'
+            ? 'bg-slate-50 text-slate-900 font-semibold nav-active-glow'
+            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
           }
           ${collapsed ? 'justify-center px-2' : ''}
         `}
       >
         {/* Active left bar */}
         {isActive && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-gradient-to-b from-primary-400 to-primary-600 rounded-r-full" />
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-slate-900 rounded-r-full" />
         )}
 
         <Icon
-          className={`shrink-0 transition-all duration-200 group-hover:scale-110 ${
+          className={`shrink-0 transition-all duration-150 ${
             collapsed ? 'w-5 h-5' : 'w-4 h-4'
-          } ${isActive ? 'text-primary-400' : 'text-slate-500 group-hover:text-slate-300'}`}
+          } ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-700'}`}
         />
 
         {!collapsed && (
@@ -131,9 +135,9 @@ export const Sidebar: React.FC = () => {
         {/* Badge */}
         {badge && !collapsed && (
           <span className={`ml-auto shrink-0 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-black ${
-            badge.variant === 'red'   ? 'bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/30' :
-            badge.variant === 'amber' ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30' :
-                                        'bg-primary-500/20 text-primary-400 ring-1 ring-primary-500/30'
+            badge.variant === 'red'   ? 'bg-red-50 text-red-600 ring-1 ring-red-200' :
+            badge.variant === 'amber' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' :
+                                        'bg-teal-50 text-teal-700 ring-1 ring-teal-200'
           }`}>
             {badge.count}
           </span>
@@ -142,7 +146,7 @@ export const Sidebar: React.FC = () => {
         {/* Collapsed dot badge */}
         {badge && collapsed && (
           <span className={`absolute top-1 right-1 w-2 h-2 rounded-full ${
-            badge.variant === 'red' ? 'bg-rose-500' : badge.variant === 'amber' ? 'bg-amber-500' : 'bg-primary-500'
+            badge.variant === 'red' ? 'bg-red-500' : badge.variant === 'amber' ? 'bg-amber-500' : 'bg-teal-600'
           }`} />
         )}
       </button>
@@ -155,19 +159,19 @@ export const Sidebar: React.FC = () => {
       aria-label="Main navigation"
       className={`
         hidden lg:flex flex-col
-        bg-[#0a0f1a] border-r border-[#1e2d3d]
+        bg-white border-r border-slate-200
         shrink-0 select-none overflow-hidden
         transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
         ${collapsed ? 'w-[68px]' : 'w-[240px]'}
       `}
     >
       {/* Logo */}
-      <div className={`flex items-center gap-3 p-4 border-b border-[#1e2d3d] ${collapsed ? 'justify-center' : ''}`}>
+      <div className={`flex items-center gap-3 p-4 border-b border-slate-100 ${collapsed ? 'justify-center' : ''}`}>
         <AuraLogo size={28} />
         {!collapsed && (
           <div className="overflow-hidden">
-            <div className="text-sm font-bold text-white leading-tight whitespace-nowrap">AURA Point</div>
-            <div className="text-[10px] text-teal-400 font-medium whitespace-nowrap">Frontline Clinic Workbench</div>
+            <div className="text-sm font-bold text-slate-900 leading-tight whitespace-nowrap">AURA Point</div>
+            <div className="text-[10px] text-slate-500 font-medium whitespace-nowrap">Frontline Clinic Workbench</div>
           </div>
         )}
       </div>
@@ -177,12 +181,12 @@ export const Sidebar: React.FC = () => {
         {groups.map((group, gi) => (
           <div key={group.label} className={gi > 0 ? 'pt-4' : ''}>
             {!collapsed && (
-              <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">
+              <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
                 {group.label}
               </div>
             )}
             {collapsed && gi > 0 && (
-              <div className="my-2 mx-2 border-t border-[#1e2d3d]" />
+              <div className="my-2 mx-2 border-t border-slate-100" />
             )}
             <div className="space-y-0.5">
               {group.items.map((id) => <NavBtn key={id} id={id} />)}
@@ -192,17 +196,17 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className={`p-3 border-t border-[#1e2d3d] flex items-center gap-2 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+      <div className={`p-3 border-t border-slate-100 flex items-center gap-2 ${collapsed ? 'justify-center' : 'justify-between'}`}>
         {!collapsed && (
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 live-dot" />
-            <span className="text-[11px] text-slate-600 font-mono">v1.0.4</span>
+            <span className="text-[11px] text-slate-400 font-mono">v1.0.4</span>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all"
         >
           {collapsed
             ? <ChevronRight className="w-4 h-4" />

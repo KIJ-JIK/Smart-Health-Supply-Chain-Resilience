@@ -241,16 +241,16 @@ export function Sidebar({ collapsed }: SidebarProps) {
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       {/* Top progress bar indicator on navigation */}
       {isPending && (
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-teal-400 to-indigo-500 animate-pulse z-50" />
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-slate-900 animate-pulse z-50" />
       )}
 
       {/* Logo */}
-      <div className="sidebar-logo flex items-center gap-2.5 px-4 py-3 border-b border-slate-800/80">
+      <div className="sidebar-logo flex items-center gap-2.5 px-4 py-3 border-b border-slate-100">
         <AuraLogo size={24} />
         {!collapsed && (
           <div className="sidebar-logo-text flex flex-col">
-            <span className="sidebar-logo-title font-bold text-slate-100 text-sm tracking-tight">AURA Vantage</span>
-            <span className="sidebar-logo-sub text-[10px] text-teal-400 font-medium tracking-wide uppercase">Governance Command</span>
+            <span className="sidebar-logo-title font-bold text-slate-900 text-sm tracking-tight">AURA Vantage</span>
+            <span className="sidebar-logo-sub text-[10px] text-slate-500 font-medium tracking-wide uppercase">Governance Command</span>
           </div>
         )}
       </div>
