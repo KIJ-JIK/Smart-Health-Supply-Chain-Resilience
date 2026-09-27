@@ -23,17 +23,17 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="app-layout">
       <Sidebar collapsed={sidebarCollapsed} />
-      <div className="main-wrapper flex flex-col justify-between min-h-screen">
-        <div>
-          <Header
-            sidebarCollapsed={sidebarCollapsed}
-            onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
-          />
-          <main className="main-content" id="main-content">
+      <div className="main-wrapper">
+        <Header
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
+        />
+        <main className="main-content flex-1 overflow-y-auto" id="main-content">
+          <div className="min-h-[calc(100vh-180px)]">
             {children}
-          </main>
-        </div>
-        <SiteFooter />
+          </div>
+          <SiteFooter className="mt-8 -mx-6 -mb-6" />
+        </main>
       </div>
 
       {/* Docked Copilot Side Panel available on all pages without context switch */}
