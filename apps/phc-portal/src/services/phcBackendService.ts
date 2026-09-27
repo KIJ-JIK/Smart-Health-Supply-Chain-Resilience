@@ -246,20 +246,23 @@ export class PhcBackendService {
 
       // 9. Resource Requests
       if (data.requests && data.requests.length > 0) {
-        const mappedRequests: ResourceRequest[] = data.requests.map((r: any) => ({
-          id: r.id,
-          phc_id: r.phc_id,
-          request_type: r.request_type,
-          item_ref: r.item_ref || undefined,
-          item_name: r.item_name || `${(r.request_type || 'SUPPLY').toUpperCase()} Requisition`,
-          quantity: r.quantity || 100,
-          priority: r.priority || 'routine',
-          reason: r.reason || 'manual',
-          source: r.source || 'manual',
-          status: r.status || 'pending',
-          notes: r.notes || '',
-          created_at: r.created_at || new Date().toISOString(),
-        }));
+      const mappedRequests: ResourceRequest[] = data.requests.map((r: any) => {
+          const p = r.payload || {};
+          return {
+            id: r.id,
+            phc_id: r.phc_id,
+            request_type: r.request_type,
+            item_ref: p.item_ref || p.medicine_id || undefined,
+            item_name: p.item_name || p.name || `${(r.request_type || 'SUPPLY').toUpperCase()} Requisition`,
+            quantity: p.quantity || r.quantity || 100,
+            priority: r.priority || p.priority || 'routine',
+            reason: p.reason || 'manual',
+            source: p.source || 'manual',
+            status: r.status || 'pending',
+            notes: p.notes || '',
+            created_at: r.created_at || new Date().toISOString(),
+          };
+        });
         await db.resource_requests.bulkPut(mappedRequests);
       }
 

@@ -22,8 +22,7 @@ phcPortalRouter.get('/phc/facilities', async (_req: Request, res: Response) => {
         p.occupied_beds, 
         p.emergency_beds,
         p.isolation_beds,
-        p.oxygen_cylinders_available AS oxygen_cylinders, 
-        p.oxygen_concentrators,
+        p.oxygen_cylinders_available AS oxygen_cylinders,
         p.operational_status
       FROM phc_facilities p
       LEFT JOIN districts d ON p.district_id = d.id
@@ -172,7 +171,6 @@ phcPortalRouter.get('/phc/:phcId/live-data', async (req: Request, res: Response)
         p.emergency_beds, 
         p.isolation_beds, 
         p.oxygen_cylinders_available, 
-        p.oxygen_concentrators,
         p.operational_status,
         p.created_at
        FROM phc_facilities p
@@ -248,7 +246,7 @@ phcPortalRouter.get('/phc/:phcId/live-data', async (req: Request, res: Response)
 
     // Resource Requests
     const reqRes = await pool.query(
-      `SELECT id, phc_id, request_type, item_ref, quantity, priority, reason, source, status, item_name, notes, created_at::text AS created_at
+      `SELECT id, phc_id, request_type, priority, status, created_at::text AS created_at, decided_at::text AS decided_at, payload
        FROM resource_requests
        WHERE phc_id = $1
        ORDER BY created_at DESC
