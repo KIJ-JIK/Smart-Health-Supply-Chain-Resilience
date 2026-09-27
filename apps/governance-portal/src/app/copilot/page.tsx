@@ -117,7 +117,7 @@ function CopilotChatContent() {
       <div className="page-header">
         <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Bot size={24} style={{ color: 'var(--color-primary)' }} />
-          Health Governance AI Copilot
+          AURA AI Copilot
         </h1>
         <p className="page-subtitle">
           Natural language root-cause analysis, epidemiological intelligence, and decision support

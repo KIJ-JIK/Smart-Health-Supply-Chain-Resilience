@@ -166,7 +166,7 @@ export function CopilotDockedPanel() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
-                  Health Governance Copilot
+                  AURA AI Copilot
                 </span>
                 <span
                   style={{
@@ -178,11 +178,11 @@ export function CopilotDockedPanel() {
                     borderRadius: 4,
                   }}
                 >
-                  §44 Contract
+                  Online
                 </span>
               </div>
               <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>
-                Model: MedCopilot-v2.4-Gov
+                AURA Health Intelligence Grid
               </div>
             </div>
           </div>
