@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Map,
@@ -189,6 +189,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuthStore();
   const navSections = useNavSections();
 
@@ -197,9 +198,26 @@ export function Sidebar({ collapsed }: SidebarProps) {
     () => Object.fromEntries(navSections.map((s) => [s.key, true])),
   );
 
+  // Proactively pre-warm and prefetch all section routes in the background
+  React.useEffect(() => {
+    const allHrefs = navSections.flatMap((s) => s.items.map((i) => i.href));
+    // Warm up Next.js router cache for all routes
+    allHrefs.forEach((href) => {
+      try {
+        router.prefetch(href);
+      } catch (_) {}
+    });
+  }, [router, navSections]);
+
   const toggleSection = (key: string) => {
     if (collapsed) return; // Can't collapse sections when sidebar is collapsed
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleWarmLink = (href: string) => {
+    try {
+      router.prefetch(href);
+    } catch (_) {}
   };
 
   return (
@@ -274,6 +292,9 @@ export function Sidebar({ collapsed }: SidebarProps) {
                       key={item.href}
                       href={item.href}
                       prefetch={true}
+                      onMouseEnter={() => handleWarmLink(item.href)}
+                      onTouchStart={() => handleWarmLink(item.href)}
+                      onFocus={() => handleWarmLink(item.href)}
                       className={`nav-item${isActive ? ' active' : ''}`}
                       title={collapsed ? item.label : undefined}
                     >
