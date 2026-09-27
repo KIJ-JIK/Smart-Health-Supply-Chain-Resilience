@@ -352,7 +352,7 @@ export function CrisisDashboardLayout() {
                 TIER 3
               </span>
               <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                Resource Deficits (Masterplan §29 Critical Deficit Standards)
+                Resource Deficits &amp; Allocation Buffer
               </h2>
             </div>
             <Link href="/resources" style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>

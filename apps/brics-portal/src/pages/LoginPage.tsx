@@ -23,7 +23,7 @@ export function LoginPage() {
 
   const [selectedCountryCode, setSelectedCountryCode] = useState<string>('IN');
   const [delegateId, setDelegateId] = useState<string>('sumaiya.khan@smarthealth.gov.in');
-  const [passphrase, setPassphrase] = useState<string>('••••••••••••');
+  const [passphrase, setPassphrase] = useState<string>('');
   const [showPassphrase, setShowPassphrase] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -46,12 +46,30 @@ export function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMsg('');
 
+    if (!delegateId.trim()) {
+      setErrorMsg('Please enter your delegate ID or email.');
+      return;
+    }
+
+    if (!passphrase || !passphrase.trim()) {
+      setErrorMsg('Please enter your cryptographic clearance passphrase.');
+      return;
+    }
+
+    if (passphrase.trim() !== 'brics-fedavg-2026' && passphrase.trim() !== 'brics@2026') {
+      setErrorMsg('Invalid passphrase. Access is restricted to accredited sovereign node delegates. (Default: brics-fedavg-2026)');
+      return;
+    }
+
+    setIsLoading(true);
+
     setTimeout(() => {
+      const persona = BRICS_PERSONAS[selectedCountryCode] || BRICS_PERSONAS['IN'];
       login(selectedCountryCode, {
-        email: delegateId,
+        ...persona,
+        email: delegateId.trim() || persona.email,
       });
       setIsLoading(false);
       navigate('/');
@@ -181,6 +199,17 @@ export function LoginPage() {
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 cursor-pointer"
                   >
                     {showPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-neutral-500 font-mono mt-1.5">
+                  <span>Default Passphrase:</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassphrase('brics-fedavg-2026')}
+                    className="font-mono text-teal-700 hover:underline font-semibold bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200 cursor-pointer"
+                    title="Click to fill default passphrase"
+                  >
+                    brics-fedavg-2026
                   </button>
                 </div>
               </div>

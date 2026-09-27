@@ -33,7 +33,7 @@ export default function GovernanceLoginPage() {
   const [selectedStateId, setSelectedStateId] = useState<string>('a0000001-0000-0000-0000-000000000001');
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>('b0000002-0000-0000-0000-000000000001');
   const [email, setEmail] = useState<string>('nat-admin@gov.in');
-  const [password, setPassword] = useState<string>('••••••••••••');
+  const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -115,22 +115,48 @@ export default function GovernanceLoginPage() {
     }, 200);
   };
 
-  // Preset quick fill & immediate login
+  // Preset quick fill
   const applyPreset = (personaKey: 'national_admin' | 'state_admin' | 'district_admin') => {
     const p = DEV_PERSONAS[personaKey];
+    setErrorMsg('');
+    setPassword('admin@2026');
     if (personaKey === 'national_admin') {
-      performLogin('national', null, null, p.email || 'nat-admin@gov.in');
+      setSelectedLevel('national');
+      setEmail(p.email || 'nat-admin@gov.in');
     } else if (personaKey === 'state_admin') {
-      performLogin('state', p.stateId || 'a0000001-0000-0000-0000-000000000001', null, p.email || 'mh-admin@gov.in');
+      setSelectedLevel('state');
+      setSelectedStateId(p.stateId || 'a0000001-0000-0000-0000-000000000001');
+      setEmail(p.email || 'mh-admin@gov.in');
     } else {
-      performLogin('district', p.stateId || 'a0000001-0000-0000-0000-000000000001', p.districtId || 'b0000002-0000-0000-0000-000000000001', p.email || 'pune-admin@gov.in');
+      setSelectedLevel('district');
+      setSelectedStateId(p.stateId || 'a0000001-0000-0000-0000-000000000001');
+      setSelectedDistrictId(p.districtId || 'b0000002-0000-0000-0000-000000000001');
+      setEmail(p.email || 'pune-admin@gov.in');
     }
   };
 
-  // Handle submission
+  // Handle submission with credential verification
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    performLogin(selectedLevel, selectedStateId, selectedDistrictId, email);
+    setErrorMsg('');
+
+    if (!email.trim()) {
+      setErrorMsg('Please enter your officer ID or email.');
+      return;
+    }
+
+    if (!password || !password.trim()) {
+      setErrorMsg('Please enter your officer password.');
+      return;
+    }
+
+    // Require correct credentials
+    if (password.trim() !== 'admin@2026' && password.trim() !== 'gov@2026') {
+      setErrorMsg('Invalid password. Access is restricted to authorized health governance officers. (Default password: admin@2026)');
+      return;
+    }
+
+    performLogin(selectedLevel, selectedStateId, selectedDistrictId, email.trim());
   };
 
   return (
@@ -331,6 +357,17 @@ export default function GovernanceLoginPage() {
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-neutral-500 mt-1.5">
+                  <span>Default Officer Password:</span>
+                  <button
+                    type="button"
+                    onClick={() => setPassword('admin@2026')}
+                    className="font-mono text-teal-700 hover:underline font-semibold bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200 cursor-pointer"
+                    title="Click to fill default password"
+                  >
+                    admin@2026
                   </button>
                 </div>
               </div>

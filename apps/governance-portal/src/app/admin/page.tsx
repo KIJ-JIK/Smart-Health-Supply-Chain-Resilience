@@ -431,7 +431,7 @@ function AdminContent() {
                       }}
                     />
                     <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                      Masterplan §69 default: 21 days. Below this generates an early warning replenishment notice.
+                      Recommended standard: 21 days. Below this generates an early warning replenishment notice.
                     </span>
                   </div>
 
@@ -454,7 +454,7 @@ function AdminContent() {
                       }}
                     />
                     <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                      Masterplan §69 default: 7 days. Escalates directly to P1 immediate deterministic alert.
+                      Recommended standard: 7 days. Escalates directly to P1 immediate deterministic alert.
                     </span>
                   </div>
 
@@ -558,7 +558,7 @@ function AdminContent() {
                       }}
                     />
                     <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                      Masterplan §69 default: 1.2 days. High-priority deterministic alert requiring tanker dispatch.
+                      Recommended standard: 1.2 days. High-priority deterministic alert requiring tanker dispatch.
                     </span>
                   </div>
 
@@ -658,7 +658,7 @@ function AdminContent() {
                     </div>
                     <div style={{ color: 'var(--color-text-secondary)' }}>
                       Forecast predictions with confidence below <strong>70%</strong> are automatically marked with
-                      &ldquo;AI-flagged, review recommended&rdquo; per Masterplan §44 Copilot Contract.
+                      &ldquo;AI-flagged, review recommended&rdquo; per AI Governance Standards.
                     </div>
                   </div>
                 </div>

@@ -302,7 +302,7 @@ export default function ForecastsPage() {
                       alignItems: 'center',
                       gap: 4,
                     }}
-                    title="Permanent Model Versioning Caption (Masterplan §33 Requirement)"
+                    title="Model Architecture and Deployment Version"
                   >
                     <Cpu size={12} color="#2563eb" />
                     <span>

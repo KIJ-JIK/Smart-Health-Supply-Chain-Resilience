@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -156,6 +156,32 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
   const [portalMenuOpen, setPortalMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useThemeStore();
+
+  const portalMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (portalMenuRef.current && !portalMenuRef.current.contains(event.target as Node)) {
+        setPortalMenuOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setPortalMenuOpen(false);
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   // SSE — wire the live alert stream in both development and production.
   useSseStream<Alert>('/api/v1/governance/alerts/stream', {
@@ -411,12 +437,11 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
             {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </button>
 
-          {/* User Avatar Circle with Hover/Click Expansion (Pic 2 Standard) */}
+          {/* User Avatar Circle with Click Toggle */}
           <div
+            ref={userMenuRef}
             className="relative"
             style={{ position: 'relative' }}
-            onMouseEnter={() => setUserMenuOpen(true)}
-            onMouseLeave={() => setUserMenuOpen(false)}
           >
             <button
               id="user-avatar-btn"
@@ -509,12 +534,11 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
             )}
           </div>
 
-          {/* Global Platform Switcher with Hover/Click Expansion (Pic 2 Standard) */}
+          {/* Global Platform Switcher with Click Toggle (Stays open until clicked outside) */}
           <div
+            ref={portalMenuRef}
             className="relative"
             style={{ position: 'relative' }}
-            onMouseEnter={() => setPortalMenuOpen(true)}
-            onMouseLeave={() => setPortalMenuOpen(false)}
           >
             <button
               id="global-portal-switcher-btn"
@@ -576,6 +600,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <a
                     href="/"
+                    onClick={() => setPortalMenuOpen(false)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -593,14 +618,15 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>AURA Hub</span>
-                        <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Gateway →</span>
+                        <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Landing Page →</span>
                       </div>
-                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Platform Gateway & Overview</div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Platform Overview & Gateway</div>
                     </div>
                   </a>
 
                   <a
                     href="http://localhost:5173/login"
+                    onClick={() => setPortalMenuOpen(false)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -618,7 +644,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>AURA Point</span>
-                        <span style={{ fontSize: 10, color: '#0D9488', fontWeight: 600 }}>Login Tab →</span>
+                        <span style={{ fontSize: 10, color: '#0D9488', fontWeight: 600 }}>Login Page →</span>
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Frontline Clinic Workbench</div>
                     </div>
@@ -626,6 +652,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
 
                   <Link
                     href="/login"
+                    onClick={() => setPortalMenuOpen(false)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -644,7 +671,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                       <div style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>AURA Vantage</span>
                         <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#2563EB', color: '#FFF', fontWeight: 700 }}>
-                          Active · Login Tab →
+                          Login Page →
                         </span>
                       </div>
                       <div style={{ fontSize: 10, opacity: 0.85 }}>Governance Command Center</div>
@@ -653,6 +680,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
 
                   <a
                     href="http://localhost:3001/login"
+                    onClick={() => setPortalMenuOpen(false)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -670,7 +698,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>AURA Sovereign</span>
-                        <span style={{ fontSize: 10, color: '#D97706', fontWeight: 600 }}>Login Tab →</span>
+                        <span style={{ fontSize: 10, color: '#D97706', fontWeight: 600 }}>Login Page →</span>
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>BRICS Federated AI Grid</div>
                     </div>

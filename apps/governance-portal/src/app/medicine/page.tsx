@@ -452,7 +452,7 @@ export default function MedicinePage() {
           </div>
 
           <div style={{ fontSize: '11px', color: '#64748b' }}>
-            Click any row to open the <strong>AI Uncertainty Band Forecast (Masterplan §88.9)</strong>
+            Click any row to open the <strong>AI Uncertainty Band Forecast</strong>
           </div>
         </div>
 

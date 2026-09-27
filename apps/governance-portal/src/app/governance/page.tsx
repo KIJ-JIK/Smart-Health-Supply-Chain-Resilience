@@ -98,15 +98,20 @@ export default function CommandCenterPage() {
   // Fetch GraphQL based on active role/scope
   const isNationalScope = level === 'national' || (!stateId && !districtId);
   const isStateScope = level === 'state' || (Boolean(stateId) && !districtId);
+  const isDistrictScope = !isNationalScope && !isStateScope;
 
-  const { data: nationalData, loading: nationalLoading } = useQuery(NATIONAL_OVERVIEW);
+  const { data: nationalData, loading: nationalLoading } = useQuery(NATIONAL_OVERVIEW, {
+    skip: !isNationalScope,
+  });
 
   const { data: stateData, loading: stateLoading } = useQuery(STATE_OVERVIEW, {
     variables: { stateId: stateId ?? user.stateId ?? 'state-mh' },
+    skip: !isStateScope,
   });
 
   const { data: districtData, loading: districtLoading } = useQuery(DISTRICT_OVERVIEW, {
     variables: { districtId: districtId ?? user.districtId ?? 'dist-pune' },
+    skip: !isDistrictScope,
   });
 
   const { data: redistData } = useQuery(REDISTRIBUTION_RECOMMENDATIONS, {

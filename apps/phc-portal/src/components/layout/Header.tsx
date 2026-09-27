@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Wifi, WifiOff, RefreshCw, AlertTriangle, Zap, Moon, Sun, UserCircle2, HeartPulse,
   Layers, ChevronDown, LogOut, Building2, Globe2,
@@ -29,6 +29,32 @@ export const Header: React.FC = () => {
   const { currentStaff, selectedFacility, logout, isAuthenticated } = usePhcAuthStore();
   const [portalMenuOpen, setPortalMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const portalMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (portalMenuRef.current && !portalMenuRef.current.contains(event.target as Node)) {
+        setPortalMenuOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setPortalMenuOpen(false);
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   const facility = useLiveQuery(() => db.phc_facilities.toCollection().first());
 
@@ -125,16 +151,15 @@ export const Header: React.FC = () => {
               : <Moon className="w-3.5 h-3.5" />}
           </button>
 
-          {/* User Avatar Circle with Hover/Click Expansion (Pic 2 Standard) */}
+          {/* User Avatar Circle with Click Toggle */}
           <div
+            ref={userMenuRef}
             className="relative"
-            onMouseEnter={() => setUserMenuOpen(true)}
-            onMouseLeave={() => setUserMenuOpen(false)}
           >
             <button
               onClick={() => setUserMenuOpen((o) => !o)}
               aria-label="User profile and session details"
-              className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center ring-2 ring-blue-500/20 shadow-sm transition-all focus:outline-none"
+              className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center ring-2 ring-blue-500/20 shadow-sm transition-all focus:outline-none cursor-pointer"
             >
               DR
             </button>
@@ -175,15 +200,14 @@ export const Header: React.FC = () => {
             )}
           </div>
 
-          {/* Global Platform Switcher with Hover/Click Expansion (Pic 2 Standard) */}
+          {/* Global Platform Switcher with Click Toggle (Stays open until clicked outside) */}
           <div
+            ref={portalMenuRef}
             className="relative"
-            onMouseEnter={() => setPortalMenuOpen(true)}
-            onMouseLeave={() => setPortalMenuOpen(false)}
           >
             <button
               onClick={() => setPortalMenuOpen((o) => !o)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors shadow-sm cursor-pointer"
               title="Switch Platform Portals"
             >
               <Layers className="w-4 h-4 text-cyan-500" />
@@ -198,43 +222,49 @@ export const Header: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <a
-                    href={(import.meta as any).env?.VITE_GOVERNANCE_URL ?? 'http://localhost:3000/'}
+                    href="http://localhost:3000/"
+                    onClick={() => setPortalMenuOpen(false)}
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
                     <Building2 className="w-4 h-4 text-cyan-500 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between">
                         <span>AURA Hub</span>
-                        <span className="text-[10px] text-slate-400 group-hover:text-cyan-500 transition-colors">Gateway →</span>
+                        <span className="text-[10px] text-slate-400 group-hover:text-cyan-500 transition-colors">Landing Page →</span>
                       </div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Platform Gateway & Overview</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Platform Overview & Gateway</div>
                     </div>
                   </a>
 
-                  <button
-                    onClick={logout}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60 hover:bg-teal-100/70 dark:hover:bg-teal-900/50 transition-colors text-left"
+                  <a
+                    href="/login"
+                    onClick={() => {
+                      setPortalMenuOpen(false);
+                      logout();
+                    }}
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60 hover:bg-teal-100/70 dark:hover:bg-teal-900/50 transition-colors text-left"
                     title="Switch facility or re-authenticate"
                   >
                     <HeartPulse className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold flex items-center justify-between">
                         <span>AURA Point</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-200/70 dark:bg-teal-800/80 font-mono text-teal-900 dark:text-teal-100 font-bold">Active · Login Tab →</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-200/70 dark:bg-teal-800/80 font-mono text-teal-900 dark:text-teal-100 font-bold">Login Page →</span>
                       </div>
                       <div className="text-[10px] text-teal-700 dark:text-teal-400/80">Frontline Clinic Workbench</div>
                     </div>
-                  </button>
+                  </a>
 
                   <a
                     href="http://localhost:3000/login"
+                    onClick={() => setPortalMenuOpen(false)}
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
                     <Building2 className="w-4 h-4 text-blue-500 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between">
                         <span>AURA Vantage</span>
-                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Login Tab →</span>
+                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Login Page →</span>
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">Governance Command Center</div>
                     </div>
@@ -242,13 +272,14 @@ export const Header: React.FC = () => {
 
                   <a
                     href="http://localhost:3001/login"
+                    onClick={() => setPortalMenuOpen(false)}
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
                     <Globe2 className="w-4 h-4 text-amber-500 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between">
                         <span>AURA Sovereign</span>
-                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Login Tab →</span>
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Login Page →</span>
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">BRICS Federated AI Grid</div>
                     </div>

@@ -38,7 +38,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedRole, setSelectedRole] = useState<'medical_officer' | 'pharmacist' | 'staff_nurse'>('medical_officer');
   const [staffId, setStaffId] = useState<string>('');
-  const [pin, setPin] = useState<string>('clinic@2026');
+  const [pin, setPin] = useState<string>('');
   const [showPin, setShowPin] = useState<boolean>(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -162,8 +162,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    if (!pin || pin.trim().length < 4) {
-      setErrorMsg('Please enter a valid Security PIN / Password (minimum 4 characters).');
+    if (!pin || pin.trim() !== 'clinic@2026') {
+      setErrorMsg('Invalid Security PIN. Access is restricted to authorized clinic staff. (Default: clinic@2026)');
       return;
     }
 
@@ -486,8 +486,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                     {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <div className="text-[11px] text-neutral-500 font-mono mt-1">
-                  Default Staff Access PIN: <code className="bg-neutral-100 px-1 py-0.5 rounded text-neutral-800 font-semibold">clinic@2026</code>
+                <div className="flex items-center justify-between text-[11px] text-neutral-500 font-mono mt-1.5">
+                  <span>Default Staff Access PIN:</span>
+                  <button
+                    type="button"
+                    onClick={() => setPin('clinic@2026')}
+                    className="font-mono text-teal-700 hover:underline font-semibold bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200 cursor-pointer"
+                    title="Click to fill default PIN"
+                  >
+                    clinic@2026
+                  </button>
                 </div>
               </div>
             </div>

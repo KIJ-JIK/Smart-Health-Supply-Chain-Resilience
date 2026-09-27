@@ -323,7 +323,7 @@ export function MedicineDetailModal({
             }}
           >
             <TrendingUp size={15} />
-            <span>AI Predictive Forecast Band (Masterplan §88.9)</span>
+            <span>AI Predictive Forecast Band</span>
           </button>
 
           <button

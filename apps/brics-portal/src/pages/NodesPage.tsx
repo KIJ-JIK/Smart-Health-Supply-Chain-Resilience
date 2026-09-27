@@ -33,6 +33,7 @@ import {
   ErrorState,
 } from '@/components/common';
 import type { FederatedNode, FederatedRound, PrivacyBudgetEntry } from '@/types/federated';
+import { useCurrentUser } from '@/hooks';
 
 interface NodeSubmissionLog {
   roundId: string;
@@ -53,8 +54,10 @@ const COUNTRY_FLAGS: Record<string, string> = {
 function NodesContent() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
 
-  const urlCountry = searchParams.get('country') || searchParams.get('node') || 'IN';
+  const defaultCountry = currentUser?.countryCode || 'IN';
+  const urlCountry = searchParams.get('country') || searchParams.get('node') || defaultCountry;
   const [selectedCountry, setSelectedCountry] = useState<string>(urlCountry);
 
   useEffect(() => {

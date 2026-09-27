@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Map,
@@ -20,9 +20,7 @@ import {
   BarChart3,
   ScrollText,
   Settings,
-  RefreshCw,
   ChevronDown,
-  Activity,
   Globe,
 } from 'lucide-react';
 import { useAlertStore } from '@/store/alertStore';
@@ -185,6 +183,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuthStore();
   const unreadAlerts = useAlertStore((s) => s.unacknowledgedCount);
 
@@ -257,6 +256,11 @@ export function Sidebar({ collapsed }: SidebarProps) {
                       key={item.href}
                       href={item.href}
                       prefetch={true}
+                      onMouseEnter={() => {
+                        try {
+                          router.prefetch(item.href);
+                        } catch {}
+                      }}
                       className={`nav-item${isActive ? ' active' : ''}`}
                       title={collapsed ? item.label : undefined}
                     >

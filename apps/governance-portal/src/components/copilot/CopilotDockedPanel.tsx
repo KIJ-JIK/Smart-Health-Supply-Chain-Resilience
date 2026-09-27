@@ -254,7 +254,7 @@ export function CopilotDockedPanel() {
                   Ask "Why" Without Losing Your Place
                 </h3>
                 <p style={{ fontSize: 12, color: '#64748B', lineHeight: 1.4, margin: 0 }}>
-                  This docked assistant provides root-cause explanations and counterfactual impact assessments compliant with the Masterplan §44 Response Contract.
+                  This docked assistant provides root-cause explanations and counterfactual impact assessments across clinical and logistics operations.
                 </p>
               </div>
 
@@ -270,7 +270,7 @@ export function CopilotDockedPanel() {
                     marginBottom: 8,
                   }}
                 >
-                  Masterplan §44 Standard Inquiries:
+                  Suggested Inquiries:
                 </span>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
