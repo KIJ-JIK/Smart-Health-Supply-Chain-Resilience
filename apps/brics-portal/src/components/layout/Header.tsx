@@ -208,7 +208,7 @@ export function Header() {
                 </div>
                 <div className="space-y-1">
                   <a
-                    href="http://localhost:3000/"
+                    href={`${(import.meta as any).env?.VITE_GOVERNANCE_URL || 'http://localhost:3000'}/`}
                     onClick={() => setPortalMenuOpen(false)}
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
@@ -223,7 +223,7 @@ export function Header() {
                   </a>
 
                   <a
-                    href="http://localhost:5173/login"
+                    href={`${(import.meta as any).env?.VITE_PHC_URL || 'http://localhost:5173'}/login`}
                     onClick={() => setPortalMenuOpen(false)}
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
@@ -238,7 +238,7 @@ export function Header() {
                   </a>
 
                   <a
-                    href="http://localhost:3000/login"
+                    href={`${(import.meta as any).env?.VITE_GOVERNANCE_URL || 'http://localhost:3000'}/login`}
                     onClick={() => setPortalMenuOpen(false)}
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >

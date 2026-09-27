@@ -1,0 +1,114 @@
+# -------------------------------------------------------------
+# Render Blueprint Specification
+# Deploys Backend, AI Engine, Portals, and Managed PostgreSQL
+# Docs: https://render.com/docs/blueprint-spec
+# -------------------------------------------------------------
+
+services:
+  # ── 1. AI ENGINE (FASTAPI) ──────────────────────────────────
+  - type: web
+    name: smarthealth-ai-engine
+    runtime: python
+    rootDir: services/ai-engine
+    plan: standard # 2 GB RAM recommended for Prophet + SciPy + XGBoost
+    region: oregon
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn main.py:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: ALLOWED_ORIGINS
+        value: "*"
+
+  # ── 2. CENTRAL BACKEND API (NODE.JS + GRAPHQL) ──────────────
+  - type: web
+    name: smarthealth-backend
+    runtime: node
+    rootDir: services/backend/smart-health-platform/backend
+    plan: starter
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smarthealth-db
+          property: connectionString
+      - key: AI_ENGINE_URL
+        fromService:
+          type: web
+          name: smarthealth-ai-engine
+          property: host
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+
+  # ── 3. GOVERNANCE PORTAL (NEXT.JS 14) ────────────────────────
+  - type: web
+    name: smarthealth-governance-portal
+    runtime: node
+    rootDir: apps/governance-portal
+    plan: starter
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NEXT_PUBLIC_BACKEND_URL
+        fromService:
+          type: web
+          name: smarthealth-backend
+          property: host
+
+  # ── 4. PHC WORKBENCH PORTAL (VITE PWA) ───────────────────────
+  - type: static
+    name: smarthealth-phc-portal
+    rootDir: apps/phc-portal
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_BACKEND_URL
+        fromService:
+          type: web
+          name: smarthealth-backend
+          property: host
+
+  # ── 5. BRICS FEDERATED AI PORTAL (VITE SPA) ──────────────────
+  - type: static
+    name: smarthealth-brics-portal
+    rootDir: apps/brics-portal
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_USE_MOCK
+        value: "false"
+      - key: VITE_BACKEND_URL
+        fromService:
+          type: web
+          name: smarthealth-backend
+          property: host
+
+databases:
+  - name: smarthealth-db
+    databaseName: smarthealth
+    user: health_admin
+    region: oregon
+    plan: starter

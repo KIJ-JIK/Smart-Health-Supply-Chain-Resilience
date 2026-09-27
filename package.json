@@ -2,17 +2,22 @@
   "name": "smart-health-supply-chain-resilience",
   "version": "1.0.0",
   "private": true,
+  "main": "index.js",
   "description": "National-Scale Health Resilience & Supply Chain Platform Monorepo",
   "scripts": {
+    "start": "npm --prefix services/backend/smart-health-platform/backend start",
+    "build": "npm --prefix services/backend/smart-health-platform/backend run build",
+    "postinstall": "npm --prefix services/backend/smart-health-platform/backend install",
     "dev": "concurrently -k -n \"BACKEND,PHC,GOV,BRICS\" -c \"blue,teal,magenta,yellow\" \"npm --prefix services/backend run dev\" \"npm --prefix apps/phc-portal run dev\" \"npm --prefix apps/governance-portal run dev\" \"npm --prefix apps/brics-portal run dev\"",
     "dev:phc": "npm --prefix apps/phc-portal run dev",
     "dev:gov": "npm --prefix apps/governance-portal run dev",
     "dev:brics": "npm --prefix apps/brics-portal run dev",
     "dev:backend": "npm --prefix services/backend run dev",
     "dev:ai": "cd services/ai-engine && python main.py",
-    "build": "npm --prefix apps/phc-portal run build && npm --prefix apps/governance-portal run build && npm --prefix apps/brics-portal run build && npm --prefix services/backend run build",
+    "build:all": "npm --prefix apps/phc-portal run build && npm --prefix apps/governance-portal run build && npm --prefix apps/brics-portal run build && npm --prefix services/backend run build",
     "verify": "npm --prefix services/backend/smart-health-platform/backend run test:integration",
     "test:integration": "npm --prefix services/backend/smart-health-platform/backend run test:integration",
+    "seed:cloud": "node scripts/seed_cloud_db.js",
     "sync:runtime": "scripts\\sync_to_runtime.bat"
   },
   "devDependencies": {

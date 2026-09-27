@@ -46,15 +46,18 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# ── CORS — allow calls from Node.js backend and all portals ───────────────────
+# ── CORS — allow calls from Node.js backend, all portals, and cloud domains ───
+import os
+
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
+if allowed_origins_env == "*":
+    allowed_origins = ["*"]
+else:
+    allowed_origins = [orig.strip() for orig in allowed_origins_env.split(",") if orig.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8000",   # Node.js backend
-        "http://localhost:3000",   # Governance Portal
-        "http://localhost:5173",   # PHC Portal (Vite dev)
-        "http://localhost:3001",   # BRICS Portal
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -162,4 +165,5 @@ def health_check() -> dict:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5000, reload=False)
+    port = int(os.getenv("PORT", 5000))
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)

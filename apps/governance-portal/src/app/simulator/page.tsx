@@ -18,9 +18,9 @@ export default function SimulatorPage() {
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [sessionActive, setSessionActive] = useState(false);
 
-  const wsUrl = typeof window !== 'undefined'
+  const wsUrl = process.env.NEXT_PUBLIC_WS_BACKEND_URL || (typeof window !== 'undefined'
     ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8000/api/v1/governance/simulator/session`
-    : 'ws://localhost:8000/api/v1/governance/simulator/session';
+    : 'ws://localhost:8000/api/v1/governance/simulator/session');
 
   const { status, messages, send, close, reconnect } = useWsSession<any, any>(
     wsUrl,

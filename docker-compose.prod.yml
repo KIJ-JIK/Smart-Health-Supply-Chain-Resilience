@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # ── MANAGED / LOCAL POSTGRESQL ────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: smarthealth-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-health_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-health_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-smarthealth}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-health_admin} -d ${POSTGRES_DB:-smarthealth}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── REDIS CACHE & PUBSUB ─────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: smarthealth-prod-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── AI ENGINE (FASTAPI) ──────────────────────────────
+  ai-engine:
+    build:
+      context: ./services/ai-engine
+      dockerfile: Dockerfile
+    container_name: smarthealth-prod-ai
+    restart: unless-stopped
+    environment:
+      PORT: 5000
+      ALLOWED_ORIGINS: "*"
+    ports:
+      - "5000:5000"
+
+  # ── CENTRAL BACKEND API (NODE.JS) ────────────────────
+  backend:
+    build:
+      context: ./services/backend
+      dockerfile: Dockerfile
+    container_name: smarthealth-prod-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-health_admin}:${POSTGRES_PASSWORD:-health_secure_password}@postgres:5432/${POSTGRES_DB:-smarthealth}
+      REDIS_URL: redis://redis:6379
+      AI_ENGINE_URL: http://ai-engine:5000
+      JWT_SECRET: ${JWT_SECRET:-smart-health-prod-secret-replace-with-random-key}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-smart-health-prod-refresh-replace-with-random-key}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_API_KEYS: ${GEMINI_API_KEYS:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-engine:
+        condition: service_started
+
+  # ── GOVERNANCE PORTAL (NEXT.JS) ──────────────────────
+  governance-portal:
+    build:
+      context: ./apps/governance-portal
+      dockerfile: Dockerfile
+    container_name: smarthealth-prod-gov
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000/graphql}
+      NEXT_PUBLIC_PHC_URL: ${NEXT_PUBLIC_PHC_URL:-http://localhost:5173}
+      NEXT_PUBLIC_BRICS_URL: ${NEXT_PUBLIC_BRICS_URL:-http://localhost:3001}
+    depends_on:
+      - backend
+
+  # ── PHC WORKBENCH PORTAL (VITE PWA) ──────────────────
+  phc-portal:
+    build:
+      context: ./apps/phc-portal
+      dockerfile: Dockerfile
+    container_name: smarthealth-prod-phc
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    environment:
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:8000}
+      VITE_GOVERNANCE_URL: ${VITE_GOVERNANCE_URL:-http://localhost:3000}
+      VITE_BRICS_URL: ${VITE_BRICS_URL:-http://localhost:3001}
+    depends_on:
+      - backend
+
+  # ── BRICS FEDERATED AI PORTAL (VITE SPA) ─────────────
+  brics-portal:
+    build:
+      context: ./apps/brics-portal
+      dockerfile: Dockerfile
+    container_name: smarthealth-prod-brics
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    environment:
+      VITE_USE_MOCK: "false"
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:8000/graphql}
+      VITE_GOVERNANCE_URL: ${VITE_GOVERNANCE_URL:-http://localhost:3000}
+      VITE_PHC_URL: ${VITE_PHC_URL:-http://localhost:5173}
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

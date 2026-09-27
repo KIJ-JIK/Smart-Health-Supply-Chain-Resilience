@@ -88,10 +88,11 @@ export function useSseStream<T = unknown>(
     const pollFallback = async () => {
       if (!enabledRef.current) return;
       try {
+        const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'http://localhost:8000';
         const endpoints = [
           '/api/v1/governance/alerts',
-          'http://localhost:8000/api/v1/governance/alerts',
-          'http://localhost:8000/api/v1/alerts',
+          `${backendBase}/api/v1/governance/alerts`,
+          `${backendBase}/api/v1/alerts`,
         ];
         let data: any = null;
         for (const ep of endpoints) {
