@@ -22,7 +22,10 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="app-layout">
-      <Sidebar collapsed={sidebarCollapsed} />
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((c) => !c)}
+      />
       <div className="main-wrapper">
         <Header
           sidebarCollapsed={sidebarCollapsed}

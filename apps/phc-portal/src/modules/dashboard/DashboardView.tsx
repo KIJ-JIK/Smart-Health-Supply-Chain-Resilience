@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   BedDouble, Wind, Users, Pill, Activity, AlertTriangle,
-  ArrowRight, PlusCircle, PackagePlus, Zap, TrendingUp, Siren,
+  ArrowRight, PlusCircle, PackagePlus, Zap, Siren,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
@@ -122,57 +122,6 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-5">
-
-      {/* ── Header banner ─────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-primary-800 via-primary-700 to-teal-700 dark:from-[#0a1526] dark:via-primary-950 dark:to-[#071d24] p-6 rounded-3xl border border-primary-500/20 dark:border-teal-500/20 shadow-[0_8px_32px_rgba(13,148,136,0.25)]">
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="max-w-2xl">
-            {/* Status pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full pill-iridescent text-white mb-2.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-teal-200">
-                LIVE OPERATIONAL · 24/7 SURVEILLANCE
-              </span>
-            </div>
-
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              PHC Operations Command Center
-            </h2>
-            <p className="text-xs sm:text-sm text-primary-100/85 mt-1 font-medium leading-relaxed">
-              Real-Time Bed Telemetry · Oxygen Reserves · FEFO Pharmacy · Clinical Triage
-            </p>
-
-            {/* Quick Telemetry Chips */}
-            <div className="flex items-center gap-2 flex-wrap mt-3">
-              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-black/30 text-teal-300 border border-teal-500/30 backdrop-blur-md">
-                Beds: <strong className="text-white font-bold">{occupiedBeds}/{totalBeds}</strong> ({bedOccupancyRate}%)
-              </span>
-              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-black/30 text-teal-300 border border-teal-500/30 backdrop-blur-md">
-                O₂ Cylinders: <strong className="text-white font-bold">{cylinders}</strong>
-              </span>
-              <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-black/30 text-teal-300 border border-teal-500/30 backdrop-blur-md">
-                Staff: <strong className="text-white font-bold">{presentCount}/{totalStaff}</strong> On Duty
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-2.5">
-            <div className="flex items-center gap-2 text-xs font-semibold bg-white/10 border border-white/20 backdrop-blur-md px-3.5 py-2 rounded-xl text-white shadow-inner">
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-              <span>Telemetry Sync Active · {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-            <button
-              onClick={() => setEmergencyModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 backdrop-blur-md transition-all active:scale-95"
-            >
-              <Siren className="w-3.5 h-3.5 text-rose-400" />
-              <span>Broadcast Protocol</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* ── Metric tiles ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <MetricCard title="Beds Available" value={availableBeds} subtitle={`${occupiedBeds} occupied / ${totalBeds} total`} icon={BedDouble}

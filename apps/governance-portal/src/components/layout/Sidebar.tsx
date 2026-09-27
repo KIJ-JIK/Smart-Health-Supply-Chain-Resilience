@@ -21,6 +21,8 @@ import {
   ScrollText,
   Settings,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Globe,
 } from 'lucide-react';
 import { useAlertStore } from '@/store/alertStore';
@@ -179,9 +181,10 @@ const NAV_SECTIONS: NavSection[] = [
 // ── Sidebar component ─────────────────────────────────────────────────────────
 interface SidebarProps {
   collapsed: boolean;
+  onToggle?: () => void;
 }
 
-export function Sidebar({ collapsed }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuthStore();
@@ -199,14 +202,27 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
-      {/* Logo */}
-      <div className="sidebar-logo flex items-center gap-2.5 px-4 py-3.5 border-b border-slate-100">
-        <AuraLogo size={24} />
-        {!collapsed && (
-          <div className="sidebar-logo-text flex flex-col">
-            <span className="sidebar-logo-title font-bold text-slate-900 text-sm tracking-tight">AURA Vantage</span>
-            <span className="sidebar-logo-sub text-[10px] text-slate-500 font-medium tracking-wide uppercase">Governance Command</span>
-          </div>
+      {/* Logo & Top Collapse Toggle */}
+      <div className={`sidebar-logo flex items-center justify-between px-3.5 py-3 border-b border-slate-100 dark:border-slate-800 ${collapsed ? 'justify-center' : ''}`}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <AuraLogo size={24} />
+          {!collapsed && (
+            <div className="sidebar-logo-text flex flex-col min-w-0">
+              <span className="sidebar-logo-title font-bold text-slate-900 dark:text-slate-100 text-sm tracking-tight truncate">AURA Vantage</span>
+              <span className="sidebar-logo-sub text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase truncate">Governance Command</span>
+            </div>
+          )}
+        </div>
+        {onToggle && !collapsed && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Collapse sidebar menu"
+            aria-label="Collapse sidebar menu"
+          >
+            <ChevronLeft size={16} />
+          </button>
         )}
       </div>
 
@@ -281,6 +297,30 @@ export function Sidebar({ collapsed }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Collapsible Menu Bar Bottom Action */}
+      {onToggle && (
+        <div className="sidebar-footer p-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center bg-slate-50/60 dark:bg-slate-900/50 shrink-0">
+          <button
+            type="button"
+            onClick={onToggle}
+            className={`flex items-center gap-2 p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-xs font-semibold cursor-pointer ${
+              collapsed ? 'w-auto justify-center' : 'w-full justify-center'
+            }`}
+            title={collapsed ? "Expand sidebar menu" : "Collapse sidebar menu"}
+            aria-label={collapsed ? "Expand sidebar menu" : "Collapse sidebar menu"}
+          >
+            {collapsed ? (
+              <ChevronRight size={18} />
+            ) : (
+              <>
+                <ChevronLeft size={16} />
+                <span>Collapse Menu</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
