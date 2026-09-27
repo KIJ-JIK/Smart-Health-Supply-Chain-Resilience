@@ -38,7 +38,10 @@ jurisdictionRouter.get('/hierarchy', async (req: Request, res: Response) => {
     phcQuery += ` ORDER BY p.name ASC`;
 
     const [nationsRes, statesRes, districtsRes, phcsRes] = await Promise.all([
-      client.query(`SELECT id, code, name, status, active_model_version FROM nations ORDER BY name ASC`),
+      client.query(`SELECT id, code, name, status, active_model_version FROM nations ORDER BY name ASC`).catch((e) => {
+        console.warn('[Jurisdiction] nations query fallback:', e.message);
+        return { rows: [] };
+      }),
       client.query(`SELECT id, code, name, country FROM states ORDER BY name ASC`),
       client.query(`SELECT id, name, state_id FROM districts ORDER BY name ASC`),
       client.query(phcQuery, phcParams),
