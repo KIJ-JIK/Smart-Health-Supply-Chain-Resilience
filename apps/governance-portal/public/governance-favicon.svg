@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="gov_blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  <!-- Rounded Base Shield -->
+  <rect width="64" height="64" rx="14" fill="#0a1220" />
+  <!-- Governance Command Building / Shield -->
+  <path d="M32 8L52 18V34C52 46 43 54 32 58C21 54 12 46 12 34V18L32 8Z" fill="url(#gov_blue)" stroke="#38bdf8" stroke-width="2.5" stroke-linejoin="round" />
+  <!-- Central Pillar & Command Star -->
+  <path d="M24 38H40V42H24V38Z" fill="#ffffff" opacity="0.9" />
+  <path d="M28 26H36V36H28V26Z" fill="#ffffff" opacity="0.9" />
+  <polygon points="32,16 35,22 41,22 36,26 38,32 32,28 26,32 28,26 23,22 29,22" fill="#38bdf8" />
+  <!-- Signal Indicator -->
+  <circle cx="32" cy="8" r="2.5" fill="#06b6d4" />
+</svg>

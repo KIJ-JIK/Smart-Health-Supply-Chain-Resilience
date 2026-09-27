@@ -590,7 +590,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   Platform Portals Switcher
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <a
                     href="/"
                     style={{
@@ -607,14 +607,17 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                     className="hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <Building2 size={16} style={{ color: '#06B6D4', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontWeight: 600 }}>AURA Hub</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>AURA Hub</span>
+                        <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Gateway →</span>
+                      </div>
                       <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Platform Gateway & Overview</div>
                     </div>
                   </a>
 
                   <a
-                    href={process.env.NEXT_PUBLIC_PHC_URL ?? 'http://localhost:5173'}
+                    href="http://localhost:5173/login"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -629,13 +632,17 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                     className="hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <HeartPulse size={16} style={{ color: '#14B8A6', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontWeight: 600 }}>AURA Point</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>AURA Point</span>
+                        <span style={{ fontSize: 10, color: '#0D9488', fontWeight: 600 }}>Login Tab →</span>
+                      </div>
                       <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Frontline Clinic Workbench</div>
                     </div>
                   </a>
 
-                  <div
+                  <Link
+                    href="/login"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -646,22 +653,23 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                       background: 'var(--color-primary-light)',
                       fontSize: 12,
                       border: '1px solid rgba(59, 130, 246, 0.25)',
+                      textDecoration: 'none',
                     }}
                   >
                     <Building2 size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>AURA Vantage</span>
                         <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#2563EB', color: '#FFF', fontWeight: 700 }}>
-                          Active
+                          Active · Login Tab →
                         </span>
                       </div>
                       <div style={{ fontSize: 10, opacity: 0.85 }}>Governance Command Center</div>
                     </div>
-                  </div>
+                  </Link>
 
                   <a
-                    href={process.env.NEXT_PUBLIC_BRICS_URL ?? 'http://localhost:3001'}
+                    href="http://localhost:3001/login"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -676,8 +684,11 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                     className="hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <Globe2 size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontWeight: 600 }}>AURA Sovereign</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>AURA Sovereign</span>
+                        <span style={{ fontSize: 10, color: '#D97706', fontWeight: 600 }}>Login Tab →</span>
+                      </div>
                       <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>BRICS Federated AI Grid</div>
                     </div>
                   </a>

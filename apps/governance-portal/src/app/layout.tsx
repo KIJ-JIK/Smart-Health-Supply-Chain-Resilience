@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   description:
     'National, state, and district decision-making command portal for health supply chain governance, ' +
     'AI-driven redistribution, early warnings, and crisis management.',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

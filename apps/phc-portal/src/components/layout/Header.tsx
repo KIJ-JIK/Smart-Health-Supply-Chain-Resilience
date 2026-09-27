@@ -199,44 +199,57 @@ export const Header: React.FC = () => {
                 <div className="space-y-1">
                   <a
                     href={(import.meta as any).env?.VITE_GOVERNANCE_URL ?? 'http://localhost:3000/'}
-                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
                     <Building2 className="w-4 h-4 text-cyan-500 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-slate-900 dark:text-slate-100">AURA Hub</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                        <span>AURA Hub</span>
+                        <span className="text-[10px] text-slate-400 group-hover:text-cyan-500 transition-colors">Gateway →</span>
+                      </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">Platform Gateway & Overview</div>
                     </div>
                   </a>
 
-                  <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60">
+                  <button
+                    onClick={logout}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60 hover:bg-teal-100/70 dark:hover:bg-teal-900/50 transition-colors text-left"
+                    title="Switch facility or re-authenticate"
+                  >
                     <HeartPulse className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="font-semibold flex items-center justify-between">
                         <span>AURA Point</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-200/70 dark:bg-teal-800/80 font-mono text-teal-900 dark:text-teal-100 font-bold">Active</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-200/70 dark:bg-teal-800/80 font-mono text-teal-900 dark:text-teal-100 font-bold">Active · Login Tab →</span>
                       </div>
                       <div className="text-[10px] text-teal-700 dark:text-teal-400/80">Frontline Clinic Workbench</div>
                     </div>
-                  </div>
+                  </button>
 
                   <a
-                    href="http://localhost:3000/governance"
-                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
+                    href="http://localhost:3000/login"
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
                     <Building2 className="w-4 h-4 text-blue-500 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-slate-900 dark:text-slate-100">AURA Vantage</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                        <span>AURA Vantage</span>
+                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Login Tab →</span>
+                      </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">Governance Command Center</div>
                     </div>
                   </a>
 
                   <a
-                    href="http://localhost:3001"
-                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
+                    href="http://localhost:3001/login"
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
                     <Globe2 className="w-4 h-4 text-amber-500 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-slate-900 dark:text-slate-100">AURA Sovereign</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                        <span>AURA Sovereign</span>
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Login Tab →</span>
+                      </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">BRICS Federated AI Grid</div>
                     </div>
                   </a>

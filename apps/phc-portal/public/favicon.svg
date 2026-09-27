@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="phc_teal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f766e" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+  </defs>
+  <!-- Rounded Base Shield -->
+  <rect width="64" height="64" rx="14" fill="#06131d" />
+  <!-- Clinical Heart / Cross Hexagon -->
+  <polygon points="32,7 53,19 53,45 32,57 11,45 11,19" fill="url(#phc_teal)" stroke="#2dd4bf" stroke-width="2.5" stroke-linejoin="round" />
+  <!-- ECG Heartbeat Pulse across Cross -->
+  <path d="M18 33H26L29 23L33 41L37 29L40 33H46" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Top Vitality Point -->
+  <circle cx="32" cy="7" r="2.5" fill="#2dd4bf" />
+</svg>
