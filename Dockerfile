@@ -10,10 +10,10 @@ WORKDIR /app
 COPY services/backend/smart-health-platform/backend/package*.json ./
 RUN npm ci
 
-# Copy backend source
+# Copy backend source & scripts
 COPY services/backend/smart-health-platform/backend/tsconfig.json ./
 COPY services/backend/smart-health-platform/backend/src ./src
-COPY services/backend/smart-health-platform/backend/tests ./tests
+COPY services/backend/smart-health-platform/backend/scripts ./scripts
 
 # Build TypeScript
 RUN npm run build

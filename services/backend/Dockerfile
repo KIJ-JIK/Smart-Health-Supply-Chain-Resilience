@@ -15,7 +15,7 @@ RUN npm ci
 # Copy backend source code & configs
 COPY smart-health-platform/backend/tsconfig.json ./
 COPY smart-health-platform/backend/src ./src
-COPY smart-health-platform/backend/tests ./tests
+COPY smart-health-platform/backend/scripts ./scripts
 
 # Compile TypeScript to JavaScript
 RUN npm run build
