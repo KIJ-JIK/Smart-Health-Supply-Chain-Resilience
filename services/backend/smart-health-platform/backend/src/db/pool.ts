@@ -7,8 +7,13 @@ dotenv.config(); // load .env from the current working directory
 // RLS enforcement relies on SET LOCAL within a per-request transaction;
 // never use this pool directly for tenant queries — use withTenantContext().
 // ---------------------------------------------------------------------------
-const dbUrl = process.env.DATABASE_URL;
+const rawDbUrl = process.env.DATABASE_URL;
+// node-postgres does not support the channel_binding parameter — strip it
+const dbUrl = rawDbUrl
+  ? rawDbUrl.replace(/[&?]channel_binding=[^&]*/g, '').replace(/\?$/, '')
+  : undefined;
 const isRemoteUrl = dbUrl && !dbUrl.includes('localhost') && !dbUrl.includes('127.0.0.1');
+
 
 export const pool = new Pool(
   dbUrl
