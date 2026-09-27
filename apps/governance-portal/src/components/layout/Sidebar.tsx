@@ -192,6 +192,13 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const router = useRouter();
   const { user } = useAuthStore();
   const navSections = useNavSections();
+  const [isPending, startTransition] = React.useTransition();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  // Clear pendingHref once pathname matches
+  React.useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   // Track which sections are open (all open by default)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(
@@ -201,7 +208,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
   // Proactively pre-warm and prefetch all section routes in the background
   React.useEffect(() => {
     const allHrefs = navSections.flatMap((s) => s.items.map((i) => i.href));
-    // Warm up Next.js router cache for all routes
     allHrefs.forEach((href) => {
       try {
         router.prefetch(href);
@@ -210,7 +216,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
   }, [router, navSections]);
 
   const toggleSection = (key: string) => {
-    if (collapsed) return; // Can't collapse sections when sidebar is collapsed
+    if (collapsed) return;
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -220,8 +226,24 @@ export function Sidebar({ collapsed }: SidebarProps) {
     } catch (_) {}
   };
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (pathname === href) {
+      e.preventDefault();
+      return;
+    }
+    setPendingHref(href);
+    startTransition(() => {
+      router.push(href);
+    });
+  };
+
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+      {/* Top progress bar indicator on navigation */}
+      {isPending && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-teal-400 to-indigo-500 animate-pulse z-50" />
+      )}
+
       {/* Logo */}
       <div className="sidebar-logo flex items-center gap-2.5 px-4 py-3 border-b border-slate-800/80">
         <AuraLogo size={24} />
@@ -248,7 +270,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
       )}
 
       {/* Nav */}
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav select-none">
         {navSections.map((section) => {
           // Filter items by role
           const visibleItems = section.items.filter((item) =>
@@ -262,7 +284,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
             <div key={section.key} className="nav-section">
               {/* Section label (only shown when expanded) */}
               <div
-                className="nav-section-label"
+                className="nav-section-label cursor-pointer select-none"
                 onClick={() => toggleSection(section.key)}
                 role="button"
                 aria-expanded={isOpen}
@@ -282,25 +304,34 @@ export function Sidebar({ collapsed }: SidebarProps) {
                 }}
               >
                 {visibleItems.map((item) => {
-                  const isActive =
+                  const isCurrent =
                     item.href === '/'
                       ? pathname === '/'
                       : pathname.startsWith(item.href);
+                  const isNavigating = pendingHref === item.href;
+                  const isActive = isCurrent || isNavigating;
                   const badge = item.badge?.();
+
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       prefetch={true}
+                      onClick={(e) => handleNavClick(e, item.href)}
                       onMouseEnter={() => handleWarmLink(item.href)}
                       onTouchStart={() => handleWarmLink(item.href)}
                       onFocus={() => handleWarmLink(item.href)}
-                      className={`nav-item${isActive ? ' active' : ''}`}
+                      className={`nav-item${isActive ? ' active' : ''}${isNavigating ? ' opacity-90' : ''}`}
                       title={collapsed ? item.label : undefined}
                     >
                       {item.icon}
-                      <span className="nav-item-label">{item.label}</span>
-                      {badge && badge > 0 && (
+                      <span className="nav-item-label flex items-center justify-between gap-1 w-full">
+                        <span>{item.label}</span>
+                        {isNavigating && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping shrink-0" />
+                        )}
+                      </span>
+                      {badge && badge > 0 && !isNavigating && (
                         <span className="nav-item-badge">
                           {badge > 99 ? '99+' : badge}
                         </span>

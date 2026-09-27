@@ -295,6 +295,9 @@ body {
   white-space: nowrap;
   overflow: hidden;
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
 .nav-item:hover {
