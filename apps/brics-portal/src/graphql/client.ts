@@ -7,7 +7,9 @@ import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
-const BACKEND_URL = import.meta.env?.VITE_BACKEND_URL || 'http://localhost:8000/graphql';
+const BACKEND_URL =
+  import.meta.env?.VITE_BACKEND_URL ||
+  'https://smart-health-supply-chain-resilience-production.up.railway.app/graphql';
 
 // Auth header injection
 const authLink = setContext((_, { headers }) => {
