@@ -58,7 +58,9 @@ export const apolloClient = new ApolloClient({
       Query: {
         fields: {
           nationalOverview: {
-            merge: true,
+            merge(_existing, incoming) {
+              return incoming;
+            },
           },
           stateOverview: {
             keyArgs: ['stateId'],
@@ -81,6 +83,18 @@ export const apolloClient = new ApolloClient({
           patientIntelligence: {
             keyArgs: ['scope'],
           },
+          redistributionRecommendations: {
+            keyArgs: ['district', 'districtId', 'stateId'],
+          },
+          supplyChainShipments: {
+            keyArgs: ['filter'],
+          },
+          alertsHistory: {
+            keyArgs: ['districtId', 'stateId', 'phcId'],
+          },
+          forecasts: {
+            keyArgs: ['entity', 'metric', 'entityId'],
+          },
         },
       },
       StateOverview: {
@@ -96,20 +110,26 @@ export const apolloClient = new ApolloClient({
         keyFields: ['phcId'],
       },
       MedicineStock: {
-        keyFields: ['medicineId'],
+        keyFields: false,
       },
       ResourceItem: {
-        keyFields: ['resourceId'],
+        keyFields: false,
+      },
+      WorkforceRecord: {
+        keyFields: false,
+      },
+      PatientMetrics: {
+        keyFields: false,
       },
     },
   }),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'cache-first',
+      fetchPolicy: 'cache-and-network',
       nextFetchPolicy: 'cache-first',
     },
     query: {
-      fetchPolicy: 'cache-first',
+      fetchPolicy: 'network-only',
     },
   },
 });

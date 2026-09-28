@@ -60,6 +60,7 @@ export interface PatientIntelligenceSummary {
   admissionRatePct: number;
   activeSurgeAlertsCount: number;
   regionalClusterCount: number;
+  avgWaitTimeMinutes?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

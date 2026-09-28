@@ -114,16 +114,37 @@ export const PHC_DETAIL = gql`
     phcDetail(phcId: $phcId) {
       phcId
       phcName
+      name
       districtId
       districtName
       stateId
       stateName
       lat
       lng
+      totalBeds
+      occupiedBeds
+      oxygenCylinders
+      riskScore
+      riskLevel
+      inventoryCount
       catchmentPopulation
       activeStaff
       stockStatus
       lastUpdated
+      activeAlerts {
+        id
+        alertType
+        severity
+        status
+        createdAt
+      }
+      openRequests {
+        id
+        requestType
+        priority
+        status
+        createdAt
+      }
     }
   }
 `;
@@ -220,8 +241,8 @@ export const FORECASTS = gql`
 
 // ── Redistribution Recommendations ────────────────────────────────────────────
 export const REDISTRIBUTION_RECOMMENDATIONS = gql`
-  query RedistributionRecommendations($district: ID) {
-    redistributionRecommendations(district: $district) {
+  query RedistributionRecommendations($district: ID, $districtId: ID, $stateId: ID) {
+    redistributionRecommendations(district: $district, districtId: $districtId, stateId: $stateId) {
       recommendationId
       medicineId
       medicineName
@@ -291,8 +312,8 @@ export const AUDIT_LOG = gql`
 
 // ── Alerts History ─────────────────────────────────────────────────────────────
 export const ALERTS_HISTORY = gql`
-  query AlertsHistory($districtId: String, $stateId: String, $page: Int, $limit: Int) {
-    alertsHistory(districtId: $districtId, stateId: $stateId, page: $page, limit: $limit) {
+  query AlertsHistory($districtId: String, $stateId: String, $phcId: String, $page: Int, $limit: Int) {
+    alertsHistory(districtId: $districtId, stateId: $stateId, phcId: $phcId, page: $page, limit: $limit) {
       id
       severity
       category

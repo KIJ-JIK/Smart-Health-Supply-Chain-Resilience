@@ -67,13 +67,14 @@ async function postDecision(
 
 export default function RedistributionPage() {
   const { user } = useAuthStore();
-  const { districtId, stateId, level } = useScopeStore();
+  const { districtId, stateId, level, phcId } = useScopeStore();
 
   const enforcedScope = useMemo(() => {
-    return getEnforcedScope(user, { level, stateId, districtId });
-  }, [user, level, stateId, districtId]);
+    return getEnforcedScope(user, { level, stateId, districtId, phcId });
+  }, [user, level, stateId, districtId, phcId]);
 
   const currentDistrict = enforcedScope.districtId ?? undefined;
+  const currentState = enforcedScope.stateId ?? undefined;
 
   const [recommendations, setRecommendations] = useState<RedistributionRecommendation[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'decided'>('pending');
@@ -97,18 +98,37 @@ export default function RedistributionPage() {
   // Approve state
   const [approveNotes, setApproveNotes] = useState<Record<string, string>>({});
 
+  // Build query variables based on active scope
+  const queryVariables = useMemo(() => {
+    const vars: Record<string, any> = {};
+    if (currentDistrict) {
+      vars.district = currentDistrict;
+      vars.districtId = currentDistrict;
+    }
+    if (currentState) {
+      vars.stateId = currentState;
+    }
+    return vars;
+  }, [currentDistrict, currentState]);
+
   // GraphQL query against real backend
   const { data: gqlData, refetch } = useQuery(REDISTRIBUTION_RECOMMENDATIONS, {
-    variables: currentDistrict ? { district: currentDistrict } : {},
+    variables: queryVariables,
     fetchPolicy: 'cache-and-network',
   });
 
   // Synchronize when real database records return
   useEffect(() => {
-    if (gqlData?.redistributionRecommendations && gqlData.redistributionRecommendations.length > 0) {
-      setRecommendations(gqlData.redistributionRecommendations);
+    if (gqlData?.redistributionRecommendations) {
+      let recs: RedistributionRecommendation[] = gqlData.redistributionRecommendations;
+      if (enforcedScope.phcId) {
+        recs = recs.filter((r) => r.fromPhcId === enforcedScope.phcId || r.toPhcId === enforcedScope.phcId);
+      } else if (enforcedScope.districtId) {
+        recs = recs.filter((r) => !r.districtId || r.districtId === enforcedScope.districtId);
+      }
+      setRecommendations(recs);
     }
-  }, [gqlData]);
+  }, [gqlData, enforcedScope.phcId, enforcedScope.districtId]);
 
   // Handle Approve
   const handleApprove = async (rec: RedistributionRecommendation) => {

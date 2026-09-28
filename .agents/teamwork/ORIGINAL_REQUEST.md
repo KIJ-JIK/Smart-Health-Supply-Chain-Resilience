@@ -187,3 +187,39 @@ Inspect apps/governance-portal/src/app/forecasts/page.tsx and related subcompone
 
 project orchestrator, full end to end verification and debugging were interrupted and are still waiting for command, run them.
 Proceed immediately with the next phases: run Milestone M4 (Comprehensive End-to-End Verification across all portals and ports :8000, :3000, :5173, :3001) and execute the full verification suite and Forensic Victory Audit now.
+
+## Follow-up — 2026-09-28T11:43:43Z
+
+Ensure 100% data accuracy, mathematical aggregation consistency, and jurisdictional isolation across all modules of the Governance Portal, pulling real calculated metrics from PostgreSQL.
+
+Working directory: `C:\Users\anshv\OneDrive\Desktop\Smart_governance`
+Integrity mode: development
+Requested team: Full team
+
+## Requirements
+
+### R1. Strict Multi-Level Scoping & Data Isolation
+Ensure switching between National, State, District, and PHC levels in the Governance Portal updates all metrics, charts, tables, and KPIs strictly to that geographic scope without leaking or reusing cached data from other scopes.
+
+### R2. End-to-End Aggregation Consistency
+Verify that the sum of district metrics accurately adds up to state totals, and the sum of state metrics accurately reflects national totals across all domains: beds, occupancy, oxygen capacity, stock levels, alerts, workforce, and footfalls.
+
+### R3. Comprehensive Module Audit & Backend Calculation
+Audit all portal modules (Overview, Medicines, Resources, Workforce, Footfalls, Alerts, GIS Map, Redistribution) to ensure every visualization and metric is calculated dynamically from PostgreSQL queries and updates on scope change.
+
+### R4. Non-Destructive Data Integrity
+Ensure all fixes preserve existing database records, schema relations, and credentials without wiping or truncating seeded data.
+
+## Acceptance Criteria
+
+### Data Fidelity & Mathematical Consistency
+- [ ] Switching between national, state, district, and PHC scopes immediately reflects distinct, non-identical data corresponding to that jurisdiction.
+- [ ] Sum of PHC beds and occupied beds in a district equals the district overview totals.
+- [ ] Sum of district bed counts and facilities in a state equals the state overview totals.
+- [ ] National overview reflects the exact sum of all 36 States/UTs and 192 PHCs.
+- [ ] No hardcoded numbers or stale cross-jurisdiction SSE overrides affect scoped views.
+- [ ] All 8 governance sub-pages (Overview, Medicine, Resources, Workforce, Footfall, Alerts, GIS Map, Redistribution) execute scoped backend queries.
+
+## Verification
+- Run an automated scoping audit script verifying query outputs for National vs. Maharashtra vs. Pune vs. Kothrud PHC to confirm numbers change appropriately and aggregate without discrepancies.
+- Verify `npm run build` succeeds in both `apps/governance-portal` and `services/backend/smart-health-platform/backend`.

@@ -37,12 +37,12 @@ import {
 
 export default function MedicinePage() {
   const { user } = useAuthStore();
-  const { level, stateId, districtId, getScopeLabel } = useScopeStore();
+  const { level, stateId, districtId, phcId, getScopeLabel } = useScopeStore();
 
   // Enforce: clamp to user's jurisdiction
   const scope = useMemo(
-    () => getEnforcedScope(user, { level, stateId, districtId }),
-    [user, level, stateId, districtId]
+    () => getEnforcedScope(user, { level, stateId, districtId, phcId }),
+    [user, level, stateId, districtId, phcId]
   );
 
   // Live GraphQL query
@@ -52,6 +52,7 @@ export default function MedicinePage() {
         level: scope.level,
         stateId: scope.stateId,
         districtId: scope.districtId,
+        phcId: scope.phcId,
       },
     },
   });
@@ -103,14 +104,14 @@ export default function MedicinePage() {
           category: (m.category as any) || 'Essential',
           dosageForm: 'Tablets / Units',
           unit: m.unit || 'tablets',
-          stockNational: stock,
-          stockState: stock,
-          stockDistrict: stock,
-          stockPhc: stock,
-          coverageDaysNational: coverage,
-          coverageDaysState: coverage,
-          coverageDaysDistrict: coverage,
-          coverageDaysPhc: coverage,
+          stockNational: scope.level === 'national' ? stock : (m.stockNational ?? 0),
+          stockState: scope.level === 'state' ? stock : (m.stockState ?? 0),
+          stockDistrict: scope.level === 'district' ? stock : (m.stockDistrict ?? 0),
+          stockPhc: scope.level === 'phc' ? stock : (m.stockPhc ?? 0),
+          coverageDaysNational: scope.level === 'national' ? coverage : (m.coverageDaysNational ?? 0),
+          coverageDaysState: scope.level === 'state' ? coverage : (m.coverageDaysState ?? 0),
+          coverageDaysDistrict: scope.level === 'district' ? coverage : (m.coverageDaysDistrict ?? 0),
+          coverageDaysPhc: scope.level === 'phc' ? coverage : (m.coverageDaysPhc ?? 0),
           projectedShortageDays: coverage,
           reorderLevel: m.reorderLevel || 500,
           criticalLevel: m.criticalLevel || 100,

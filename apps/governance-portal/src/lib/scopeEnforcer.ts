@@ -31,8 +31,8 @@ export function getEnforcedScope(user: User, requestedScope: {
     // District Admin is strictly pinned to their state and district
     return {
       level: requestedScope.phcId ? 'phc' : 'district',
-      stateId: user.stateId ?? 'state-mh',
-      districtId: user.districtId ?? 'dist-pune',
+      stateId: user.stateId ?? 'a0000001-0000-0000-0000-000000000001',
+      districtId: user.districtId ?? 'b0000002-0000-0000-0000-000000000001',
       phcId: requestedScope.phcId ?? null,
       isEnforced: true,
     };
@@ -42,7 +42,7 @@ export function getEnforcedScope(user: User, requestedScope: {
     // State Admin is strictly pinned to their state, but may drill into districts/PHCs within it
     return {
       level: requestedScope.phcId ? 'phc' : requestedScope.districtId ? 'district' : 'state',
-      stateId: user.stateId ?? 'state-mh',
+      stateId: user.stateId ?? 'a0000001-0000-0000-0000-000000000001',
       districtId: requestedScope.districtId ?? null,
       phcId: requestedScope.phcId ?? null,
       isEnforced: true,
