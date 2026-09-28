@@ -397,7 +397,7 @@ const schemaText = `
     redistributionRecommendations(district: ID, districtId: ID): [RedistributionRecommendation!]!
     supplyChainShipments(filter: ShipmentFilter): [SupplyChainShipment!]!
     auditLog(filter: AuditFilter): [AuditLogEntry!]!
-    alertsHistory(districtId: String, stateId: String, page: Int, limit: Int): [AlertHistoryItem!]!
+    alertsHistory(districtId: String, stateId: String, phcId: String, page: Int, limit: Int): [AlertHistoryItem!]!
     federatedNodes: [FederatedNode!]!
     federatedRounds(status: String): [FederatedRound!]!
     federatedRound(id: ID!): FederatedRound
@@ -1231,39 +1231,66 @@ export const rootResolvers = {
     }
   },
 
-  alertsHistory: async () => {
-    const client = await pool.connect();
-    try {
-      const r = await client.query(`
-        SELECT 
-          a.id,
-          a.severity,
-          a.alert_type AS category,
-          a.alert_type AS "alertType",
-          CASE 
-            WHEN a.alert_type = 'emergency_report' THEN 'emergency'
-            WHEN a.alert_type IN ('outbreak_suspected', 'abnormal_consumption', 'forecast_risk', 'redistribution_conflict') THEN 'statistical'
-            ELSE 'deterministic'
-          END AS "alertClass",
-          initcap(replace(a.alert_type, '_', ' ')) AS title,
-          COALESCE(a.payload->>'message', a.payload->>'affected_patients', a.alert_type) AS message,
-          COALESCE(a.phc_id::text, a.district_id::text, '') AS "entityId",
-          COALESCE(p.name, 'Facility') AS "entityName",
-          CASE WHEN a.phc_id IS NOT NULL THEN 'phc' ELSE 'system' END AS "entityType",
-          '' AS "copilotQuery",
-          a.created_at AS timestamp,
-          CASE WHEN a.status = 'acknowledged' THEN true ELSE false END AS acknowledged,
-          a.district_id::text AS "districtId",
-          a.state_id::text AS "stateId"
-        FROM alerts a
-        LEFT JOIN phc_facilities p ON a.phc_id = p.id
-        ORDER BY a.created_at DESC
-      `);
-      return r.rows;
-    } finally {
-      client.release();
-    }
+  alertsHistory: async (args?: { districtId?: string; stateId?: string; phcId?: string; page?: number; limit?: number }) => {
+    const cacheKey = `alertsHistory:${JSON.stringify(args || {})}`;
+    return withCache(cacheKey, 15_000, async () => {
+      const client = await pool.connect();
+      try {
+        const params: any[] = [];
+        const conditions: string[] = ["a.status IN ('open', 'acknowledged')"];
+
+        if (args?.phcId) {
+          params.push(args.phcId);
+          conditions.push(`a.phc_id = $${params.length}`);
+        } else if (args?.districtId) {
+          params.push(args.districtId);
+          conditions.push(`(a.district_id = $${params.length} OR a.phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length}))`);
+        } else if (args?.stateId) {
+          params.push(args.stateId);
+          conditions.push(`(a.state_id = $${params.length} OR a.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length})))`);
+        }
+
+        const limitVal = args?.limit ?? 50;
+        const offsetVal = args?.page ? (args.page - 1) * limitVal : 0;
+        params.push(limitVal, offsetVal);
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        const r = await client.query(`
+          SELECT 
+            a.id,
+            a.severity,
+            a.alert_type AS category,
+            a.alert_type AS "alertType",
+            CASE 
+              WHEN a.alert_type = 'emergency_report' THEN 'emergency'
+              WHEN a.alert_type IN ('outbreak_suspected', 'abnormal_consumption', 'forecast_risk', 'redistribution_conflict') THEN 'statistical'
+              ELSE 'deterministic'
+            END AS "alertClass",
+            initcap(replace(a.alert_type, '_', ' ')) AS title,
+            COALESCE(a.payload->>'message', a.payload->>'affected_patients', a.alert_type) AS message,
+            COALESCE(a.phc_id::text, a.district_id::text, '') AS "entityId",
+            COALESCE(p.name, 'Facility') AS "entityName",
+            CASE WHEN a.phc_id IS NOT NULL THEN 'phc' ELSE 'system' END AS "entityType",
+            '' AS "copilotQuery",
+            a.created_at AS timestamp,
+            CASE WHEN a.status = 'acknowledged' THEN true ELSE false END AS acknowledged,
+            a.district_id::text AS "districtId",
+            a.state_id::text AS "stateId",
+            a.phc_id::text AS "phcId"
+          FROM alerts a
+          LEFT JOIN phc_facilities p ON a.phc_id = p.id
+          ${whereClause}
+          ORDER BY a.created_at DESC
+          LIMIT $${params.length - 1} OFFSET $${params.length}
+        `, params);
+        return r.rows;
+      } finally {
+        client.release();
+      }
+    });
   },
+
 
   // BRICS Queries
   federatedNodes: async () => {

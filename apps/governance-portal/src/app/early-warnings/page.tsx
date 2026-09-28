@@ -75,6 +75,7 @@ export default function EarlyWarningsPage() {
     variables: {
       districtId: enforcedScope.districtId ?? undefined,
       stateId: enforcedScope.stateId ?? undefined,
+      phcId: enforcedScope.phcId ?? undefined,
       page: currentPage,
       limit: 20,
     },
@@ -112,20 +113,28 @@ export default function EarlyWarningsPage() {
     return `/gis`;
   };
 
-  // ── 3. Scope & Filter Pipeline ────────────────────────────────────────────
-  const filteredAlerts = useMemo(() => {
+  // ── 3. Strict Scope Isolation ─────────────────────────────────────────────
+  const scopedAlerts = useMemo(() => {
     return alerts.filter((a) => {
-      // RBAC Scope Check strictly clamped to user authority
-      if (enforcedScope.districtId && a.districtId && a.districtId !== enforcedScope.districtId) {
-        return false;
+      if (enforcedScope.level === 'national' || (!enforcedScope.stateId && !enforcedScope.districtId && !enforcedScope.phcId)) {
+        return true;
       }
-      if (enforcedScope.stateId && a.stateId && a.stateId !== enforcedScope.stateId) {
-        return false;
+      if (enforcedScope.phcId) {
+        return a.phcId === enforcedScope.phcId || a.entityId === enforcedScope.phcId;
       }
-      if (enforcedScope.phcId && a.entityId && a.entityId !== enforcedScope.phcId) {
-        return false;
+      if (enforcedScope.districtId) {
+        return (a.districtId ? a.districtId === enforcedScope.districtId : false) || a.entityId === enforcedScope.districtId;
       }
+      if (enforcedScope.stateId) {
+        return (a.stateId ? a.stateId === enforcedScope.stateId : false) || a.entityId === enforcedScope.stateId;
+      }
+      return true;
+    });
+  }, [alerts, enforcedScope]);
 
+  // ── 4. Scope & Filter Pipeline ────────────────────────────────────────────
+  const filteredAlerts = useMemo(() => {
+    return scopedAlerts.filter((a) => {
       // Class / Tab Filter
       if (activeTab === 'acknowledged') {
         if (!a.acknowledged) return false;
@@ -168,11 +177,11 @@ export default function EarlyWarningsPage() {
 
       return true;
     });
-  }, [alerts, level, stateId, districtId, phcId, activeTab, severityFilter, searchQuery]);
+  }, [scopedAlerts, activeTab, severityFilter, searchQuery]);
 
-  // Statistics breakdown
+  // Statistics breakdown - strictly scoped to active jurisdiction
   const stats = useMemo(() => {
-    const unack = alerts.filter((a) => !a.acknowledged);
+    const unack = scopedAlerts.filter((a) => !a.acknowledged);
     const isEmerg = (a: Alert) =>
       a.alertType === 'emergency_report' ||
       a.alertClass === 'emergency';
@@ -193,7 +202,7 @@ export default function EarlyWarningsPage() {
       deterministicCount: unack.filter(isDet).length,
       statisticalCount: unack.filter(isStat).length,
     };
-  }, [alerts]);
+  }, [scopedAlerts]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredAlerts.length / ITEMS_PER_PAGE));

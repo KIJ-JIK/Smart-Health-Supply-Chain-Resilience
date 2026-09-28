@@ -276,8 +276,11 @@ export default function RedistributionPage() {
   // Filtered recommendations
   const filteredRecs = useMemo(() => {
     return recommendations.filter((r) => {
-      // Scope filter: strictly clamp to currentDistrict
+      // Scope filter: strictly clamp to currentDistrict and current PHC
       if (enforcedScope.districtId && r.districtId && r.districtId !== enforcedScope.districtId) {
+        return false;
+      }
+      if (enforcedScope.phcId && r.fromPhcId !== enforcedScope.phcId && r.toPhcId !== enforcedScope.phcId) {
         return false;
       }
 

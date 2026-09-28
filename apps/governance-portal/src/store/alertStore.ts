@@ -68,6 +68,7 @@ export function normalizeAlert(raw: any): Alert {
     acknowledged,
     districtId: raw.districtId || raw.district_id,
     stateId: raw.stateId || raw.state_id,
+    phcId: raw.phcId || raw.phc_id || (raw.entityType === 'phc' ? raw.entityId : undefined),
     entityId: raw.entityId || raw.phc_id || raw.district_id,
     entityType: raw.entityType || (raw.phc_id ? 'phc' : 'system'),
   };

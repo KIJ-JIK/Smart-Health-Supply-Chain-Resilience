@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { useAuthStore, DEV_PERSONAS } from '@/store/authStore';
 import { useAlertStore } from '@/store/alertStore';
+import { useScopeStore } from '@/store/scopeStore';
+import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { useThemeStore } from '@/store/themeStore';
 import { UserRole, Alert } from '@/types';
 import { useSseStream } from '@/hooks/useSseStream';
@@ -149,7 +151,35 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isDevMode, switchRole, logout } = useAuthStore();
-  const { alerts, unacknowledgedCount, addAlert } = useAlertStore();
+  const { alerts, addAlert } = useAlertStore();
+  const { level, stateId, districtId, phcId } = useScopeStore();
+
+  const enforcedScope = useMemo(() => {
+    return getEnforcedScope(user, { level, stateId, districtId, phcId });
+  }, [user, level, stateId, districtId, phcId]);
+
+  const scopedAlerts = useMemo(() => {
+    return alerts.filter((alert) => {
+      if (enforcedScope.level === 'national' || (!enforcedScope.stateId && !enforcedScope.districtId && !enforcedScope.phcId)) {
+        return true;
+      }
+      if (enforcedScope.phcId) {
+        return alert.phcId === enforcedScope.phcId || alert.entityId === enforcedScope.phcId;
+      }
+      if (enforcedScope.districtId) {
+        return (alert.districtId ? alert.districtId === enforcedScope.districtId : false) || alert.entityId === enforcedScope.districtId;
+      }
+      if (enforcedScope.stateId) {
+        return (alert.stateId ? alert.stateId === enforcedScope.stateId : false) || alert.entityId === enforcedScope.stateId;
+      }
+      return true;
+    });
+  }, [alerts, enforcedScope]);
+
+  const scopedUnacknowledgedCount = useMemo(() => {
+    return scopedAlerts.filter((a) => !a.acknowledged).length;
+  }, [scopedAlerts]);
+
   const { isCrisisMode, crisisTitle, activatedBy, activateCrisisMode, deactivateCrisisMode } = useCrisisStore();
   const { isOpen: isCopilotOpen, toggleCopilot } = useCopilotStore();
   const [alertPanelOpen, setAlertPanelOpen] = useState(false);
@@ -405,12 +435,12 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
             id="alert-bell-btn"
             className="alert-bell-btn"
             onClick={() => setAlertPanelOpen((o) => !o)}
-            aria-label={`Open alerts — ${unacknowledgedCount} unacknowledged`}
+            aria-label={`Open alerts — ${scopedUnacknowledgedCount} unacknowledged`}
           >
             <Bell size={15} />
-            {unacknowledgedCount > 0 && (
+            {scopedUnacknowledgedCount > 0 && (
               <span className="alert-bell-badge">
-                {unacknowledgedCount > 99 ? '99+' : unacknowledgedCount}
+                {scopedUnacknowledgedCount > 99 ? '99+' : scopedUnacknowledgedCount}
               </span>
             )}
           </button>
@@ -740,7 +770,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
       <AlertPanel
         open={alertPanelOpen}
         onClose={() => setAlertPanelOpen(false)}
-        alerts={alerts}
+        alerts={scopedAlerts}
       />
     </>
   );

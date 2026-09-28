@@ -19,6 +19,7 @@ import {
   PhcSupplyRoute,
   GeoExtent,
 } from '@/lib/gisData';
+import { STATES, getStateById, getDistrictById, getPhcById } from '@/lib/geography';
 import { RiskBadge, RiskLevel } from '@/components/common/RiskBadge';
 import { DataFreshnessLabel } from '@/components/common/DataFreshnessLabel';
 import {
@@ -140,16 +141,65 @@ export function GisMap() {
   const activeDistrictId = isDistrictAdmin ? user.districtId : districtId;
   const activeStateId = isDistrictAdmin ? user.stateId : isStateAdmin ? user.stateId : stateId;
 
-  // Resolve camera target extent
+  // Resolve camera target extent dynamically supporting all 36 States/UTs, 129 Districts & PHCs
   const activeExtent: GeoExtent = useMemo(() => {
-    if (activeDistrictId && JURISDICTION_EXTENTS[activeDistrictId]) {
-      return JURISDICTION_EXTENTS[activeDistrictId];
+    // 1. If PHC scope selected
+    if (level === 'phc' && phcId) {
+      const phc = getPhcById(phcId);
+      if (phc) {
+        return {
+          center: [phc.lng, phc.lat],
+          zoom: 12.5,
+          minZoom: 9.0,
+          maxZoom: 18,
+          bounds: [[phc.lng - 0.2, phc.lat - 0.2], [phc.lng + 0.2, phc.lat + 0.2]],
+        };
+      }
     }
-    if (activeStateId && JURISDICTION_EXTENTS[activeStateId]) {
-      return JURISDICTION_EXTENTS[activeStateId];
+
+    // 2. If District selected
+    if (activeDistrictId) {
+      if (JURISDICTION_EXTENTS[activeDistrictId]) {
+        return JURISDICTION_EXTENTS[activeDistrictId];
+      }
+      const dist = getDistrictById(activeDistrictId, activeStateId);
+      if (dist && dist.phcs && dist.phcs.length > 0) {
+        const avgLng = dist.phcs.reduce((acc, p) => acc + p.lng, 0) / dist.phcs.length;
+        const avgLat = dist.phcs.reduce((acc, p) => acc + p.lat, 0) / dist.phcs.length;
+        return {
+          center: [avgLng, avgLat],
+          zoom: 9.5,
+          minZoom: 8.0,
+          maxZoom: 17,
+          bounds: [[avgLng - 0.6, avgLat - 0.6], [avgLng + 0.6, avgLat + 0.6]],
+        };
+      }
     }
+
+    // 3. If State selected
+    if (activeStateId) {
+      if (JURISDICTION_EXTENTS[activeStateId]) {
+        return JURISDICTION_EXTENTS[activeStateId];
+      }
+      const state = getStateById(activeStateId);
+      if (state) {
+        const statePhcs = state.districts.flatMap((d) => d.phcs);
+        if (statePhcs.length > 0) {
+          const avgLng = statePhcs.reduce((acc, p) => acc + p.lng, 0) / statePhcs.length;
+          const avgLat = statePhcs.reduce((acc, p) => acc + p.lat, 0) / statePhcs.length;
+          return {
+            center: [avgLng, avgLat],
+            zoom: 7.0,
+            minZoom: 5.5,
+            maxZoom: 17,
+            bounds: [[avgLng - 1.8, avgLat - 1.8], [avgLng + 1.8, avgLat + 1.8]],
+          };
+        }
+      }
+    }
+
     return JURISDICTION_EXTENTS.national;
-  }, [activeDistrictId, activeStateId]);
+  }, [level, phcId, activeDistrictId, activeStateId]);
 
   // Deck.gl ViewState
   const [viewState, setViewState] = useState({
@@ -299,7 +349,7 @@ export function GisMap() {
 
   // Fetch live district PHC facilities from backend PostgreSQL
   const { data: districtData } = useQuery(DISTRICT_OVERVIEW, {
-    variables: { districtId: activeDistrictId || 'dist-pune' },
+    variables: { districtId: activeDistrictId || 'b0000002-0000-0000-0000-000000000001' },
     skip: !activeDistrictId && !user.districtId,
   });
 
@@ -307,9 +357,41 @@ export function GisMap() {
     if (hierarchyPhcs.length > 0) {
       return hierarchyPhcs;
     }
+    // Baseline: Map all 192 PHCs across all 36 States/UTs from canonical geography.ts
+    const geographyAllPhcs: PhcGisFeature[] = STATES.flatMap((state) =>
+      state.districts.flatMap((dist) =>
+        dist.phcs.map((p) => ({
+          id: p.id,
+          name: p.name,
+          code: p.code,
+          districtId: dist.id,
+          districtName: dist.name,
+          stateId: state.id,
+          stateName: state.name,
+          coordinates: [p.lng, p.lat] as [number, number],
+          type: p.type,
+          population: p.population,
+          riskScore: 35,
+          riskLevel: 'LOW' as RiskLevel,
+          medicineCoverageDays: 7.0,
+          medicineStatus: 'adequate' as const,
+          bedOccupancy: 60,
+          totalBeds: 24,
+          oxygenDays: 5.0,
+          oxygenStatus: 'stable' as const,
+          staffShortagePct: 10,
+          activeStaff: 8,
+          totalStaff: 10,
+          hasEmergency: false,
+          lastSyncTime: p.lastSyncTime || new Date().toISOString(),
+        }))
+      )
+    );
+
     if (!districtData?.districtOverview?.phcList || districtData.districtOverview.phcList.length === 0) {
-      return GIS_PHCS;
+      return geographyAllPhcs;
     }
+    const currentDistrictId = districtData.districtOverview.districtId;
     const phcList = districtData.districtOverview.phcList;
     const mapped: PhcGisFeature[] = phcList.map((p: any) => ({
       id: p.phcId,
@@ -319,8 +401,8 @@ export function GisMap() {
       coordinates: [p.longitude || 73.8567, p.latitude || 18.5204],
       districtId: districtData.districtOverview.districtId,
       districtName: districtData.districtOverview.districtName || 'District',
-      stateId: districtData.districtOverview.stateId || 'state-mh',
-      stateName: 'Maharashtra',
+      stateId: districtData.districtOverview.stateId || 'a0000001-0000-0000-0000-000000000001',
+      stateName: districtData.districtOverview.stateName || 'Maharashtra',
       population: 30000,
       riskLevel: (p.riskLevel as RiskLevel) || 'LOW',
       riskScore: p.riskLevel === 'CRITICAL' ? 88 : p.riskLevel === 'HIGH' ? 72 : 35,
@@ -337,8 +419,7 @@ export function GisMap() {
       emergencyDetail: p.riskLevel === 'CRITICAL' ? 'Critical beds surge' : undefined,
       lastSyncTime: new Date().toISOString(),
     }));
-    const currentDistrictId = districtData.districtOverview.districtId;
-    const otherPhcs = GIS_PHCS.filter((p) => p.districtId !== currentDistrictId);
+    const otherPhcs = geographyAllPhcs.filter((p) => p.districtId !== currentDistrictId && p.id !== currentDistrictId);
     return [...mapped, ...otherPhcs];
   }, [hierarchyPhcs, districtData]);
 
@@ -347,6 +428,9 @@ export function GisMap() {
   // If state_admin: strictly filter features to user.stateId
   const scopedPhcs = useMemo(() => {
     return livePhcs.filter((phc) => {
+      if (level === 'phc' && phcId) {
+        return phc.id === phcId;
+      }
       if (isDistrictAdmin) {
         return phc.districtId === user.districtId;
       }
@@ -354,14 +438,16 @@ export function GisMap() {
         return phc.stateId === user.stateId;
       }
       if (districtId) {
-        return phc.districtId === districtId;
+        const d = getDistrictById(districtId, stateId);
+        return phc.districtId === districtId || (d && phc.districtId === d.id);
       }
       if (stateId) {
-        return phc.stateId === stateId;
+        const s = getStateById(stateId);
+        return phc.stateId === stateId || (s && phc.stateId === s.id);
       }
       return true;
     });
-  }, [livePhcs, isDistrictAdmin, isStateAdmin, user.districtId, user.stateId, districtId, stateId]);
+  }, [livePhcs, level, phcId, isDistrictAdmin, isStateAdmin, user.districtId, user.stateId, districtId, stateId]);
 
   // Filter Supply Routes
   // MANDATORY CONSTRAINT: "the supply routes should be visible from phc to phc only"

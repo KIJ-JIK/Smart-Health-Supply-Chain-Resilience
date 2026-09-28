@@ -1,8 +1,16 @@
 import { pool } from './pool';
+import { seedGapPhcs } from './seedGapPhcs';
 
 export async function ensureM2SeedsAndIndexes(): Promise<void> {
   const client = await pool.connect();
   try {
+    // -1. Ensure canonical 192 PHC facilities baseline
+    try {
+      await seedGapPhcs(client);
+    } catch (e: any) {
+      console.warn('[M2 Seed] Warning in seedGapPhcs:', e?.message || e);
+    }
+
     // 0. Ensure columns exist on redistribution_transfers
     await client.query(`
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS notes TEXT;

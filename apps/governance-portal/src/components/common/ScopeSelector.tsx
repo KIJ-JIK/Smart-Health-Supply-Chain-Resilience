@@ -489,7 +489,7 @@ export function ScopeSelector({
                 ? `${currentDistrict?.name} District (${currentDistrict?.totalPhcs} PHCs)`
                 : level === 'state'
                 ? `${currentState?.name} State (${currentState?.totalPhcs} PHCs)`
-                : 'National Jurisdiction (45,320 PHCs)'}
+                : `National Jurisdiction (${STATES.reduce((acc, s) => acc + (s.totalPhcs || 0), 0)} PHCs)`}
             </span>
             <span style={{ color: '#cbd5e1' }}>•</span>
             <span style={{ textTransform: 'capitalize', color: '#64748b' }}>

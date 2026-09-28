@@ -55,6 +55,7 @@ export interface Alert {
   acknowledged: boolean;
   districtId?: string;
   stateId?: string;
+  phcId?: string;
 }
 
 // ── Overview types ────────────────────────────────────────────────────────────

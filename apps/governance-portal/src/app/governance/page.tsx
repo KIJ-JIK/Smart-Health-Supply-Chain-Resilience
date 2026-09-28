@@ -76,7 +76,7 @@ import { CrisisDashboardLayout } from '@/components/crisis/CrisisDashboardLayout
 
 export default function CommandCenterPage() {
   const { user } = useAuthStore();
-  const { level, stateId, districtId, phcId } = useScopeStore();
+  const { level, stateId, districtId, phcId, getScopeLabel } = useScopeStore();
   const { isCrisisMode } = useCrisisStore();
 
   // State to hold live SSE KPI overrides
@@ -98,38 +98,71 @@ export default function CommandCenterPage() {
   });
 
   // Fetch GraphQL based on active role/scope
-  const isNationalScope = level === 'national' || (!stateId && !districtId);
-  const isStateScope = level === 'state' || (Boolean(stateId) && !districtId);
-  const isDistrictScope = !isNationalScope && !isStateScope;
+  const isNationalScope = level === 'national' || (!stateId && !districtId && !phcId);
+  const isStateScope = level === 'state' || (Boolean(stateId) && !districtId && !phcId);
+  const isPhcScope = level === 'phc' || Boolean(phcId);
+  const isDistrictScope = !isNationalScope && !isStateScope && !isPhcScope;
 
   const { data: nationalData, loading: nationalLoading } = useQuery(NATIONAL_OVERVIEW, {
     skip: !isNationalScope,
   });
 
   const { data: stateData, loading: stateLoading } = useQuery(STATE_OVERVIEW, {
-    variables: { stateId: stateId ?? user.stateId ?? 'state-mh' },
+    variables: { stateId: stateId ?? user.stateId ?? 'a0000001-0000-0000-0000-000000000001' },
     skip: !isStateScope,
   });
 
   const { data: districtData, loading: districtLoading } = useQuery(DISTRICT_OVERVIEW, {
-    variables: { districtId: districtId ?? user.districtId ?? 'dist-pune' },
-    skip: !isDistrictScope,
+    variables: { districtId: districtId ?? user.districtId ?? 'b0000002-0000-0000-0000-000000000001' },
+    skip: !isDistrictScope && !isPhcScope,
   });
 
+  const { data: phcData, loading: phcLoading } = useQuery(PHC_DETAIL, {
+    variables: { phcId: phcId ?? '' },
+    skip: !isPhcScope || !phcId,
+  });
+
+  const redistVariables = useMemo(() => {
+    if (districtId) return { district: districtId, districtId };
+    if (stateId) return { stateId };
+    return {};
+  }, [districtId, stateId]);
+
   const { data: redistData } = useQuery(REDISTRIBUTION_RECOMMENDATIONS, {
-    variables: { district: districtId ?? 'dist-pune' },
+    variables: redistVariables,
   });
 
   const { data: forecastGqlData } = useQuery(FORECASTS, {
     variables: { metric: 'stockDays' },
   });
 
-  const loading = isNationalScope ? nationalLoading : isStateScope ? stateLoading : districtLoading;
+  const { data: alertsData } = useQuery(ALERTS_HISTORY, {
+    variables: {
+      stateId: isStateScope ? (stateId ?? user.stateId) : undefined,
+      districtId: isDistrictScope ? (districtId ?? user.districtId) : undefined,
+      phcId: isPhcScope ? phcId : undefined,
+      limit: 10,
+    },
+  });
+
+  const loading = isNationalScope
+    ? nationalLoading
+    : isStateScope
+    ? stateLoading
+    : isPhcScope
+    ? phcLoading
+    : districtLoading;
 
   const nationalOverview: NationalOverview | undefined = nationalData?.nationalOverview;
   const stateOverview: StateOverview | undefined = stateData?.stateOverview;
   const districtOverview: DistrictOverview | undefined = districtData?.districtOverview;
+  const phcDetail = phcData?.phcDetail;
   const redistributionRecommendations = redistData?.redistributionRecommendations || [];
+
+  const liveEscalations = useMemo(() => {
+    const list = alertsData?.alertsHistory || [];
+    return list.filter((a: any) => !a.acknowledged);
+  }, [alertsData]);
 
   const forecastCurve = useMemo(() => {
     const pts = forecastGqlData?.forecasts?.[0]?.points;
@@ -163,7 +196,7 @@ export default function CommandCenterPage() {
       const bedUtilization = nationalOverview?.bedOccupancyRate ?? (totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(1)) : 0);
       const oxygenStatus = nationalOverview?.oxygenCylindersAvailable ?? 0;
       const staffAvailability = totalPhcs > 0 ? Math.max(0, 100 - parseFloat(((nationalOverview?.staffShortagePhcCount || 0) / totalPhcs * 100).toFixed(1))) : 100;
-      const patientLoad = occupiedBeds > 0 ? occupiedBeds * 12 : 0;
+      const patientLoad = occupiedBeds;
       const openEmergencies = nationalOverview?.outbreakAlerts ?? nationalOverview?.criticalAlertsCount ?? 0;
       const pendingRequests = nationalOverview?.pendingRedistributionsCount ?? nationalOverview?.pendingRedistributions ?? 0;
 
@@ -186,10 +219,12 @@ export default function CommandCenterPage() {
       const activePhcs = stateOverview?.activePhcs ?? 0;
       const criticalPhcs = stateOverview?.criticalShortages ?? 0;
       const medicineAlerts = stateOverview?.stockoutAlerts ?? 0;
-      const bedUtilization = stateOverview?.bedOccupancyRate ?? 0;
-      const oxygenStatus = (stateOverview as any)?.oxygenCylindersAvailable ?? (stateOverview?.districts ? stateOverview.districts.reduce((acc, d) => acc + d.totalPhcs * 8, 0) : 0);
+      const totalBeds = (stateOverview as any)?.totalBeds ?? 0;
+      const occupiedBeds = (stateOverview as any)?.occupiedBeds ?? 0;
+      const bedUtilization = stateOverview?.bedOccupancyRate ?? (totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(1)) : 0);
+      const oxygenStatus = (stateOverview as any)?.oxygenCylindersAvailable ?? (stateOverview?.districts ? stateOverview.districts.reduce((acc, d) => acc + ((d as any).oxygenCylindersAvailable || 0), 0) : 0);
       const staffAvailability = totalPhcs > 0 ? Math.round((activePhcs / totalPhcs) * 100) : 100;
-      const patientLoad = (stateOverview as any)?.occupiedBeds ? (stateOverview as any).occupiedBeds * 8 : (stateOverview?.districts ? stateOverview.districts.reduce((acc, d) => acc + d.totalPhcs * 25, 0) : 0);
+      const patientLoad = occupiedBeds;
       const openEmergencies = (stateOverview as any)?.openAlertsCount ?? stateOverview?.criticalAlertsCount ?? 0;
       const pendingRequests = stateOverview?.criticalShortages ?? 0;
 
@@ -207,38 +242,41 @@ export default function CommandCenterPage() {
       };
     }
 
-    if (level === 'phc' && phcId) {
-      const targetPhc = districtOverview?.phcList?.find(p => p.phcId === phcId);
-      const isCrit = targetPhc ? targetPhc.riskLevel === 'CRITICAL' || targetPhc.riskLevel === 'critical' : false;
-      const totalBeds = targetPhc?.totalBeds || 30;
-      const occupiedBeds = targetPhc?.occupiedBeds || 15;
+    if (isPhcScope && phcId) {
+      const targetPhc = phcDetail || districtOverview?.phcList?.find((p) => p.phcId === phcId);
+      const isCrit = targetPhc ? (targetPhc.riskLevel === 'CRITICAL' || targetPhc.riskLevel === 'critical') : false;
+      const totalBeds = targetPhc?.totalBeds ?? 0;
+      const occupiedBeds = targetPhc?.occupiedBeds ?? 0;
       const bedUtilization = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(1)) : 0;
-      const oxygenStatus = targetPhc?.oxygenCylinders || 20;
+      const oxygenStatus = targetPhc?.oxygenCylinders ?? 0;
+      const activeStaff = targetPhc?.activeStaff ?? 1;
+      const activeAlertsCount = targetPhc?.activeAlerts?.length ?? (targetPhc as any)?.openAlerts ?? 0;
+      const openRequestsCount = targetPhc?.openRequests?.length ?? 0;
 
       return {
         totalPhcs: 1,
         activePhcs: 1,
         criticalPhcs: isCrit ? 1 : 0,
-        medicineAlerts: targetPhc?.openAlerts || 0,
+        medicineAlerts: activeAlertsCount,
         bedUtilization,
         oxygenStatus,
-        staffAvailability: 100,
-        patientLoad: occupiedBeds * 8,
-        openEmergencies: targetPhc?.openAlerts || 0,
-        pendingRequests: 0,
+        staffAvailability: activeStaff > 0 ? 100 : 0,
+        patientLoad: occupiedBeds,
+        openEmergencies: activeAlertsCount,
+        pendingRequests: openRequestsCount,
       };
     }
 
     const totalPhcs = districtOverview?.totalPhcs ?? 0;
     const activePhcs = districtOverview?.activePhcs ?? 0;
-    const criticalPhcs = districtOverview?.phcList ? districtOverview.phcList.filter(p => p.riskLevel === 'CRITICAL' || p.riskLevel === 'critical').length : 0;
+    const criticalPhcs = districtOverview?.phcList ? districtOverview.phcList.filter((p) => p.riskLevel === 'CRITICAL' || p.riskLevel === 'critical').length : 0;
     const medicineAlerts = districtOverview?.stockoutAlerts ?? 0;
-    const totalBeds = districtOverview?.phcList ? districtOverview.phcList.reduce((acc, p) => acc + (p.totalBeds || 0), 0) : 0;
-    const occupiedBeds = districtOverview?.phcList ? districtOverview.phcList.reduce((acc, p) => acc + (p.occupiedBeds || 0), 0) : 0;
-    const bedUtilization = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(1)) : 0;
-    const oxygenStatus = districtOverview?.phcList ? districtOverview.phcList.reduce((acc, p) => acc + (p.oxygenCylinders || 0), 0) : 0;
+    const totalBeds = (districtOverview as any)?.totalBeds ?? (districtOverview?.phcList ? districtOverview.phcList.reduce((acc, p) => acc + (p.totalBeds || 0), 0) : 0);
+    const occupiedBeds = (districtOverview as any)?.occupiedBeds ?? (districtOverview?.phcList ? districtOverview.phcList.reduce((acc, p) => acc + (p.occupiedBeds || 0), 0) : 0);
+    const bedUtilization = (districtOverview as any)?.bedOccupancyRate ?? (totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(1)) : 0);
+    const oxygenStatus = (districtOverview as any)?.oxygenCylindersAvailable ?? (districtOverview?.phcList ? districtOverview.phcList.reduce((acc, p) => acc + (p.oxygenCylinders || 0), 0) : 0);
     const staffAvailability = totalPhcs > 0 ? Math.round((activePhcs / totalPhcs) * 100) : 100;
-    const patientLoad = occupiedBeds * 8;
+    const patientLoad = occupiedBeds;
     const openEmergencies = districtOverview?.openAlertsCount ?? 0;
     const pendingRequests = districtOverview?.pendingRequestsCount ?? 0;
 
@@ -254,11 +292,11 @@ export default function CommandCenterPage() {
       openEmergencies,
       pendingRequests,
     };
-  }, [isNationalScope, isStateScope, level, phcId, nationalOverview, stateOverview, districtOverview]);
+  }, [isNationalScope, isStateScope, isPhcScope, phcId, nationalOverview, stateOverview, districtOverview, phcDetail]);
 
-  // Derived live at-risk districts from stateOverview
+  // Derived live at-risk districts or facilities from overview
   const liveDistricts = useMemo(() => {
-    if (stateOverview?.districts && stateOverview.districts.length > 0) {
+    if (isStateScope && stateOverview?.districts && stateOverview.districts.length > 0) {
       return stateOverview.districts.map((d, idx) => {
         const score = Math.round(d.bedOccupancyRate * 0.5 + (d.criticalPhcs * 15) + (d.stockoutRiskCount * 5));
         const risk: RiskLevel = d.criticalPhcs > 0 || d.bedOccupancyRate > 90 ? 'CRITICAL' : d.bedOccupancyRate > 75 ? 'HIGH' : 'MODERATE';
@@ -266,7 +304,7 @@ export default function CommandCenterPage() {
           rank: idx + 1,
           name: d.districtName.includes('District') ? d.districtName : `${d.districtName} District`,
           districtId: d.districtId,
-          state: stateOverview.stateName || 'Maharashtra',
+          state: stateOverview.stateName || 'Active State',
           score: Math.min(100, Math.max(10, score)),
           risk,
           driver: `Bed utilization ${d.bedOccupancyRate}%; ${d.criticalPhcs} critical PHCs; ${d.stockoutRiskCount} stockout risks`,
@@ -274,8 +312,26 @@ export default function CommandCenterPage() {
         };
       });
     }
+
+    if ((isDistrictScope || isPhcScope) && districtOverview?.phcList && districtOverview.phcList.length > 0) {
+      return districtOverview.phcList.map((p, idx) => {
+        const score = Math.min(100, Math.max(10, Math.round(((p.occupiedBeds || 0) / (p.totalBeds || 1)) * 50 + (p.openAlerts || 0) * 15)));
+        const risk: RiskLevel = p.riskLevel === 'CRITICAL' || p.riskLevel === 'critical' ? 'CRITICAL' : p.riskLevel === 'HIGH' || p.riskLevel === 'high' ? 'HIGH' : 'LOW';
+        return {
+          rank: idx + 1,
+          name: p.name,
+          districtId: p.phcId,
+          state: districtOverview.stateName || 'Active State',
+          score,
+          risk,
+          driver: `Beds: ${p.occupiedBeds || 0}/${p.totalBeds || 0} occupied; Oxygen: ${p.oxygenCylinders || 0}; Alerts: ${p.openAlerts || 0}`,
+          phcs: `1 Facility`,
+        };
+      });
+    }
+
     return [];
-  }, [stateOverview]);
+  }, [isStateScope, isDistrictScope, isPhcScope, stateOverview, districtOverview]);
 
   // Helper to resolve live SSE tick with GraphQL fallback
   const getKpiValue = (metricName: string, fallbackVal: number | string) => {
@@ -337,7 +393,7 @@ export default function CommandCenterPage() {
       >
         <div>
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            National Command Center
+            {getScopeLabel()} Command Center
           </h1>
           <p className="page-subtitle">
             Executive multi-echelon oversight & real-time operational posture
@@ -671,13 +727,18 @@ export default function CommandCenterPage() {
                     gap: 10,
                     padding: '10px 12px',
                     borderRadius: 8,
-                    backgroundColor: '#fef2f2',
-                    border: '1px solid #fecaca',
+                    backgroundColor: baselineKpis.medicineAlerts > 0 ? '#fef2f2' : '#f0fdf4',
+                    border: `1px solid ${baselineKpis.medicineAlerts > 0 ? '#fecaca' : '#bbf7d0'}`,
                   }}
                 >
-                  <AlertOctagon size={16} color="#dc2626" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <AlertOctagon size={16} color={baselineKpis.medicineAlerts > 0 ? '#dc2626' : '#16a34a'} style={{ marginTop: 2, flexShrink: 0 }} />
                   <div style={{ fontSize: 12, lineHeight: 1.4 }}>
-                    <strong style={{ color: '#991b1b' }}>Pediatric Antibiotic Deficit:</strong> 42 rural PHCs have &lt;3 days stock of Amoxicillin 250mg following unseasonal monsoon respiratory infections.
+                    <strong style={{ color: baselineKpis.medicineAlerts > 0 ? '#991b1b' : '#166534' }}>
+                      {baselineKpis.medicineAlerts > 0 ? 'Medicine Stockout Risk:' : 'Medicine Supply Stable:'}
+                    </strong>{' '}
+                    {baselineKpis.medicineAlerts > 0
+                      ? `${baselineKpis.medicineAlerts} active stockout alert${baselineKpis.medicineAlerts > 1 ? 's' : ''} detected in ${getScopeLabel()}; immediate replenishment or inter-facility transfer recommended.`
+                      : `Essential medicine coverage is adequate across ${getScopeLabel()} with 0 critical stockouts.`}
                   </div>
                 </div>
 
@@ -688,13 +749,18 @@ export default function CommandCenterPage() {
                     gap: 10,
                     padding: '10px 12px',
                     borderRadius: 8,
-                    backgroundColor: '#fffbeb',
-                    border: '1px solid #fde68a',
+                    backgroundColor: baselineKpis.bedUtilization > 75 ? '#fffbeb' : '#f0fdf4',
+                    border: `1px solid ${baselineKpis.bedUtilization > 75 ? '#fde68a' : '#bbf7d0'}`,
                   }}
                 >
-                  <AlertTriangle size={16} color="#d97706" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <AlertTriangle size={16} color={baselineKpis.bedUtilization > 75 ? '#d97706' : '#16a34a'} style={{ marginTop: 2, flexShrink: 0 }} />
                   <div style={{ fontSize: 12, lineHeight: 1.4 }}>
-                    <strong style={{ color: '#92400e' }}>Vector Surge in 12 Districts:</strong> Dengue & Chikungunya test positivity increased by +18.4% week-on-week; IV Fluid buffer depleted in primary centers.
+                    <strong style={{ color: baselineKpis.bedUtilization > 75 ? '#92400e' : '#166534' }}>
+                      {baselineKpis.bedUtilization > 75 ? 'Inpatient Capacity Surge:' : 'Inpatient Capacity Nominal:'}
+                    </strong>{' '}
+                    {baselineKpis.bedUtilization > 75
+                      ? `Bed utilization reached ${baselineKpis.bedUtilization}% in ${getScopeLabel()}; surge buffer reserves active.`
+                      : `Bed utilization at ${baselineKpis.bedUtilization}% across ${getScopeLabel()}; capacity within nominal bounds.`}
                   </div>
                 </div>
 
@@ -705,13 +771,16 @@ export default function CommandCenterPage() {
                     gap: 10,
                     padding: '10px 12px',
                     borderRadius: 8,
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    backgroundColor: redistributionRecommendations.length > 0 ? '#eff6ff' : '#f8fafc',
+                    border: `1px solid ${redistributionRecommendations.length > 0 ? '#bfdbfe' : '#e2e8f0'}`,
                   }}
                 >
-                  <Clock size={16} color="#475569" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <Clock size={16} color={redistributionRecommendations.length > 0 ? '#1d4ed8' : '#475569'} style={{ marginTop: 2, flexShrink: 0 }} />
                   <div style={{ fontSize: 12, lineHeight: 1.4, color: '#334155' }}>
-                    <strong>Inter-facility Transport Fluidity:</strong> 91.6% on-time logistics delivery; 4 mountain pass shipments delayed by mudslides in Konkan corridor.
+                    <strong>Inter-facility Redistribution Fluidity:</strong>{' '}
+                    {redistributionRecommendations.length > 0
+                      ? `${redistributionRecommendations.length} transfer recommendation${redistributionRecommendations.length > 1 ? 's' : ''} available for ${getScopeLabel()} optimization.`
+                      : `Logistics and transfer pipelines are fluid across ${getScopeLabel()}; 0 pending balancing transfers.`}
                   </div>
                 </div>
               </div>
@@ -1148,90 +1217,73 @@ export default function CommandCenterPage() {
                     <Flame size={14} color="#dc2626" />
                     <span>Open Emergency Escalations</span>
                   </div>
-                  <span style={{ fontSize: 11, color: '#64748b' }}>2 active incidents</span>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>
+                    {liveEscalations.length} active incident{liveEscalations.length === 1 ? '' : 's'}
+                  </span>
                 </div>
 
-                {/* Emergency 1 */}
-                <div style={{ padding: '14px', borderRadius: 8, backgroundColor: '#fef2f2', border: '1px solid #fecaca', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, color: '#991b1b', fontSize: 13 }}>
-                        Stage-2 Dengue Vector Cluster #EMG-MH-04
+                {liveEscalations.length > 0 ? (
+                  liveEscalations.slice(0, 2).map((inc: any) => {
+                    const isCritical = inc.severity === 'critical' || inc.severity === 'CRITICAL';
+                    return (
+                      <div
+                        key={inc.id}
+                        style={{
+                          padding: '14px',
+                          borderRadius: 8,
+                          backgroundColor: isCritical ? '#fef2f2' : '#fffbeb',
+                          border: `1px solid ${isCritical ? '#fecaca' : '#fde68a'}`,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 8,
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <div style={{ fontWeight: 700, color: isCritical ? '#991b1b' : '#92400e', fontSize: 13 }}>
+                              {inc.title}
+                            </div>
+                            <div style={{ fontSize: 11, color: isCritical ? '#7f1d1d' : '#78350f', marginTop: 2 }}>
+                              Jurisdiction: <strong>{inc.entityName || inc.districtId || getScopeLabel()}</strong>
+                            </div>
+                          </div>
+                          <RiskBadge level={isCritical ? 'CRITICAL' : 'HIGH'} size="sm" pulse={isCritical} />
+                        </div>
+
+                        <p style={{ fontSize: 12, color: isCritical ? '#450a0a' : '#78350f', lineHeight: 1.3 }}>
+                          Action Required: {inc.message}
+                        </p>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: `1px solid ${isCritical ? '#fecaca' : '#fde68a'}`, fontSize: 11 }}>
+                          <span style={{ color: isCritical ? '#991b1b' : '#92400e', fontWeight: 600 }}>Active Escalation</span>
+                          <Link
+                            href="/early-warnings"
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: 4,
+                              backgroundColor: isCritical ? '#dc2626' : '#d97706',
+                              color: '#ffffff',
+                              fontWeight: 600,
+                              textDecoration: 'none',
+                              fontSize: 11,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                            }}
+                          >
+                            <span>Open Incident Portal</span>
+                            <ArrowRight size={11} />
+                          </Link>
+                        </div>
                       </div>
-                      <div style={{ fontSize: 11, color: '#7f1d1d', marginTop: 2 }}>
-                        Jurisdiction: <strong>Hadapsar & Haveli Sub-Districts</strong>
-                      </div>
-                    </div>
-                    <RiskBadge level="CRITICAL" size="sm" pulse />
+                    );
+                  })
+                ) : (
+                  <div style={{ padding: '24px', textAlign: 'center', borderRadius: 8, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontSize: 12 }}>
+                    <CheckCircle2 size={20} color="#16a34a" style={{ display: 'inline-block', marginBottom: 6 }} />
+                    <div>No active emergency escalations in {getScopeLabel()}. All facilities reporting nominal operational status.</div>
                   </div>
-
-                  <p style={{ fontSize: 12, color: '#450a0a', lineHeight: 1.3 }}>
-                    Action Required: Authorize emergency dispatch of 500 NS1 Antigen test cassettes & deploy mobile fever clinic.
-                  </p>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid #fecaca', fontSize: 11 }}>
-                    <span style={{ color: '#991b1b', fontWeight: 600 }}>Awaiting Secretary Approval</span>
-                    <Link
-                      href="/emergency"
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 4,
-                        backgroundColor: '#dc2626',
-                        color: '#ffffff',
-                        fontWeight: 600,
-                        textDecoration: 'none',
-                        fontSize: 11,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                    >
-                      <span>Open Incident Portal</span>
-                      <ArrowRight size={11} />
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Emergency 2 */}
-                <div style={{ padding: '14px', borderRadius: 8, backgroundColor: '#fffbeb', border: '1px solid #fde68a', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, color: '#92400e', fontSize: 13 }}>
-                        Cold-Chain Excursion Alert #EMG-TEMP-08
-                      </div>
-                      <div style={{ fontSize: 11, color: '#78350f', marginTop: 2 }}>
-                        Jurisdiction: <strong>Junnar Tribal PHC (ILR #2 Temp: +9.4°C)</strong>
-                      </div>
-                    </div>
-                    <RiskBadge level="HIGH" size="sm" />
-                  </div>
-
-                  <p style={{ fontSize: 12, color: '#78350f', lineHeight: 1.3 }}>
-                    Action Required: Relocate 380 doses of Pentavalent vaccine to secondary solar cold box.
-                  </p>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid #fde68a', fontSize: 11 }}>
-                    <span style={{ color: '#92400e', fontWeight: 600 }}>Technician En Route</span>
-                    <Link
-                      href="/emergency"
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 4,
-                        backgroundColor: '#d97706',
-                        color: '#ffffff',
-                        fontWeight: 600,
-                        textDecoration: 'none',
-                        fontSize: 11,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                    >
-                      <span>Open Incident Portal</span>
-                      <ArrowRight size={11} />
-                    </Link>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
