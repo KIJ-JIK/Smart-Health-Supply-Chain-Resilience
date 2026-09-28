@@ -7,9 +7,22 @@ export const dynamic = 'force-dynamic';
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'https://smart-health-supply-chain-resilience-production.up.railway.app';
 
-async function fetchBackendKpis(authHeader?: string): Promise<Record<string, number>> {
+async function fetchBackendKpis(
+  authHeader?: string,
+  scope?: { stateId?: string | null; districtId?: string | null }
+): Promise<Record<string, number>> {
   try {
-    // Fetch national overview via GraphQL
+    let query = `{ nationalOverview { totalPhcs activePhcs criticalPhcs totalBeds occupiedBeds bedOccupancyRate oxygenCylindersAvailable openAlertsCount criticalAlertsCount staffShortagePhcCount pendingRedistributionsCount } }`;
+    let rootField = 'nationalOverview';
+
+    if (scope?.districtId) {
+      query = `query ($dId: ID!) { districtOverview(districtId: $dId) { totalPhcs activePhcs totalBeds occupiedBeds bedOccupancyRate oxygenCylindersAvailable openAlertsCount stockoutAlerts pendingRequestsCount } }`;
+      rootField = 'districtOverview';
+    } else if (scope?.stateId) {
+      query = `query ($sId: ID!) { stateOverview(stateId: $sId) { totalPhcs activePhcs totalBeds occupiedBeds bedOccupancyRate oxygenCylindersAvailable openAlertsCount criticalAlertsCount criticalShortages stockoutAlerts } }`;
+      rootField = 'stateOverview';
+    }
+
     const res = await fetch(`${BACKEND}/graphql`, {
       method: 'POST',
       headers: {
@@ -18,13 +31,14 @@ async function fetchBackendKpis(authHeader?: string): Promise<Record<string, num
         ...(authHeader ? { Authorization: authHeader } : {}),
       },
       body: JSON.stringify({
-        query: `{ nationalOverview { totalPhcs activePhcs criticalPhcs totalBeds occupiedBeds bedOccupancyRate oxygenCylindersAvailable openAlertsCount criticalAlertsCount staffShortagePhcCount pendingRedistributionsCount } }`,
+        query,
+        variables: scope?.districtId ? { dId: scope.districtId } : scope?.stateId ? { sId: scope.stateId } : undefined,
       }),
       signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return {};
     const json = await res.json();
-    return json?.data?.nationalOverview ?? {};
+    return json?.data?.[rootField] ?? {};
   } catch {
     return {};
   }
@@ -32,6 +46,10 @@ async function fetchBackendKpis(authHeader?: string): Promise<Record<string, num
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('Authorization') ?? undefined;
+  const url = new URL(req.url);
+  const stateId = url.searchParams.get('stateId');
+  const districtId = url.searchParams.get('districtId');
+  const scope = { stateId, districtId };
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -39,14 +57,14 @@ export async function GET(req: Request) {
       controller.enqueue(encoder.encode(': connected\n\n'));
 
       const sendTick = async () => {
-        const data = await fetchBackendKpis(authHeader);
+        const data = await fetchBackendKpis(authHeader, scope);
 
         const ticks = [
-          { metric: 'Critical PHCs',      value: data.criticalPhcs              ?? 0, unit: 'PHCs',   severity: 'critical' },
-          { metric: 'Medicine Alerts',     value: data.openAlertsCount           ?? 0, unit: 'Alerts', severity: 'warn' },
+          { metric: 'Critical PHCs',      value: data.criticalPhcs              ?? data.criticalShortages ?? 0, unit: 'PHCs',   severity: 'critical' },
+          { metric: 'Medicine Alerts',     value: data.openAlertsCount           ?? data.stockoutAlerts ?? 0, unit: 'Alerts', severity: 'warn' },
           { metric: 'Bed Utilization',     value: Math.round(data.bedOccupancyRate ?? 0), unit: '%', severity: data.bedOccupancyRate > 90 ? 'critical' : 'ok' },
           { metric: 'Oxygen Status',       value: data.oxygenCylindersAvailable  ?? 0, unit: 'cyl',   severity: data.oxygenCylindersAvailable < 20 ? 'warn' : 'ok' },
-          { metric: 'Pending Requests',    value: data.pendingRedistributionsCount ?? 0, unit: 'Reqs', severity: 'warn' },
+          { metric: 'Pending Requests',    value: data.pendingRedistributionsCount ?? data.pendingRequestsCount ?? data.criticalShortages ?? 0, unit: 'Reqs', severity: 'warn' },
           { metric: 'Active PHCs',         value: data.activePhcs                ?? 0, unit: 'PHCs',  severity: 'ok' },
           { metric: 'Critical Alerts',     value: data.criticalAlertsCount       ?? 0, unit: 'Alerts', severity: 'critical' },
         ];

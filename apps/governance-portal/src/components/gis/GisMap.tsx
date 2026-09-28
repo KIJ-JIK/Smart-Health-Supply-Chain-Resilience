@@ -308,7 +308,7 @@ export function GisMap() {
             const oxygen = Number(p.oxygen_cylinders_available) || 20;
             const isCrit = occupied > total * 0.85 || oxygen < 10;
             const isHigh = occupied > total * 0.70 || oxygen < 15;
-            const riskLevel: RiskLevel = isCrit ? 'CRITICAL' : isHigh ? 'HIGH' : 'LOW';
+            const riskLevel: PhcGisFeature['riskLevel'] = isCrit ? 'CRITICAL' : isHigh ? 'HIGH' : 'LOW';
             const riskScore = isCrit ? 88 : isHigh ? 72 : 35;
             return {
               id: p.id,
@@ -372,7 +372,7 @@ export function GisMap() {
           type: p.type,
           population: p.population,
           riskScore: 35,
-          riskLevel: 'LOW' as RiskLevel,
+          riskLevel: 'LOW' as PhcGisFeature['riskLevel'],
           medicineCoverageDays: 7.0,
           medicineStatus: 'adequate' as const,
           bedOccupancy: 60,
@@ -404,7 +404,7 @@ export function GisMap() {
       stateId: districtData.districtOverview.stateId || 'a0000001-0000-0000-0000-000000000001',
       stateName: districtData.districtOverview.stateName || 'Maharashtra',
       population: 30000,
-      riskLevel: (p.riskLevel as RiskLevel) || 'LOW',
+      riskLevel: (p.riskLevel === 'CRITICAL' || p.riskLevel === 'critical' ? 'CRITICAL' : p.riskLevel === 'HIGH' || p.riskLevel === 'high' ? 'HIGH' : 'LOW') as PhcGisFeature['riskLevel'],
       riskScore: p.riskLevel === 'CRITICAL' ? 88 : p.riskLevel === 'HIGH' ? 72 : 35,
       medicineCoverageDays: 6.0,
       medicineStatus: 'adequate',

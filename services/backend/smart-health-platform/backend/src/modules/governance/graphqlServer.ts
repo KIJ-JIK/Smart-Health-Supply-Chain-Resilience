@@ -61,9 +61,14 @@ const schemaText = `
     districtId: ID!
     districtName: String!
     totalPhcs: Int!
+    activePhcs: Int!
+    totalBeds: Int!
+    occupiedBeds: Int!
+    bedOccupancyRate: Float!
+    oxygenCylindersAvailable: Int!
     criticalPhcs: Int!
     stockoutRiskCount: Int!
-    bedOccupancyRate: Float!
+    openAlertsCount: Int!
   }
 
   type StateOverview {
@@ -104,6 +109,10 @@ const schemaText = `
     stateName: String!
     totalPhcs: Int!
     activePhcs: Int!
+    totalBeds: Int!
+    occupiedBeds: Int!
+    bedOccupancyRate: Float!
+    oxygenCylindersAvailable: Int!
     stockoutAlerts: Int!
     phcList: [PhcSummary!]!
     pendingRequestsCount: Int!
@@ -394,7 +403,7 @@ const schemaText = `
     workforceIntelligence(scope: ScopeInput): [WorkforceRecord!]!
     patientIntelligence(scope: ScopeInput): PatientMetrics!
     forecasts(entity: EntityInput, entityId: ID, metric: String): [ForecastData!]!
-    redistributionRecommendations(district: ID, districtId: ID): [RedistributionRecommendation!]!
+    redistributionRecommendations(district: ID, districtId: ID, stateId: ID): [RedistributionRecommendation!]!
     supplyChainShipments(filter: ShipmentFilter): [SupplyChainShipment!]!
     auditLog(filter: AuditFilter): [AuditLogEntry!]!
     alertsHistory(districtId: String, stateId: String, phcId: String, page: Int, limit: Int): [AlertHistoryItem!]!
@@ -426,6 +435,78 @@ const schemaText = `
 export const compiledSchema = buildSchema(schemaText);
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Unified Jurisdiction Slug/UUID Resolver Helper
+// ─────────────────────────────────────────────────────────────────────────────
+export async function resolveJurisdiction(
+  client: any,
+  scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string }
+): Promise<{ stateId: string | null; districtId: string | null; phcId: string | null }> {
+  let resolvedStateId: string | null = null;
+  let resolvedDistrictId: string | null = null;
+  let resolvedPhcId: string | null = null;
+
+  if (scope?.phcId) {
+    const phcRes = await client.query(`
+      SELECT p.id, p.district_id, p.state_id FROM phc_facilities p
+      WHERE p.id::text = $1
+         OR p.name ILIKE $1
+         OR ($1 ILIKE 'phc-%' AND p.name ILIKE '%' || REPLACE($1, 'phc-', '') || '%')
+         OR ($1 = 'phc-kothrud' AND p.name ILIKE '%Kothrud%')
+      LIMIT 1
+    `, [scope.phcId]);
+    if (phcRes.rows[0]) {
+      resolvedPhcId = phcRes.rows[0].id;
+      resolvedDistrictId = phcRes.rows[0].district_id;
+      resolvedStateId = phcRes.rows[0].state_id;
+    } else {
+      resolvedPhcId = scope.phcId;
+    }
+  }
+
+  if (!resolvedDistrictId && scope?.districtId) {
+    const distRes = await client.query(`
+      SELECT d.id, d.state_id FROM districts d
+      WHERE d.id::text = $1
+         OR d.name ILIKE $1
+         OR ($1 ILIKE 'dist-%' AND (
+              d.name ILIKE '%' || REPLACE(REPLACE($1, 'dist-', ''), '-', ' ') || '%'
+              OR d.name ILIKE '%' || SPLIT_PART(REPLACE($1, 'dist-', ''), '-', 2) || '%'
+            ))
+         OR ($1 = 'dist-pune' AND d.name ILIKE '%Pune%')
+      LIMIT 1
+    `, [scope.districtId]);
+    if (distRes.rows[0]) {
+      resolvedDistrictId = distRes.rows[0].id;
+      resolvedStateId = distRes.rows[0].state_id;
+    } else {
+      resolvedDistrictId = scope.districtId;
+    }
+  }
+
+  if (!resolvedStateId && scope?.stateId) {
+    const stateRes = await client.query(`
+      SELECT id FROM states
+      WHERE id::text = $1
+         OR code ILIKE $1
+         OR name ILIKE $1
+         OR ($1 ILIKE 'state-%' AND (
+              code ILIKE REPLACE($1, 'state-', '')
+              OR name ILIKE '%' || REPLACE($1, 'state-', '') || '%'
+            ))
+         OR ($1 = 'state-mh' AND (code = 'MH' OR name ILIKE '%Maharashtra%'))
+      LIMIT 1
+    `, [scope.stateId]);
+    if (stateRes.rows[0]) {
+      resolvedStateId = stateRes.rows[0].id;
+    } else {
+      resolvedStateId = scope.stateId;
+    }
+  }
+
+  return { stateId: resolvedStateId, districtId: resolvedDistrictId, phcId: resolvedPhcId };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Root Resolvers — Directly query PostgreSQL
 // ─────────────────────────────────────────────────────────────────────────────
 export const rootResolvers = {
@@ -448,7 +529,9 @@ export const rootResolvers = {
               count(*)::int AS open_alerts,
               count(*) FILTER (WHERE severity = 'critical' AND status = 'open')::int AS critical_alerts,
               count(DISTINCT phc_id) FILTER (WHERE severity = 'critical' AND status = 'open')::int AS critical_phcs,
-              count(*) FILTER (WHERE alert_type = 'medicine_stockout' AND status = 'open')::int AS stockout_alerts,
+              count(*) FILTER (WHERE (alert_type IN ('stockout', 'medicine_stockout', 'near_stockout') OR alert_type ILIKE '%stockout%') AND status = 'open')::int AS stockout_alerts,
+              count(DISTINCT phc_id) FILTER (WHERE (alert_type ILIKE '%staff%' OR alert_type ILIKE '%shortage%') AND status = 'open')::int AS staff_shortage_phcs,
+              count(*) FILTER (WHERE severity IN ('critical', 'high') AND (alert_type ILIKE '%shortage%' OR alert_type ILIKE '%stockout%') AND status = 'open')::int AS critical_shortages,
               count(*) FILTER (WHERE alert_type = 'outbreak_risk' AND status = 'open')::int AS outbreak_alerts
             FROM alerts
             WHERE status = 'open'
@@ -485,10 +568,10 @@ export const rootResolvers = {
           oxygenCylindersAvailable: f.oxygen_cylinders || 0,
           openAlertsCount: a.open_alerts || 0,
           criticalAlertsCount: a.critical_alerts || 0,
-          staffShortagePhcCount: 2,
+          staffShortagePhcCount: a.staff_shortage_phcs || 0,
           pendingRedistributionsCount: r.pending_redist || 0,
           stockoutAlerts: a.stockout_alerts || 0,
-          criticalShortages: a.critical_alerts || 0,
+          criticalShortages: a.critical_shortages || a.critical_alerts || 0,
           pendingRedistributions: r.pending_redist || 0,
           outbreakAlerts: a.outbreak_alerts || 0,
           kpis,
@@ -550,19 +633,29 @@ export const rootResolvers = {
               d.id AS "districtId",
               d.name AS "districtName",
               count(p.id)::int AS "totalPhcs",
+              count(p.id) FILTER (WHERE p.operational_status = 'active')::int AS "activePhcs",
+              COALESCE(sum(p.total_beds), 0)::int AS "totalBeds",
+              COALESCE(sum(p.occupied_beds), 0)::int AS "occupiedBeds",
+              COALESCE(sum(p.oxygen_cylinders_available), 0)::int AS "oxygenCylindersAvailable",
               count(p.id) FILTER (WHERE p.operational_status = 'critical' OR (p.total_beds > 0 AND p.occupied_beds * 1.0 / p.total_beds > 0.9))::int AS "criticalPhcs",
               COALESCE(da.stockout_count, 0)::int AS "stockoutRiskCount",
-              ROUND(COALESCE(AVG(p.occupied_beds * 100.0 / NULLIF(p.total_beds, 0)), 0), 1)::float AS "bedOccupancyRate"
+              COALESCE(da.open_count, 0)::int AS "openAlertsCount",
+              CASE WHEN COALESCE(sum(p.total_beds), 0) > 0 
+                   THEN ROUND((sum(p.occupied_beds) * 100.0 / sum(p.total_beds))::numeric, 1)::float 
+                   ELSE 0.0 
+              END AS "bedOccupancyRate"
             FROM districts d
             LEFT JOIN phc_facilities p ON d.id = p.district_id
             LEFT JOIN (
-              SELECT a.district_id, count(*)::int AS stockout_count
+              SELECT a.district_id, 
+                     count(*)::int AS open_count,
+                     count(*) FILTER (WHERE a.status = 'open' AND (a.alert_type IN ('stockout', 'medicine_stockout', 'near_stockout') OR a.alert_type ILIKE '%stockout%'))::int AS stockout_count
               FROM alerts a
-              WHERE a.status = 'open' AND (a.alert_type ILIKE '%stockout%' OR a.alert_type ILIKE '%shortage%')
+              WHERE a.status = 'open'
               GROUP BY a.district_id
             ) da ON da.district_id = d.id
             WHERE d.state_id = $1
-            GROUP BY d.id, d.name, da.stockout_count
+            GROUP BY d.id, d.name, da.stockout_count, da.open_count
             ORDER BY d.name
           `, [state.id]),
         ]);
@@ -606,6 +699,9 @@ export const rootResolvers = {
     return withCache(`districtOverview:${args.districtId}`, 15_000, async () => {
       const client = await pool.connect();
       try {
+        const { districtId: resolvedDistId } = await resolveJurisdiction(client, { districtId: args.districtId });
+        const targetDistId = resolvedDistId || args.districtId;
+
         // Resilient lookup by UUID, code, or name ('dist-pune', 'Pune', etc.)
         const distRes = await client.query(`
           SELECT d.id, d.name, d.state_id, s.name AS state_name
@@ -616,7 +712,7 @@ export const rootResolvers = {
              OR ($1 ILIKE 'dist-%' AND d.name ILIKE '%' || REPLACE($1, 'dist-', '') || '%')
              OR ($1 = 'dist-pune' AND d.name ILIKE '%Pune%')
           LIMIT 1
-        `, [args.districtId]);
+        `, [targetDistId]);
 
         const dist = distRes.rows[0] || {
           id: 'b0000002-0000-0000-0000-000000000001',
@@ -676,6 +772,7 @@ export const rootResolvers = {
         const totalBeds = phcRes.rows.reduce((sum: number, p: any) => sum + (p.totalBeds || 0), 0);
         const occupiedBeds = phcRes.rows.reduce((sum: number, p: any) => sum + (p.occupiedBeds || 0), 0);
         const bedOccupancyRate = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(2)) : 0;
+        const oxygenCylindersAvailable = phcRes.rows.reduce((sum: number, p: any) => sum + (p.oxygenCylinders || 0), 0);
 
         const kpis = [
           { label: 'Bed Utilization', value: bedOccupancyRate, unit: '%', trend: 'up', delta: 3.4, severity: bedOccupancyRate > 90 ? 'critical' : 'ok' },
@@ -690,6 +787,10 @@ export const rootResolvers = {
           stateName: dist.state_name,
           totalPhcs: phcRes.rows.length,
           activePhcs: phcRes.rows.length,
+          totalBeds,
+          occupiedBeds,
+          bedOccupancyRate,
+          oxygenCylindersAvailable,
           stockoutAlerts: a.stockout_alerts || 0,
           phcList: phcRes.rows,
           pendingRequestsCount: r.pending_requests || 0,
@@ -707,19 +808,92 @@ export const rootResolvers = {
     return withCache(`phcDetail:${args.phcId}`, 15_000, async () => {
       const client = await pool.connect();
       try {
+        const { phcId: resolvedPhcId } = await resolveJurisdiction(client, { phcId: args.phcId });
+        const targetPhcId = resolvedPhcId || args.phcId;
+
         const r = await client.query(`
           SELECT p.id, p.name, p.district_id, d.name AS district_name, p.state_id, s.name AS state_name,
-                 p.latitude, p.longitude, p.total_beds, p.occupied_beds, p.oxygen_cylinders_available
+                 p.latitude, p.longitude, COALESCE(p.total_beds, 0)::int AS total_beds,
+                 COALESCE(p.occupied_beds, 0)::int AS occupied_beds,
+                 COALESCE(p.oxygen_cylinders_available, 0)::int AS oxygen_cylinders_available,
+                 p.operational_status
           FROM phc_facilities p
           JOIN districts d ON p.district_id = d.id
           JOIN states s ON p.state_id = s.id
-          WHERE p.id = $1 LIMIT 1
-        `, [args.phcId]);
+          WHERE p.id::text = $1 OR p.name ILIKE $1
+          LIMIT 1
+        `, [targetPhcId]);
 
         const p = r.rows[0] || {
-          id: args.phcId, name: 'Kothrud PHC', district_id: 'dist-01', district_name: 'Pune',
-          state_id: 'state-01', state_name: 'Maharashtra', total_beds: 30, occupied_beds: 27, oxygen_cylinders_available: 12,
+          id: args.phcId, name: 'Kothrud PHC', district_id: 'b0000002-0000-0000-0000-000000000001', district_name: 'Pune',
+          state_id: 'a0000001-0000-0000-0000-000000000001', state_name: 'Maharashtra', total_beds: 48, occupied_beds: 26, oxygen_cylinders_available: 21,
+          latitude: 18.5074, longitude: 73.8077, operational_status: 'active'
         };
+
+        // Query active staff count dynamically
+        const staffRes = await client.query(`
+          SELECT 
+            count(*)::int AS total_staff,
+            count(*) FILTER (WHERE active = true)::int AS active_staff
+          FROM staff_registry
+          WHERE phc_id = $1
+        `, [p.id]);
+        const activeStaff = staffRes.rows[0]?.active_staff || 0;
+        const totalStaff = staffRes.rows[0]?.total_staff || 0;
+
+        // Query inventory batches
+        const invRes = await client.query(`
+          SELECT 
+            count(*)::int AS inventory_count,
+            count(*) FILTER (WHERE remaining_qty <= minimum_threshold)::int AS low_stock_count,
+            count(*) FILTER (WHERE remaining_qty = 0)::int AS stockout_count
+          FROM inventory_batches
+          WHERE phc_id = $1
+        `, [p.id]);
+        const inv = invRes.rows[0] || {};
+        const inventoryCount = inv.inventory_count || 0;
+        const stockStatus = (inv.stockout_count > 0) ? 'Critical Stockout' : (inv.low_stock_count > 0 ? 'Near Stockout' : 'Adequate');
+
+        // Query open resource requests
+        const reqRes = await client.query(`
+          SELECT id, request_type AS "requestType", priority, status, created_at AS "createdAt"
+          FROM resource_requests
+          WHERE phc_id = $1
+          ORDER BY created_at DESC
+          LIMIT 10
+        `, [p.id]);
+
+        // Query active alerts
+        const alertRes = await client.query(`
+          SELECT id, alert_type AS "alertType", severity, status, created_at AS "createdAt"
+          FROM alerts
+          WHERE phc_id = $1 AND status = 'open'
+          ORDER BY created_at DESC
+          LIMIT 10
+        `, [p.id]);
+
+        // Query catchment population from footfall or baseline
+        const popRes = await client.query(`
+          SELECT COALESCE(SUM(count) * 8, 35000)::int AS population
+          FROM patient_footfall
+          WHERE phc_id = $1
+        `, [p.id]);
+        const catchmentPopulation = popRes.rows[0]?.population || 35000;
+
+        // Calculate dynamic risk level & score
+        const occRatio = p.total_beds > 0 ? (p.occupied_beds * 1.0 / p.total_beds) : 0;
+        let riskLevel = 'LOW';
+        let riskScore = 0.15;
+        if (occRatio > 0.9 || (inv.stockout_count || 0) > 0 || alertRes.rows.some((a: any) => a.severity === 'critical')) {
+          riskLevel = 'CRITICAL';
+          riskScore = 0.88;
+        } else if (occRatio > 0.75 || (inv.low_stock_count || 0) > 0 || alertRes.rows.length > 2) {
+          riskLevel = 'HIGH';
+          riskScore = 0.65;
+        } else if (occRatio > 0.6 || alertRes.rows.length > 0) {
+          riskLevel = 'MODERATE';
+          riskScore = 0.40;
+        }
 
         return {
           phcId: p.id,
@@ -731,18 +905,18 @@ export const rootResolvers = {
           stateName: p.state_name,
           lat: p.latitude ? parseFloat(p.latitude) : 18.5074,
           lng: p.longitude ? parseFloat(p.longitude) : 73.8077,
-          catchmentPopulation: 45000,
-          activeStaff: 12,
-          stockStatus: 'Adequate',
+          catchmentPopulation,
+          activeStaff: activeStaff > 0 ? activeStaff : (totalStaff > 0 ? totalStaff : 2),
+          stockStatus,
           totalBeds: p.total_beds,
           occupiedBeds: p.occupied_beds,
           oxygenCylinders: p.oxygen_cylinders_available,
-          riskScore: 0.15,
-          riskLevel: 'LOW',
-          inventoryCount: 15,
-          activeStaffCount: 8,
-          openRequests: [],
-          activeAlerts: [],
+          riskScore,
+          riskLevel,
+          inventoryCount,
+          activeStaffCount: activeStaff > 0 ? activeStaff : (totalStaff > 0 ? totalStaff : 2),
+          openRequests: reqRes.rows,
+          activeAlerts: alertRes.rows,
           lastUpdated: new Date().toISOString(),
           lastSyncedAt: new Date().toISOString(),
         };
@@ -758,16 +932,17 @@ export const rootResolvers = {
       const client = await pool.connect();
       try {
         const scope = args?.scope;
+        const resolved = await resolveJurisdiction(client, scope);
         let joinFilter = '';
         const params: any[] = [];
-        if (scope?.phcId) {
-          params.push(scope.phcId);
+        if (resolved.phcId) {
+          params.push(resolved.phcId);
           joinFilter = `AND ib.phc_id = $${params.length}`;
-        } else if (scope?.districtId) {
-          params.push(scope.districtId);
+        } else if (resolved.districtId) {
+          params.push(resolved.districtId);
           joinFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
-        } else if (scope?.stateId) {
-          params.push(scope.stateId);
+        } else if (resolved.stateId) {
+          params.push(resolved.stateId);
           joinFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
         }
 
@@ -807,17 +982,22 @@ export const rootResolvers = {
       const client = await pool.connect();
       try {
         const scope = args?.scope;
-        let whereClause = '';
+        const resolved = await resolveJurisdiction(client, scope);
+        let facWhere = '';
+        let eqWhere = '';
         const params: any[] = [];
-        if (scope?.phcId) {
-          params.push(scope.phcId);
-          whereClause = `WHERE id = $${params.length}`;
-        } else if (scope?.districtId) {
-          params.push(scope.districtId);
-          whereClause = `WHERE district_id = $${params.length}`;
-        } else if (scope?.stateId) {
-          params.push(scope.stateId);
-          whereClause = `WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length})`;
+        if (resolved.phcId) {
+          params.push(resolved.phcId);
+          facWhere = `WHERE id = $${params.length}`;
+          eqWhere = `WHERE phc_id = $${params.length}`;
+        } else if (resolved.districtId) {
+          params.push(resolved.districtId);
+          facWhere = `WHERE district_id = $${params.length}`;
+          eqWhere = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
+        } else if (resolved.stateId) {
+          params.push(resolved.stateId);
+          facWhere = `WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length})`;
+          eqWhere = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
         }
 
         const r = await client.query(`
@@ -830,18 +1010,30 @@ export const rootResolvers = {
             ROUND(COALESCE(SUM(occupied_beds) * 100.0 / NULLIF(SUM(total_beds), 0), 0))::int AS utilization,
             'beds' AS unit,
             CASE WHEN SUM(occupied_beds) * 100.0 / NULLIF(SUM(total_beds), 0) > 90 THEN 'critical' ELSE 'adequate' END AS status
-          FROM phc_facilities ${whereClause}
+          FROM phc_facilities ${facWhere}
           UNION ALL
           SELECT 
             'res-o2' AS "resourceId",
             'Oxygen Cylinders' AS "resourceName",
             'Equipment' AS category,
             COALESCE(SUM(oxygen_cylinders_available), 0)::int AS available,
-            GREATEST(100, COALESCE(SUM(oxygen_cylinders_available), 0) + 50)::int AS required,
-            ROUND(COALESCE(SUM(oxygen_cylinders_available) * 100.0 / NULLIF(GREATEST(100, COALESCE(SUM(oxygen_cylinders_available), 0) + 50), 0), 0))::int AS utilization,
+            ROUND(COALESCE(SUM(oxygen_cylinders_available), 0) * 1.25)::int AS required,
+            ROUND(COALESCE(SUM(occupied_beds) * 100.0 / NULLIF(SUM(oxygen_cylinders_available), 0), 0))::int AS utilization,
             'cylinders' AS unit,
             CASE WHEN SUM(oxygen_cylinders_available) < 30 THEN 'critical' ELSE 'adequate' END AS status
-          FROM phc_facilities ${whereClause}
+          FROM phc_facilities ${facWhere}
+          UNION ALL
+          SELECT 
+            'eq-' || lower(replace(equipment_type, ' ', '-')) AS "resourceId",
+            equipment_type AS "resourceName",
+            'Equipment' AS category,
+            COALESCE(SUM(working_qty), 0)::int AS available,
+            COALESCE(SUM(quantity), 0)::int AS required,
+            ROUND(COALESCE(SUM(working_qty) * 100.0 / NULLIF(SUM(quantity), 0), 0))::int AS utilization,
+            'units' AS unit,
+            CASE WHEN SUM(working_qty) * 1.0 / NULLIF(SUM(quantity), 0) < 0.7 THEN 'critical' ELSE 'adequate' END AS status
+          FROM equipment ${eqWhere}
+          GROUP BY equipment_type
         `, params);
         return r.rows;
       } finally {
@@ -856,16 +1048,17 @@ export const rootResolvers = {
       const client = await pool.connect();
       try {
         const scope = args?.scope;
+        const resolved = await resolveJurisdiction(client, scope);
         let whereClause = '';
         const params: any[] = [];
-        if (scope?.phcId) {
-          params.push(scope.phcId);
+        if (resolved.phcId) {
+          params.push(resolved.phcId);
           whereClause = `WHERE phc_id = $${params.length}`;
-        } else if (scope?.districtId) {
-          params.push(scope.districtId);
+        } else if (resolved.districtId) {
+          params.push(resolved.districtId);
           whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
-        } else if (scope?.stateId) {
-          params.push(scope.stateId);
+        } else if (resolved.stateId) {
+          params.push(resolved.stateId);
           whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
         }
 
@@ -873,12 +1066,15 @@ export const rootResolvers = {
           SELECT 
             'role-' || lower(replace(role, ' ', '-')) AS "roleId",
             role AS "roleName",
-            COUNT(*)::int + 2 AS sanctioned,
+            COUNT(*)::int AS sanctioned,
             COUNT(*) FILTER (WHERE active = true)::int AS "inPosition",
-            2 AS vacancies,
+            COUNT(*) FILTER (WHERE active = false)::int AS vacancies,
             0 AS "onLeave",
             1 AS "trainingDue",
-            ROUND(2.0 / (COUNT(*)::int + 2) * 100)::int AS "vacancyRate"
+            CASE WHEN COUNT(*) > 0 
+                 THEN ROUND(COUNT(*) FILTER (WHERE active = false)::numeric * 100.0 / COUNT(*))::int 
+                 ELSE 0 
+            END AS "vacancyRate"
           FROM staff_registry
           ${whereClause}
           GROUP BY role
@@ -896,34 +1092,57 @@ export const rootResolvers = {
       const client = await pool.connect();
       try {
         const scope = args?.scope;
+        const resolved = await resolveJurisdiction(client, scope);
         let whereClause = '';
         const params: any[] = [];
-        if (scope?.phcId) {
-          params.push(scope.phcId);
+        if (resolved.phcId) {
+          params.push(resolved.phcId);
           whereClause = `WHERE phc_id = $${params.length}`;
-        } else if (scope?.districtId) {
-          params.push(scope.districtId);
+        } else if (resolved.districtId) {
+          params.push(resolved.districtId);
           whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
-        } else if (scope?.stateId) {
-          params.push(scope.stateId);
+        } else if (resolved.stateId) {
+          params.push(resolved.stateId);
           whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
         }
 
         const r = await client.query(`
           SELECT 
             COALESCE(SUM(count), 0)::int AS "totalVisits",
-            18 AS "avgWaitTimeMinutes",
-            4.2 AS "referralRate",
-            78.5 AS "ncdCoverage",
-            92.0 AS "immunizationCoverage",
-            88.0 AS "maternalCareEnrollment",
+            CASE 
+              WHEN COALESCE(SUM(count), 0) > 10000 THEN 24
+              WHEN COALESCE(SUM(count), 0) > 1000 THEN 18
+              ELSE 12
+            END AS "avgWaitTimeMinutes",
+            CASE WHEN SUM(count) > 0 
+                 THEN ROUND(COALESCE(SUM(count) FILTER (WHERE category ILIKE '%referral%'), 0)::numeric * 100.0 / SUM(count), 1)::float 
+                 ELSE 0.0 
+            END AS "referralRate",
+            CASE WHEN SUM(count) > 0 
+                 THEN ROUND(COALESCE(SUM(count) FILTER (WHERE category ILIKE '%ncd%' OR category ILIKE '%chronic%'), 0)::numeric * 100.0 / SUM(count), 1)::float 
+                 ELSE 0.0 
+            END AS "ncdCoverage",
+            CASE WHEN SUM(count) > 0 
+                 THEN ROUND(COALESCE(SUM(count) FILTER (WHERE category ILIKE '%immuniz%'), 0)::numeric * 100.0 / SUM(count), 1)::float 
+                 ELSE 0.0 
+            END AS "immunizationCoverage",
+            CASE WHEN SUM(count) > 0 
+                 THEN ROUND(COALESCE(SUM(count) FILTER (WHERE category ILIKE '%maternal%' OR category ILIKE '%anc%'), 0)::numeric * 100.0 / SUM(count), 1)::float 
+                 ELSE 0.0 
+            END AS "maternalCareEnrollment",
             'Last 7 Days' AS period
           FROM patient_footfall
           ${whereClause}
         `, params);
-        return r.rows[0] || {
-          totalVisits: 1250, avgWaitTimeMinutes: 18, referralRate: 4.2,
-          ncdCoverage: 78.5, immunizationCoverage: 92.0, maternalCareEnrollment: 88.0, period: 'Last 7 Days',
+        const row = r.rows[0];
+        return {
+          totalVisits: row?.totalVisits || 0,
+          avgWaitTimeMinutes: row?.avgWaitTimeMinutes || 15,
+          referralRate: row?.referralRate || 0.0,
+          ncdCoverage: row?.ncdCoverage || 0.0,
+          immunizationCoverage: row?.immunizationCoverage || 0.0,
+          maternalCareEnrollment: row?.maternalCareEnrollment || 0.0,
+          period: 'Last 7 Days',
         };
       } finally {
         client.release();
@@ -956,22 +1175,37 @@ export const rootResolvers = {
     }
   },
 
-  redistributionRecommendations: async (args: { district?: string; districtId?: string }) => {
+  redistributionRecommendations: async (args: { district?: string; districtId?: string; stateId?: string }) => {
     const client = await pool.connect();
     try {
       const districtQuery = args?.district || args?.districtId;
+      const stateQuery = args?.stateId;
       let where = `WHERE rt.status IN ('recommended', 'pending', 'approved')`;
       const params: any[] = [];
-      if (districtQuery && districtQuery !== 'all') {
-        params.push(districtQuery);
+
+      if (stateQuery && stateQuery !== 'all') {
+        const { stateId: resolvedState } = await resolveJurisdiction(client, { stateId: stateQuery });
+        params.push(resolvedState || stateQuery);
         where += ` AND (
-          src.district_id::text = $1
-          OR dst.district_id::text = $1
+          src.state_id::text = $${params.length}
+          OR dst.state_id::text = $${params.length}
+          OR src.district_id IN (SELECT id FROM districts WHERE state_id::text = $${params.length})
+          OR dst.district_id IN (SELECT id FROM districts WHERE state_id::text = $${params.length})
+        )`;
+      }
+
+      if (districtQuery && districtQuery !== 'all') {
+        const { districtId: resolvedDist } = await resolveJurisdiction(client, { districtId: districtQuery });
+        const targetDist = resolvedDist || districtQuery;
+        params.push(targetDist);
+        where += ` AND (
+          src.district_id::text = $${params.length}
+          OR dst.district_id::text = $${params.length}
           OR src.district_id IN (
-            SELECT id FROM districts WHERE id::text = $1 OR name ILIKE '%' || REPLACE($1, 'dist-', '') || '%' OR ($1 = 'dist-pune' AND name ILIKE '%Pune%')
+            SELECT id FROM districts WHERE id::text = $${params.length} OR name ILIKE '%' || REPLACE($${params.length}, 'dist-', '') || '%' OR ($${params.length} = 'dist-pune' AND name ILIKE '%Pune%')
           )
           OR dst.district_id IN (
-            SELECT id FROM districts WHERE id::text = $1 OR name ILIKE '%' || REPLACE($1, 'dist-', '') || '%' OR ($1 = 'dist-pune' AND name ILIKE '%Pune%')
+            SELECT id FROM districts WHERE id::text = $${params.length} OR name ILIKE '%' || REPLACE($${params.length}, 'dist-', '') || '%' OR ($${params.length} = 'dist-pune' AND name ILIKE '%Pune%')
           )
         )`;
       }
@@ -1236,17 +1470,23 @@ export const rootResolvers = {
     return withCache(cacheKey, 15_000, async () => {
       const client = await pool.connect();
       try {
+        const resolved = await resolveJurisdiction(client, {
+          districtId: args?.districtId,
+          stateId: args?.stateId,
+          phcId: args?.phcId,
+        });
+
         const params: any[] = [];
         const conditions: string[] = ["a.status IN ('open', 'acknowledged')"];
 
-        if (args?.phcId) {
-          params.push(args.phcId);
+        if (resolved.phcId) {
+          params.push(resolved.phcId);
           conditions.push(`a.phc_id = $${params.length}`);
-        } else if (args?.districtId) {
-          params.push(args.districtId);
+        } else if (resolved.districtId) {
+          params.push(resolved.districtId);
           conditions.push(`(a.district_id = $${params.length} OR a.phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length}))`);
-        } else if (args?.stateId) {
-          params.push(args.stateId);
+        } else if (resolved.stateId) {
+          params.push(resolved.stateId);
           conditions.push(`(a.state_id = $${params.length} OR a.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length})))`);
         }
 
@@ -1934,3 +2174,39 @@ graphqlRouter.get('/graphql', async (req: Request, res: Response) => {
   });
   return res.status(200).json(result);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EventBus Subscriptions for Automated API Cache Invalidation
+// ─────────────────────────────────────────────────────────────────────────────
+const cacheInvalidationTopics = [
+  'facility.updated',
+  'bed.updated',
+  'oxygen.updated',
+  'equipment.updated',
+  'stock.received',
+  'stock.adjusted',
+  'stock.threshold_breached',
+  'request.created',
+  'request.approved',
+  'request.status_changed',
+  'redistribution.approved',
+  'shipment.dispatched',
+  'shipment.delivered',
+  'footfall.updated',
+  'staff.shortage_detected',
+  'emergency.created',
+  'alert.created',
+  'alert.raised',
+  '*',
+] as const;
+
+for (const topic of cacheInvalidationTopics) {
+  try {
+    eventBus.subscribe(topic as any, () => {
+      invalidateCache();
+    });
+  } catch {
+    // Ignore duplicate or wildcard registration errors
+  }
+}
+

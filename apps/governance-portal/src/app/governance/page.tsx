@@ -83,8 +83,16 @@ export default function CommandCenterPage() {
   const [liveKpiTicks, setLiveKpiTicks] = useState<Record<string, KpiTick>>({});
   const [lastSsePulse, setLastSsePulse] = useState<string | null>(null);
 
+  const sseUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (districtId) params.set('districtId', districtId);
+    else if (stateId) params.set('stateId', stateId);
+    const qs = params.toString();
+    return qs ? `/governance/kpi/stream?${qs}` : '/governance/kpi/stream';
+  }, [districtId, stateId]);
+
   // Wire to live KPI SSE stream per contract: /governance/kpi/stream
-  const { status: sseStatus } = useSseStream<KpiTick>('/governance/kpi/stream', {
+  const { status: sseStatus } = useSseStream<KpiTick>(sseUrl, {
     onMessage: (tick) => {
       if (tick && tick.metric) {
         setLiveKpiTicks((prev) => ({
@@ -335,8 +343,8 @@ export default function CommandCenterPage() {
 
   // Helper to resolve live SSE tick with GraphQL fallback
   const getKpiValue = (metricName: string, fallbackVal: number | string) => {
-    // Live SSE telemetry stream sends nationwide aggregates — only apply to national scope
-    const live = isNationalScope ? liveKpiTicks[metricName] : undefined;
+    // If PHC scope, preserve facility-level phcDetail metrics; otherwise use live scoped SSE ticks
+    const live = isPhcScope ? undefined : liveKpiTicks[metricName];
     if (live && live.value !== undefined) {
       return {
         value: live.value,
