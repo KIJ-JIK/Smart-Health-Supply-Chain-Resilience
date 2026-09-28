@@ -709,7 +709,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   </Link>
 
                   <a
-                    href={`${process.env.NEXT_PUBLIC_BRICS_URL || 'https://smart-health-supply-chain-resilienc-brics.vercel.app'}/login`}
+                    href={`${process.env.NEXT_PUBLIC_BRICS_URL || 'https://smart-health-supply-chain-resilienc-nine.vercel.app'}/login`}
                     onClick={() => setPortalMenuOpen(false)}
                     style={{
                       display: 'flex',

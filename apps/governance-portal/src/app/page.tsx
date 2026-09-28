@@ -315,7 +315,7 @@ export default function PlatformHomePage() {
 
               <div className="mt-6 pt-4 border-t border-neutral-100">
                 <a
-                  href={process.env.NEXT_PUBLIC_BRICS_URL ? `${process.env.NEXT_PUBLIC_BRICS_URL}/login` : 'https://smart-health-supply-chain-resilienc-brics.vercel.app/login'}
+                  href={process.env.NEXT_PUBLIC_BRICS_URL ? `${process.env.NEXT_PUBLIC_BRICS_URL}/login` : 'https://smart-health-supply-chain-resilienc-nine.vercel.app/login'}
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-all shadow-xs active:scale-[0.98]"
                 >
                   <span>Launch AURA Sovereign</span>
