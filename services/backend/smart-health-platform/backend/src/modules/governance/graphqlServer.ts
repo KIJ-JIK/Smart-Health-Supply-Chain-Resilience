@@ -758,17 +758,17 @@ export const rootResolvers = {
       const client = await pool.connect();
       try {
         const scope = args?.scope;
-        let phcFilter = '';
+        let joinFilter = '';
         const params: any[] = [];
         if (scope?.phcId) {
           params.push(scope.phcId);
-          phcFilter = `AND ib.phc_id = $${params.length}`;
+          joinFilter = `AND ib.phc_id = $${params.length}`;
         } else if (scope?.districtId) {
           params.push(scope.districtId);
-          phcFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
+          joinFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
         } else if (scope?.stateId) {
           params.push(scope.stateId);
-          phcFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
+          joinFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
         }
 
         const r = await client.query(`
@@ -790,7 +790,7 @@ export const rootResolvers = {
               ELSE 'adequate'
             END AS status
           FROM medicines m
-          LEFT JOIN inventory_batches ib ON m.id = ib.medicine_id ${phcFilter}
+          LEFT JOIN inventory_batches ib ON m.id = ib.medicine_id ${joinFilter}
           GROUP BY m.id, m.name, m.category, m.unit
           ORDER BY m.name
         `, params);
