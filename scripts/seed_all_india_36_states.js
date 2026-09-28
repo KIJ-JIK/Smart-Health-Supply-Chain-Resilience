@@ -13,7 +13,11 @@ try {
   Client = require(backendPgPath).Client;
 }
 
-const rawUrl = process.argv[2] || process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_3UWxDHwLO9cb@ep-flat-dew-b55okbfi-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require';
+const rawUrl = process.argv[2] || process.env.DATABASE_URL;
+if (!rawUrl) {
+  console.error('\x1b[31m[ERROR] Missing DATABASE_URL!\x1b[0m Pass as argument or set DATABASE_URL environment variable.');
+  process.exit(1);
+}
 const cleanUrl = rawUrl.replace('&channel_binding=require', '').replace('channel_binding=require&', '').replace(/[&?]channel_binding=[^&]*/g, '');
 
 const client = new Client({
