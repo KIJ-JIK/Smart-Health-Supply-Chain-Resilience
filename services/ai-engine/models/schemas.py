@@ -8,6 +8,12 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 
 
+class AppModel(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+BaseModel = AppModel
+
+
 # ─────────────────────────────────────────────
 # Forecast schemas  (Prompts 25, 33)
 # ─────────────────────────────────────────────
@@ -24,6 +30,7 @@ class ForecastRequest(BaseModel):
 
 
 class ForecastResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
     phc_id: str
     medicine_id: Optional[str]
     forecast_type: str
