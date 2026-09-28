@@ -6,6 +6,7 @@ import { FederationService } from '../federation/federationService';
 import { GovernanceService } from './governanceService';
 import { eventBus } from '../../events/eventBus';
 import { ensureM2SeedsAndIndexes } from '../../db/seedM2ShipmentsAndIndexes';
+import { withCache, invalidateCache } from '../../utils/apiCache';
 
 // Automatically ensure M2 seeds and indexes on startup
 ensureM2SeedsAndIndexes().catch((err) => console.error('[M2 Seed] Startup seed error:', err));
@@ -429,484 +430,505 @@ export const compiledSchema = buildSchema(schemaText);
 // ─────────────────────────────────────────────────────────────────────────────
 export const rootResolvers = {
   nationalOverview: async () => {
-    const client = await pool.connect();
-    try {
-      const [facRes, alertRes, redistRes] = await Promise.all([
-        client.query(`
-          SELECT
-            count(*)::int AS total_phcs,
-            count(*) FILTER (WHERE operational_status = 'active')::int AS active_phcs,
-            COALESCE(sum(total_beds), 0)::int AS total_beds,
-            COALESCE(sum(occupied_beds), 0)::int AS occupied_beds,
-            COALESCE(sum(oxygen_cylinders_available), 0)::int AS oxygen_cylinders
-          FROM phc_facilities
-        `),
-        client.query(`
-          SELECT
-            count(*)::int AS open_alerts,
-            count(*) FILTER (WHERE severity = 'critical' AND status = 'open')::int AS critical_alerts,
-            count(DISTINCT phc_id) FILTER (WHERE severity = 'critical' AND status = 'open')::int AS critical_phcs,
-            count(*) FILTER (WHERE alert_type = 'medicine_stockout' AND status = 'open')::int AS stockout_alerts,
-            count(*) FILTER (WHERE alert_type = 'outbreak_risk' AND status = 'open')::int AS outbreak_alerts
-          FROM alerts
-          WHERE status = 'open'
-        `),
-        client.query(`
-          SELECT count(*)::int AS pending_redist
-          FROM redistribution_transfers
-          WHERE status IN ('recommended', 'approved')
-        `),
-      ]);
+    return withCache('nationalOverview', 15_000, async () => {
+      const client = await pool.connect();
+      try {
+        const [facRes, alertRes, redistRes] = await Promise.all([
+          client.query(`
+            SELECT
+              count(*)::int AS total_phcs,
+              count(*) FILTER (WHERE operational_status = 'active')::int AS active_phcs,
+              COALESCE(sum(total_beds), 0)::int AS total_beds,
+              COALESCE(sum(occupied_beds), 0)::int AS occupied_beds,
+              COALESCE(sum(oxygen_cylinders_available), 0)::int AS oxygen_cylinders
+            FROM phc_facilities
+          `),
+          client.query(`
+            SELECT
+              count(*)::int AS open_alerts,
+              count(*) FILTER (WHERE severity = 'critical' AND status = 'open')::int AS critical_alerts,
+              count(DISTINCT phc_id) FILTER (WHERE severity = 'critical' AND status = 'open')::int AS critical_phcs,
+              count(*) FILTER (WHERE alert_type = 'medicine_stockout' AND status = 'open')::int AS stockout_alerts,
+              count(*) FILTER (WHERE alert_type = 'outbreak_risk' AND status = 'open')::int AS outbreak_alerts
+            FROM alerts
+            WHERE status = 'open'
+          `),
+          client.query(`
+            SELECT count(*)::int AS pending_redist
+            FROM redistribution_transfers
+            WHERE status IN ('recommended', 'approved')
+          `),
+        ]);
 
-      const f = facRes.rows[0] || {};
-      const a = alertRes.rows[0] || {};
-      const r = redistRes.rows[0] || {};
+        const f = facRes.rows[0] || {};
+        const a = alertRes.rows[0] || {};
+        const r = redistRes.rows[0] || {};
 
-      const totalBeds = f.total_beds || 0;
-      const occupiedBeds = f.occupied_beds || 0;
-      const bedOccupancyRate = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(2)) : 0;
+        const totalBeds = f.total_beds || 0;
+        const occupiedBeds = f.occupied_beds || 0;
+        const bedOccupancyRate = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(2)) : 0;
 
-      const kpis = [
-        { label: 'Bed Utilization', value: bedOccupancyRate, unit: '%', trend: 'up', delta: 2.1, severity: bedOccupancyRate > 90 ? 'critical' : 'ok' },
-        { label: 'Critical Alerts', value: a.critical_alerts || 0, unit: 'alerts', trend: 'stable', delta: 0, severity: a.critical_alerts > 5 ? 'critical' : 'warning' },
-        { label: 'Oxygen Capacity', value: f.oxygen_cylinders || 0, unit: 'cyl', trend: 'stable', delta: 0, severity: 'ok' },
-        { label: 'Active Facilities', value: f.active_phcs || 0, unit: 'PHCs', trend: 'up', delta: 1, severity: 'ok' },
-      ];
+        const kpis = [
+          { label: 'Bed Utilization', value: bedOccupancyRate, unit: '%', trend: 'up', delta: 2.1, severity: bedOccupancyRate > 90 ? 'critical' : 'ok' },
+          { label: 'Critical Alerts', value: a.critical_alerts || 0, unit: 'alerts', trend: 'stable', delta: 0, severity: a.critical_alerts > 5 ? 'critical' : 'warning' },
+          { label: 'Oxygen Capacity', value: f.oxygen_cylinders || 0, unit: 'cyl', trend: 'stable', delta: 0, severity: 'ok' },
+          { label: 'Active Facilities', value: f.active_phcs || 0, unit: 'PHCs', trend: 'up', delta: 1, severity: 'ok' },
+        ];
 
-      return {
-        totalPhcs: f.total_phcs || 0,
-        activePhcs: f.active_phcs || 0,
-        criticalPhcs: a.critical_phcs || 0,
-        totalBeds,
-        occupiedBeds,
-        bedOccupancyRate,
-        oxygenCylindersAvailable: f.oxygen_cylinders || 0,
-        openAlertsCount: a.open_alerts || 0,
-        criticalAlertsCount: a.critical_alerts || 0,
-        staffShortagePhcCount: 2,
-        pendingRedistributionsCount: r.pending_redist || 0,
-        stockoutAlerts: a.stockout_alerts || 0,
-        criticalShortages: a.critical_alerts || 0,
-        pendingRedistributions: r.pending_redist || 0,
-        outbreakAlerts: a.outbreak_alerts || 0,
-        kpis,
-        lastUpdated: new Date().toISOString(),
-      };
-    } finally {
-      client.release();
-    }
+        return {
+          totalPhcs: f.total_phcs || 0,
+          activePhcs: f.active_phcs || 0,
+          criticalPhcs: a.critical_phcs || 0,
+          totalBeds,
+          occupiedBeds,
+          bedOccupancyRate,
+          oxygenCylindersAvailable: f.oxygen_cylinders || 0,
+          openAlertsCount: a.open_alerts || 0,
+          criticalAlertsCount: a.critical_alerts || 0,
+          staffShortagePhcCount: 2,
+          pendingRedistributionsCount: r.pending_redist || 0,
+          stockoutAlerts: a.stockout_alerts || 0,
+          criticalShortages: a.critical_alerts || 0,
+          pendingRedistributions: r.pending_redist || 0,
+          outbreakAlerts: a.outbreak_alerts || 0,
+          kpis,
+          lastUpdated: new Date().toISOString(),
+        };
+      } finally {
+        client.release();
+      }
+    });
   },
 
   stateOverview: async (args: { stateId: string }) => {
-    const client = await pool.connect();
-    try {
-      // Resilient lookup by UUID, code, or name ('state-mh', 'MH', 'Maharashtra')
-      const stateRes = await client.query(`
-        SELECT id, name, code FROM states
-        WHERE id::text = $1
-           OR code ILIKE $1
-           OR name ILIKE $1
-           OR ($1 ILIKE 'state-%' AND (code ILIKE REPLACE($1, 'state-', '') OR name ILIKE '%' || REPLACE($1, 'state-', '') || '%'))
-           OR ($1 = 'state-mh' AND (code = 'MH' OR name ILIKE '%Maharashtra%'))
-        LIMIT 1
-      `, [args.stateId]);
+    const cacheKey = `stateOverview:${args.stateId || 'national'}`;
+    return withCache(cacheKey, 15_000, async () => {
+      const client = await pool.connect();
+      try {
+        // Resilient lookup by UUID, code, or name ('state-mh', 'MH', 'Maharashtra')
+        const stateRes = await client.query(`
+          SELECT id, name, code FROM states
+          WHERE id::text = $1
+             OR code ILIKE $1
+             OR name ILIKE $1
+             OR ($1 ILIKE 'state-%' AND (code ILIKE REPLACE($1, 'state-', '') OR name ILIKE '%' || REPLACE($1, 'state-', '') || '%'))
+             OR ($1 = 'state-mh' AND (code = 'MH' OR name ILIKE '%Maharashtra%'))
+          LIMIT 1
+        `, [args.stateId]);
 
-      const state = stateRes.rows[0] || {
-        id: 'a0000001-0000-0000-0000-000000000001',
-        name: 'Maharashtra',
-        code: 'MH',
-      };
+        const state = stateRes.rows[0] || {
+          id: 'a0000001-0000-0000-0000-000000000001',
+          name: 'Maharashtra',
+          code: 'MH',
+        };
 
-      // Aggregations from phc_facilities, alerts, and districts in parallel
-      const [facRes, alertRes, distRes] = await Promise.all([
-        pool.query(`
-          SELECT
-            count(p.id)::int AS total_phcs,
-            count(p.id) FILTER (WHERE p.operational_status = 'active')::int AS active_phcs,
-            COALESCE(sum(p.total_beds), 0)::int AS total_beds,
-            COALESCE(sum(p.occupied_beds), 0)::int AS occupied_beds,
-            COALESCE(sum(p.oxygen_cylinders_available), 0)::int AS oxygen_cylinders
-          FROM phc_facilities p
-          JOIN districts d ON p.district_id = d.id
-          WHERE d.state_id = $1 OR p.state_id = $1
-        `, [state.id]),
-        pool.query(`
-          SELECT
-            count(*)::int AS open_alerts,
-            count(*) FILTER (WHERE severity = 'critical' AND status = 'open')::int AS critical_alerts,
-            count(*) FILTER (WHERE (alert_type IN ('stockout', 'medicine_stockout', 'near_stockout') OR alert_type ILIKE '%stockout%') AND status = 'open')::int AS stockout_alerts,
-            count(*) FILTER (WHERE severity IN ('critical', 'high') AND (alert_type ILIKE '%shortage%' OR alert_type ILIKE '%stockout%') AND status = 'open')::int AS critical_shortages
-          FROM alerts a
-          WHERE (a.state_id = $1 OR a.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $1))
-            AND a.status = 'open'
-        `, [state.id]),
-        pool.query(`
-          SELECT
-            d.id AS "districtId",
-            d.name AS "districtName",
-            count(p.id)::int AS "totalPhcs",
-            count(p.id) FILTER (WHERE p.operational_status = 'critical' OR (p.total_beds > 0 AND p.occupied_beds * 1.0 / p.total_beds > 0.9))::int AS "criticalPhcs",
-            COALESCE(da.stockout_count, 0)::int AS "stockoutRiskCount",
-            ROUND(COALESCE(AVG(p.occupied_beds * 100.0 / NULLIF(p.total_beds, 0)), 0), 1)::float AS "bedOccupancyRate"
-          FROM districts d
-          LEFT JOIN phc_facilities p ON d.id = p.district_id
-          LEFT JOIN (
-            SELECT a.district_id, count(*)::int AS stockout_count
+        // Aggregations from phc_facilities, alerts, and districts in parallel
+        const [facRes, alertRes, distRes] = await Promise.all([
+          pool.query(`
+            SELECT
+              count(p.id)::int AS total_phcs,
+              count(p.id) FILTER (WHERE p.operational_status = 'active')::int AS active_phcs,
+              COALESCE(sum(p.total_beds), 0)::int AS total_beds,
+              COALESCE(sum(p.occupied_beds), 0)::int AS occupied_beds,
+              COALESCE(sum(p.oxygen_cylinders_available), 0)::int AS oxygen_cylinders
+            FROM phc_facilities p
+            JOIN districts d ON p.district_id = d.id
+            WHERE d.state_id = $1 OR p.state_id = $1
+          `, [state.id]),
+          pool.query(`
+            SELECT
+              count(*)::int AS open_alerts,
+              count(*) FILTER (WHERE severity = 'critical' AND status = 'open')::int AS critical_alerts,
+              count(*) FILTER (WHERE (alert_type IN ('stockout', 'medicine_stockout', 'near_stockout') OR alert_type ILIKE '%stockout%') AND status = 'open')::int AS stockout_alerts,
+              count(*) FILTER (WHERE severity IN ('critical', 'high') AND (alert_type ILIKE '%shortage%' OR alert_type ILIKE '%stockout%') AND status = 'open')::int AS critical_shortages
             FROM alerts a
-            WHERE a.status = 'open' AND (a.alert_type ILIKE '%stockout%' OR a.alert_type ILIKE '%shortage%')
-            GROUP BY a.district_id
-          ) da ON da.district_id = d.id
-          WHERE d.state_id = $1
-          GROUP BY d.id, d.name, da.stockout_count
-          ORDER BY d.name
-        `, [state.id]),
-      ]);
-      const f = facRes.rows[0] || {};
-      const totalBeds = f.total_beds || 0;
-      const occupiedBeds = f.occupied_beds || 0;
-      const bedOccupancyRate = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(2)) : 0;
-      const a = alertRes.rows[0] || {};
+            WHERE (a.state_id = $1 OR a.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $1))
+              AND a.status = 'open'
+          `, [state.id]),
+          pool.query(`
+            SELECT
+              d.id AS "districtId",
+              d.name AS "districtName",
+              count(p.id)::int AS "totalPhcs",
+              count(p.id) FILTER (WHERE p.operational_status = 'critical' OR (p.total_beds > 0 AND p.occupied_beds * 1.0 / p.total_beds > 0.9))::int AS "criticalPhcs",
+              COALESCE(da.stockout_count, 0)::int AS "stockoutRiskCount",
+              ROUND(COALESCE(AVG(p.occupied_beds * 100.0 / NULLIF(p.total_beds, 0)), 0), 1)::float AS "bedOccupancyRate"
+            FROM districts d
+            LEFT JOIN phc_facilities p ON d.id = p.district_id
+            LEFT JOIN (
+              SELECT a.district_id, count(*)::int AS stockout_count
+              FROM alerts a
+              WHERE a.status = 'open' AND (a.alert_type ILIKE '%stockout%' OR a.alert_type ILIKE '%shortage%')
+              GROUP BY a.district_id
+            ) da ON da.district_id = d.id
+            WHERE d.state_id = $1
+            GROUP BY d.id, d.name, da.stockout_count
+            ORDER BY d.name
+          `, [state.id]),
+        ]);
+        const f = facRes.rows[0] || {};
+        const totalBeds = f.total_beds || 0;
+        const occupiedBeds = f.occupied_beds || 0;
+        const bedOccupancyRate = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(2)) : 0;
+        const a = alertRes.rows[0] || {};
 
-      const kpis = [
-        { label: 'Bed Utilization', value: bedOccupancyRate, unit: '%', trend: 'up', delta: 1.2, severity: bedOccupancyRate > 90 ? 'critical' : 'ok' },
-        { label: 'Critical Outages', value: a.critical_alerts || 0, unit: 'alerts', trend: 'down', delta: -1, severity: (a.critical_alerts || 0) > 0 ? 'warn' : 'ok' },
-        { label: 'Active Facilities', value: f.active_phcs || f.total_phcs || 0, unit: 'PHCs', trend: 'up', delta: 1, severity: 'ok' },
-      ];
+        const kpis = [
+          { label: 'Bed Utilization', value: bedOccupancyRate, unit: '%', trend: 'up', delta: 1.2, severity: bedOccupancyRate > 90 ? 'critical' : 'ok' },
+          { label: 'Critical Outages', value: a.critical_alerts || 0, unit: 'alerts', trend: 'down', delta: -1, severity: (a.critical_alerts || 0) > 0 ? 'warn' : 'ok' },
+          { label: 'Active Facilities', value: f.active_phcs || f.total_phcs || 0, unit: 'PHCs', trend: 'up', delta: 1, severity: 'ok' },
+        ];
 
-      return {
-        stateId: state.id,
-        stateName: state.name,
-        totalDistricts: distRes.rows.length,
-        totalPhcs: f.total_phcs || distRes.rows.reduce((sum: number, d: any) => sum + d.totalPhcs, 0),
-        activePhcs: f.active_phcs || f.total_phcs || distRes.rows.reduce((sum: number, d: any) => sum + d.totalPhcs, 0),
-        totalBeds,
-        occupiedBeds,
-        oxygenCylindersAvailable: f.oxygen_cylinders || 0,
-        openAlertsCount: a.open_alerts || 0,
-        stockoutAlerts: a.stockout_alerts || 0,
-        criticalShortages: a.critical_shortages || 0,
-        bedOccupancyRate,
-        criticalAlertsCount: a.critical_alerts || 0,
-        districts: distRes.rows,
-        kpis,
-        lastUpdated: new Date().toISOString(),
-      };
-    } finally {
-      client.release();
-    }
+        return {
+          stateId: state.id,
+          stateName: state.name,
+          totalDistricts: distRes.rows.length,
+          totalPhcs: f.total_phcs || distRes.rows.reduce((sum: number, d: any) => sum + d.totalPhcs, 0),
+          activePhcs: f.active_phcs || f.total_phcs || distRes.rows.reduce((sum: number, d: any) => sum + d.totalPhcs, 0),
+          totalBeds,
+          occupiedBeds,
+          oxygenCylindersAvailable: f.oxygen_cylinders || 0,
+          openAlertsCount: a.open_alerts || 0,
+          stockoutAlerts: a.stockout_alerts || 0,
+          criticalShortages: a.critical_shortages || 0,
+          bedOccupancyRate,
+          criticalAlertsCount: a.critical_alerts || 0,
+          districts: distRes.rows,
+          kpis,
+          lastUpdated: new Date().toISOString(),
+        };
+      } finally {
+        client.release();
+      }
+    });
   },
 
   districtOverview: async (args: { districtId: string }) => {
-    const client = await pool.connect();
-    try {
-      // Resilient lookup by UUID, code, or name ('dist-pune', 'Pune', etc.)
-      const distRes = await client.query(`
-        SELECT d.id, d.name, d.state_id, s.name AS state_name
-        FROM districts d
-        JOIN states s ON d.state_id = s.id
-        WHERE d.id::text = $1
-           OR d.name ILIKE $1
-           OR ($1 ILIKE 'dist-%' AND d.name ILIKE '%' || REPLACE($1, 'dist-', '') || '%')
-           OR ($1 = 'dist-pune' AND d.name ILIKE '%Pune%')
-        LIMIT 1
-      `, [args.districtId]);
+    return withCache(`districtOverview:${args.districtId}`, 15_000, async () => {
+      const client = await pool.connect();
+      try {
+        // Resilient lookup by UUID, code, or name ('dist-pune', 'Pune', etc.)
+        const distRes = await client.query(`
+          SELECT d.id, d.name, d.state_id, s.name AS state_name
+          FROM districts d
+          JOIN states s ON d.state_id = s.id
+          WHERE d.id::text = $1
+             OR d.name ILIKE $1
+             OR ($1 ILIKE 'dist-%' AND d.name ILIKE '%' || REPLACE($1, 'dist-', '') || '%')
+             OR ($1 = 'dist-pune' AND d.name ILIKE '%Pune%')
+          LIMIT 1
+        `, [args.districtId]);
 
-      const dist = distRes.rows[0] || {
-        id: 'b0000002-0000-0000-0000-000000000001',
-        name: 'Pune',
-        state_id: 'a0000001-0000-0000-0000-000000000001',
-        state_name: 'Maharashtra',
-      };
+        const dist = distRes.rows[0] || {
+          id: 'b0000002-0000-0000-0000-000000000001',
+          name: 'Pune',
+          state_id: 'a0000001-0000-0000-0000-000000000001',
+          state_name: 'Maharashtra',
+        };
 
-      // Aggregations from alerts and resource_requests for this district
-      const [alertStats, reqStats] = await Promise.all([
-        client.query(`
+        // Aggregations from alerts and resource_requests for this district
+        const [alertStats, reqStats] = await Promise.all([
+          client.query(`
+            SELECT
+              count(*)::int AS open_alerts,
+              count(*) FILTER (WHERE (alert_type IN ('stockout', 'medicine_stockout', 'near_stockout') OR alert_type ILIKE '%stockout%') AND status = 'open')::int AS stockout_alerts
+            FROM alerts
+            WHERE (district_id = $1 OR phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $1))
+              AND status = 'open'
+          `, [dist.id]),
+          client.query(`
+            SELECT count(*)::int AS pending_requests
+            FROM resource_requests
+            WHERE (district_id = $1 OR phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $1))
+              AND status = 'pending'
+          `, [dist.id]),
+        ]);
+
+        const a = alertStats.rows[0] || {};
+        const r = reqStats.rows[0] || {};
+
+        // PHC facilities list with live open alerts per PHC
+        const phcRes = await client.query(`
           SELECT
-            count(*)::int AS open_alerts,
-            count(*) FILTER (WHERE (alert_type IN ('stockout', 'medicine_stockout', 'near_stockout') OR alert_type ILIKE '%stockout%') AND status = 'open')::int AS stockout_alerts
-          FROM alerts
-          WHERE (district_id = $1 OR phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $1))
-            AND status = 'open'
-        `, [dist.id]),
-        client.query(`
-          SELECT count(*)::int AS pending_requests
-          FROM resource_requests
-          WHERE (district_id = $1 OR phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $1))
-            AND status = 'pending'
-        `, [dist.id]),
-      ]);
+            p.id AS "phcId",
+            p.name,
+            COALESCE(p.total_beds, 0)::int AS "totalBeds",
+            COALESCE(p.occupied_beds, 0)::int AS "occupiedBeds",
+            COALESCE(p.oxygen_cylinders_available, 0)::int AS "oxygenCylinders",
+            CASE
+              WHEN p.total_beds > 0 AND p.occupied_beds * 1.0 / p.total_beds > 0.9 THEN 'CRITICAL'
+              WHEN p.total_beds > 0 AND p.occupied_beds * 1.0 / p.total_beds > 0.75 THEN 'HIGH'
+              ELSE 'LOW'
+            END AS "riskLevel",
+            COALESCE(pa.open_alerts, 0)::int AS "openAlerts",
+            p.latitude,
+            p.longitude
+          FROM phc_facilities p
+          LEFT JOIN (
+            SELECT phc_id, count(*)::int AS open_alerts
+            FROM alerts
+            WHERE status = 'open'
+            GROUP BY phc_id
+          ) pa ON pa.phc_id = p.id
+          WHERE p.district_id = $1
+          ORDER BY p.name
+        `, [dist.id]);
 
-      const a = alertStats.rows[0] || {};
-      const r = reqStats.rows[0] || {};
+        const totalBeds = phcRes.rows.reduce((sum: number, p: any) => sum + (p.totalBeds || 0), 0);
+        const occupiedBeds = phcRes.rows.reduce((sum: number, p: any) => sum + (p.occupiedBeds || 0), 0);
+        const bedOccupancyRate = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(2)) : 0;
 
-      // PHC facilities list with live open alerts per PHC
-      const phcRes = await client.query(`
-        SELECT
-          p.id AS "phcId",
-          p.name,
-          COALESCE(p.total_beds, 0)::int AS "totalBeds",
-          COALESCE(p.occupied_beds, 0)::int AS "occupiedBeds",
-          COALESCE(p.oxygen_cylinders_available, 0)::int AS "oxygenCylinders",
-          CASE
-            WHEN p.total_beds > 0 AND p.occupied_beds * 1.0 / p.total_beds > 0.9 THEN 'CRITICAL'
-            WHEN p.total_beds > 0 AND p.occupied_beds * 1.0 / p.total_beds > 0.75 THEN 'HIGH'
-            ELSE 'LOW'
-          END AS "riskLevel",
-          COALESCE(pa.open_alerts, 0)::int AS "openAlerts",
-          p.latitude,
-          p.longitude
-        FROM phc_facilities p
-        LEFT JOIN (
-          SELECT phc_id, count(*)::int AS open_alerts
-          FROM alerts
-          WHERE status = 'open'
-          GROUP BY phc_id
-        ) pa ON pa.phc_id = p.id
-        WHERE p.district_id = $1
-        ORDER BY p.name
-      `, [dist.id]);
+        const kpis = [
+          { label: 'Bed Utilization', value: bedOccupancyRate, unit: '%', trend: 'up', delta: 3.4, severity: bedOccupancyRate > 90 ? 'critical' : 'ok' },
+          { label: 'Pending Requests', value: r.pending_requests || 0, unit: 'requests', trend: 'stable', delta: 0, severity: (r.pending_requests || 0) > 5 ? 'warn' : 'ok' },
+          { label: 'Active Alerts', value: a.open_alerts || 0, unit: 'alerts', trend: 'stable', delta: 0, severity: (a.open_alerts || 0) > 3 ? 'warn' : 'ok' },
+        ];
 
-      const totalBeds = phcRes.rows.reduce((sum: number, p: any) => sum + (p.totalBeds || 0), 0);
-      const occupiedBeds = phcRes.rows.reduce((sum: number, p: any) => sum + (p.occupiedBeds || 0), 0);
-      const bedOccupancyRate = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(2)) : 0;
-
-      const kpis = [
-        { label: 'Bed Utilization', value: bedOccupancyRate, unit: '%', trend: 'up', delta: 3.4, severity: bedOccupancyRate > 90 ? 'critical' : 'ok' },
-        { label: 'Pending Requests', value: r.pending_requests || 0, unit: 'requests', trend: 'stable', delta: 0, severity: (r.pending_requests || 0) > 5 ? 'warn' : 'ok' },
-        { label: 'Active Alerts', value: a.open_alerts || 0, unit: 'alerts', trend: 'stable', delta: 0, severity: (a.open_alerts || 0) > 3 ? 'warn' : 'ok' },
-      ];
-
-      return {
-        districtId: dist.id,
-        districtName: dist.name,
-        stateId: dist.state_id,
-        stateName: dist.state_name,
-        totalPhcs: phcRes.rows.length,
-        activePhcs: phcRes.rows.length,
-        stockoutAlerts: a.stockout_alerts || 0,
-        phcList: phcRes.rows,
-        pendingRequestsCount: r.pending_requests || 0,
-        openAlertsCount: a.open_alerts || 0,
-        kpis,
-        lastUpdated: new Date().toISOString(),
-      };
-    } finally {
-      client.release();
-    }
+        return {
+          districtId: dist.id,
+          districtName: dist.name,
+          stateId: dist.state_id,
+          stateName: dist.state_name,
+          totalPhcs: phcRes.rows.length,
+          activePhcs: phcRes.rows.length,
+          stockoutAlerts: a.stockout_alerts || 0,
+          phcList: phcRes.rows,
+          pendingRequestsCount: r.pending_requests || 0,
+          openAlertsCount: a.open_alerts || 0,
+          kpis,
+          lastUpdated: new Date().toISOString(),
+        };
+      } finally {
+        client.release();
+      }
+    });
   },
 
   phcDetail: async (args: { phcId: string }) => {
-    const client = await pool.connect();
-    try {
-      const r = await client.query(`
-        SELECT p.id, p.name, p.district_id, d.name AS district_name, p.state_id, s.name AS state_name,
-               p.latitude, p.longitude, p.total_beds, p.occupied_beds, p.oxygen_cylinders_available
-        FROM phc_facilities p
-        JOIN districts d ON p.district_id = d.id
-        JOIN states s ON p.state_id = s.id
-        WHERE p.id = $1 LIMIT 1
-      `, [args.phcId]);
+    return withCache(`phcDetail:${args.phcId}`, 15_000, async () => {
+      const client = await pool.connect();
+      try {
+        const r = await client.query(`
+          SELECT p.id, p.name, p.district_id, d.name AS district_name, p.state_id, s.name AS state_name,
+                 p.latitude, p.longitude, p.total_beds, p.occupied_beds, p.oxygen_cylinders_available
+          FROM phc_facilities p
+          JOIN districts d ON p.district_id = d.id
+          JOIN states s ON p.state_id = s.id
+          WHERE p.id = $1 LIMIT 1
+        `, [args.phcId]);
 
-      const p = r.rows[0] || {
-        id: args.phcId, name: 'Kothrud PHC', district_id: 'dist-01', district_name: 'Pune',
-        state_id: 'state-01', state_name: 'Maharashtra', total_beds: 30, occupied_beds: 27, oxygen_cylinders_available: 12,
-      };
+        const p = r.rows[0] || {
+          id: args.phcId, name: 'Kothrud PHC', district_id: 'dist-01', district_name: 'Pune',
+          state_id: 'state-01', state_name: 'Maharashtra', total_beds: 30, occupied_beds: 27, oxygen_cylinders_available: 12,
+        };
 
-      return {
-        phcId: p.id,
-        phcName: p.name,
-        name: p.name,
-        districtId: p.district_id,
-        districtName: p.district_name,
-        stateId: p.state_id,
-        stateName: p.state_name,
-        lat: p.latitude ? parseFloat(p.latitude) : 18.5074,
-        lng: p.longitude ? parseFloat(p.longitude) : 73.8077,
-        catchmentPopulation: 45000,
-        activeStaff: 12,
-        stockStatus: 'Adequate',
-        totalBeds: p.total_beds,
-        occupiedBeds: p.occupied_beds,
-        oxygenCylinders: p.oxygen_cylinders_available,
-        riskScore: 0.15,
-        riskLevel: 'LOW',
-        inventoryCount: 15,
-        activeStaffCount: 8,
-        openRequests: [],
-        activeAlerts: [],
-        lastUpdated: new Date().toISOString(),
-        lastSyncedAt: new Date().toISOString(),
-      };
-    } finally {
-      client.release();
-    }
+        return {
+          phcId: p.id,
+          phcName: p.name,
+          name: p.name,
+          districtId: p.district_id,
+          districtName: p.district_name,
+          stateId: p.state_id,
+          stateName: p.state_name,
+          lat: p.latitude ? parseFloat(p.latitude) : 18.5074,
+          lng: p.longitude ? parseFloat(p.longitude) : 73.8077,
+          catchmentPopulation: 45000,
+          activeStaff: 12,
+          stockStatus: 'Adequate',
+          totalBeds: p.total_beds,
+          occupiedBeds: p.occupied_beds,
+          oxygenCylinders: p.oxygen_cylinders_available,
+          riskScore: 0.15,
+          riskLevel: 'LOW',
+          inventoryCount: 15,
+          activeStaffCount: 8,
+          openRequests: [],
+          activeAlerts: [],
+          lastUpdated: new Date().toISOString(),
+          lastSyncedAt: new Date().toISOString(),
+        };
+      } finally {
+        client.release();
+      }
+    });
   },
 
   medicineIntelligence: async (args?: { scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string } }) => {
-    const client = await pool.connect();
-    try {
-      const scope = args?.scope;
-      let phcFilter = '';
-      const params: any[] = [];
-      if (scope?.phcId) {
-        params.push(scope.phcId);
-        phcFilter = `AND ib.phc_id = $${params.length}`;
-      } else if (scope?.districtId) {
-        params.push(scope.districtId);
-        phcFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
-      } else if (scope?.stateId) {
-        params.push(scope.stateId);
-        phcFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
-      }
+    const cacheKey = `medIntel:${JSON.stringify(args?.scope || {})}`;
+    return withCache(cacheKey, 20_000, async () => {
+      const client = await pool.connect();
+      try {
+        const scope = args?.scope;
+        let phcFilter = '';
+        const params: any[] = [];
+        if (scope?.phcId) {
+          params.push(scope.phcId);
+          phcFilter = `AND ib.phc_id = $${params.length}`;
+        } else if (scope?.districtId) {
+          params.push(scope.districtId);
+          phcFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
+        } else if (scope?.stateId) {
+          params.push(scope.stateId);
+          phcFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
+        }
 
-      const r = await client.query(`
-        SELECT 
-          m.id AS "medicineId",
-          m.name AS "medicineName",
-          split_part(m.name, ' ', 1) AS "genericName",
-          m.category,
-          COALESCE(SUM(ib.remaining_qty), 0)::int AS "currentStock",
-          m.unit,
-          ROUND(COALESCE(SUM(ib.remaining_qty), 0) / 80.0)::int AS "coverageDays",
-          500 AS "reorderLevel",
-          100 AS "criticalLevel",
-          MIN(ib.expiry_date)::text AS "expiryDate",
-          CASE 
-            WHEN COALESCE(SUM(ib.remaining_qty), 0) = 0 THEN 'stockout'
-            WHEN COALESCE(SUM(ib.remaining_qty), 0) < 100 THEN 'critical'
-            WHEN COALESCE(SUM(ib.remaining_qty), 0) < 500 THEN 'low'
-            ELSE 'adequate'
-          END AS status
-        FROM medicines m
-        LEFT JOIN inventory_batches ib ON m.id = ib.medicine_id ${phcFilter}
-        GROUP BY m.id, m.name, m.category, m.unit
-        ORDER BY m.name
-      `, params);
-      return r.rows;
-    } finally {
-      client.release();
-    }
+        const r = await client.query(`
+          SELECT 
+            m.id AS "medicineId",
+            m.name AS "medicineName",
+            split_part(m.name, ' ', 1) AS "genericName",
+            m.category,
+            COALESCE(SUM(ib.remaining_qty), 0)::int AS "currentStock",
+            m.unit,
+            ROUND(COALESCE(SUM(ib.remaining_qty), 0) / 80.0)::int AS "coverageDays",
+            500 AS "reorderLevel",
+            100 AS "criticalLevel",
+            MIN(ib.expiry_date)::text AS "expiryDate",
+            CASE 
+              WHEN COALESCE(SUM(ib.remaining_qty), 0) = 0 THEN 'stockout'
+              WHEN COALESCE(SUM(ib.remaining_qty), 0) < 100 THEN 'critical'
+              WHEN COALESCE(SUM(ib.remaining_qty), 0) < 500 THEN 'low'
+              ELSE 'adequate'
+            END AS status
+          FROM medicines m
+          LEFT JOIN inventory_batches ib ON m.id = ib.medicine_id ${phcFilter}
+          GROUP BY m.id, m.name, m.category, m.unit
+          ORDER BY m.name
+        `, params);
+        return r.rows;
+      } finally {
+        client.release();
+      }
+    });
   },
 
   resourceIntelligence: async (args?: { scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string } }) => {
-    const client = await pool.connect();
-    try {
-      const scope = args?.scope;
-      let whereClause = '';
-      const params: any[] = [];
-      if (scope?.phcId) {
-        params.push(scope.phcId);
-        whereClause = `WHERE id = $${params.length}`;
-      } else if (scope?.districtId) {
-        params.push(scope.districtId);
-        whereClause = `WHERE district_id = $${params.length}`;
-      } else if (scope?.stateId) {
-        params.push(scope.stateId);
-        whereClause = `WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length})`;
-      }
+    const cacheKey = `resIntel:${JSON.stringify(args?.scope || {})}`;
+    return withCache(cacheKey, 20_000, async () => {
+      const client = await pool.connect();
+      try {
+        const scope = args?.scope;
+        let whereClause = '';
+        const params: any[] = [];
+        if (scope?.phcId) {
+          params.push(scope.phcId);
+          whereClause = `WHERE id = $${params.length}`;
+        } else if (scope?.districtId) {
+          params.push(scope.districtId);
+          whereClause = `WHERE district_id = $${params.length}`;
+        } else if (scope?.stateId) {
+          params.push(scope.stateId);
+          whereClause = `WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length})`;
+        }
 
-      const r = await client.query(`
-        SELECT 
-          'res-beds' AS "resourceId",
-          'Hospital Beds' AS "resourceName",
-          'Infrastructure' AS category,
-          COALESCE(SUM(total_beds - occupied_beds), 0)::int AS available,
-          COALESCE(SUM(total_beds), 0)::int AS required,
-          ROUND(COALESCE(SUM(occupied_beds) * 100.0 / NULLIF(SUM(total_beds), 0), 0))::int AS utilization,
-          'beds' AS unit,
-          CASE WHEN SUM(occupied_beds) * 100.0 / NULLIF(SUM(total_beds), 0) > 90 THEN 'critical' ELSE 'adequate' END AS status
-        FROM phc_facilities ${whereClause}
-        UNION ALL
-        SELECT 
-          'res-o2' AS "resourceId",
-          'Oxygen Cylinders' AS "resourceName",
-          'Equipment' AS category,
-          COALESCE(SUM(oxygen_cylinders_available), 0)::int AS available,
-          GREATEST(100, COALESCE(SUM(oxygen_cylinders_available), 0) + 50)::int AS required,
-          ROUND(COALESCE(SUM(oxygen_cylinders_available) * 100.0 / NULLIF(GREATEST(100, COALESCE(SUM(oxygen_cylinders_available), 0) + 50), 0), 0))::int AS utilization,
-          'cylinders' AS unit,
-          CASE WHEN SUM(oxygen_cylinders_available) < 30 THEN 'critical' ELSE 'adequate' END AS status
-        FROM phc_facilities ${whereClause}
-      `, params);
-      return r.rows;
-    } finally {
-      client.release();
-    }
+        const r = await client.query(`
+          SELECT 
+            'res-beds' AS "resourceId",
+            'Hospital Beds' AS "resourceName",
+            'Infrastructure' AS category,
+            COALESCE(SUM(total_beds - occupied_beds), 0)::int AS available,
+            COALESCE(SUM(total_beds), 0)::int AS required,
+            ROUND(COALESCE(SUM(occupied_beds) * 100.0 / NULLIF(SUM(total_beds), 0), 0))::int AS utilization,
+            'beds' AS unit,
+            CASE WHEN SUM(occupied_beds) * 100.0 / NULLIF(SUM(total_beds), 0) > 90 THEN 'critical' ELSE 'adequate' END AS status
+          FROM phc_facilities ${whereClause}
+          UNION ALL
+          SELECT 
+            'res-o2' AS "resourceId",
+            'Oxygen Cylinders' AS "resourceName",
+            'Equipment' AS category,
+            COALESCE(SUM(oxygen_cylinders_available), 0)::int AS available,
+            GREATEST(100, COALESCE(SUM(oxygen_cylinders_available), 0) + 50)::int AS required,
+            ROUND(COALESCE(SUM(oxygen_cylinders_available) * 100.0 / NULLIF(GREATEST(100, COALESCE(SUM(oxygen_cylinders_available), 0) + 50), 0), 0))::int AS utilization,
+            'cylinders' AS unit,
+            CASE WHEN SUM(oxygen_cylinders_available) < 30 THEN 'critical' ELSE 'adequate' END AS status
+          FROM phc_facilities ${whereClause}
+        `, params);
+        return r.rows;
+      } finally {
+        client.release();
+      }
+    });
   },
 
   workforceIntelligence: async (args?: { scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string } }) => {
-    const client = await pool.connect();
-    try {
-      const scope = args?.scope;
-      let whereClause = '';
-      const params: any[] = [];
-      if (scope?.phcId) {
-        params.push(scope.phcId);
-        whereClause = `WHERE phc_id = $${params.length}`;
-      } else if (scope?.districtId) {
-        params.push(scope.districtId);
-        whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
-      } else if (scope?.stateId) {
-        params.push(scope.stateId);
-        whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
-      }
+    const cacheKey = `wfIntel:${JSON.stringify(args?.scope || {})}`;
+    return withCache(cacheKey, 30_000, async () => {
+      const client = await pool.connect();
+      try {
+        const scope = args?.scope;
+        let whereClause = '';
+        const params: any[] = [];
+        if (scope?.phcId) {
+          params.push(scope.phcId);
+          whereClause = `WHERE phc_id = $${params.length}`;
+        } else if (scope?.districtId) {
+          params.push(scope.districtId);
+          whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
+        } else if (scope?.stateId) {
+          params.push(scope.stateId);
+          whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
+        }
 
-      const r = await client.query(`
-        SELECT 
-          'role-' || lower(replace(role, ' ', '-')) AS "roleId",
-          role AS "roleName",
-          COUNT(*)::int + 2 AS sanctioned,
-          COUNT(*) FILTER (WHERE active = true)::int AS "inPosition",
-          2 AS vacancies,
-          0 AS "onLeave",
-          1 AS "trainingDue",
-          ROUND(2.0 / (COUNT(*)::int + 2) * 100)::int AS "vacancyRate"
-        FROM staff_registry
-        ${whereClause}
-        GROUP BY role
-      `, params);
-      return r.rows;
-    } finally {
-      client.release();
-    }
+        const r = await client.query(`
+          SELECT 
+            'role-' || lower(replace(role, ' ', '-')) AS "roleId",
+            role AS "roleName",
+            COUNT(*)::int + 2 AS sanctioned,
+            COUNT(*) FILTER (WHERE active = true)::int AS "inPosition",
+            2 AS vacancies,
+            0 AS "onLeave",
+            1 AS "trainingDue",
+            ROUND(2.0 / (COUNT(*)::int + 2) * 100)::int AS "vacancyRate"
+          FROM staff_registry
+          ${whereClause}
+          GROUP BY role
+        `, params);
+        return r.rows;
+      } finally {
+        client.release();
+      }
+    });
   },
 
   patientIntelligence: async (args?: { scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string } }) => {
-    const client = await pool.connect();
-    try {
-      const scope = args?.scope;
-      let whereClause = '';
-      const params: any[] = [];
-      if (scope?.phcId) {
-        params.push(scope.phcId);
-        whereClause = `WHERE phc_id = $${params.length}`;
-      } else if (scope?.districtId) {
-        params.push(scope.districtId);
-        whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
-      } else if (scope?.stateId) {
-        params.push(scope.stateId);
-        whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
-      }
+    const cacheKey = `patientIntel:${JSON.stringify(args?.scope || {})}`;
+    return withCache(cacheKey, 30_000, async () => {
+      const client = await pool.connect();
+      try {
+        const scope = args?.scope;
+        let whereClause = '';
+        const params: any[] = [];
+        if (scope?.phcId) {
+          params.push(scope.phcId);
+          whereClause = `WHERE phc_id = $${params.length}`;
+        } else if (scope?.districtId) {
+          params.push(scope.districtId);
+          whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
+        } else if (scope?.stateId) {
+          params.push(scope.stateId);
+          whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
+        }
 
-      const r = await client.query(`
-        SELECT 
-          COALESCE(SUM(count), 0)::int AS "totalVisits",
-          18 AS "avgWaitTimeMinutes",
-          4.2 AS "referralRate",
-          78.5 AS "ncdCoverage",
-          92.0 AS "immunizationCoverage",
-          88.0 AS "maternalCareEnrollment",
-          'Last 7 Days' AS period
-        FROM patient_footfall
-        ${whereClause}
-      `, params);
-      return r.rows[0] || {
-        totalVisits: 1250, avgWaitTimeMinutes: 18, referralRate: 4.2,
-        ncdCoverage: 78.5, immunizationCoverage: 92.0, maternalCareEnrollment: 88.0, period: 'Last 7 Days',
-      };
-    } finally {
-      client.release();
-    }
+        const r = await client.query(`
+          SELECT 
+            COALESCE(SUM(count), 0)::int AS "totalVisits",
+            18 AS "avgWaitTimeMinutes",
+            4.2 AS "referralRate",
+            78.5 AS "ncdCoverage",
+            92.0 AS "immunizationCoverage",
+            88.0 AS "maternalCareEnrollment",
+            'Last 7 Days' AS period
+          FROM patient_footfall
+          ${whereClause}
+        `, params);
+        return r.rows[0] || {
+          totalVisits: 1250, avgWaitTimeMinutes: 18, referralRate: 4.2,
+          ncdCoverage: 78.5, immunizationCoverage: 92.0, maternalCareEnrollment: 88.0, period: 'Last 7 Days',
+        };
+      } finally {
+        client.release();
+      }
+    });
   },
 
   forecasts: async () => {
@@ -1441,6 +1463,7 @@ export const rootResolvers = {
       args.modifiedQuantity,
       args.notes,
     );
+    invalidateCache();
 
     // Also fetch full recommendation details so GraphQL response matches RedistributionRecommendation type
     const client = await pool.connect();
@@ -1539,6 +1562,7 @@ export const rootResolvers = {
       `, [args.roundId]);
 
       if (updRes.rows.length > 0) {
+        invalidateCache();
         const r = updRes.rows[0];
         return {
           id: r.id,
@@ -1575,6 +1599,7 @@ export const rootResolvers = {
       `, [args.roundId]);
 
       if (updRes.rows.length > 0) {
+        invalidateCache();
         const r = updRes.rows[0];
         return {
           id: r.id,
@@ -1649,6 +1674,7 @@ export const rootResolvers = {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active')
       `, [phcId, args.name, targetDistrictId, targetStateId, lat, lng, beds, occBeds, oxy]);
 
+      invalidateCache();
       return await (rootResolvers.phcDetail as any)({ phcId });
     } finally {
       client.release();
@@ -1673,6 +1699,7 @@ export const rootResolvers = {
         VALUES ($1, $2, $3)
       `, [distId, args.name, state.id]);
 
+      invalidateCache();
       return await (rootResolvers.districtOverview as any)({ districtId: distId });
     } finally {
       client.release();
@@ -1688,6 +1715,7 @@ export const rootResolvers = {
         VALUES ($1, $2, $3, $4)
       `, [stateId, args.name, args.code.toUpperCase(), args.country || 'IN']);
 
+      invalidateCache();
       return await (rootResolvers.stateOverview as any)({ stateId });
     } finally {
       client.release();
@@ -1707,6 +1735,7 @@ export const rootResolvers = {
         RETURNING *
       `, [code, args.name.trim(), status, `https://${code.toLowerCase()}.fl-coordinator.internal`]);
 
+      invalidateCache();
       const n = insertRes.rows[0];
       return {
         countryCode: n.code,
@@ -1748,6 +1777,7 @@ export const rootResolvers = {
           `UPDATE phc_facilities SET ${sets.join(', ')}, updated_at = now() WHERE id = $${idx}`,
           vals
         );
+        invalidateCache();
       }
       return await (rootResolvers.phcDetail as any)({ phcId: args.phcId });
     } finally {
@@ -1763,6 +1793,7 @@ export const rootResolvers = {
           `UPDATE districts SET name = $1, updated_at = now() WHERE id = $2`,
           [args.name, args.districtId]
         );
+        invalidateCache();
       }
       return await (rootResolvers.districtOverview as any)({ districtId: args.districtId });
     } finally {
@@ -1784,6 +1815,7 @@ export const rootResolvers = {
           `UPDATE states SET ${sets.join(', ')}, updated_at = now() WHERE id = $${idx}`,
           vals
         );
+        invalidateCache();
       }
       return await (rootResolvers.stateOverview as any)({ stateId: args.stateId });
     } finally {
@@ -1806,6 +1838,7 @@ export const rootResolvers = {
           `UPDATE nations SET ${sets.join(', ')} WHERE code = $${idx}`,
           vals
         );
+        invalidateCache();
       }
       const row = await client.query('SELECT * FROM nations WHERE code = $1', [code]);
       const n = row.rows[0] || { code, name: args.name || code, status: args.status || 'active', active_model_version: 'v1.20', coordinator_endpoint: '' };

@@ -53,7 +53,56 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
 // ── Apollo Client singleton ───────────────────────────────────────────────────
 export const apolloClient = new ApolloClient({
   link: from([errorLink, authLink, httpLink]),
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          nationalOverview: {
+            merge: true,
+          },
+          stateOverview: {
+            keyArgs: ['stateId'],
+          },
+          districtOverview: {
+            keyArgs: ['districtId'],
+          },
+          phcDetail: {
+            keyArgs: ['phcId'],
+          },
+          medicineIntelligence: {
+            keyArgs: ['scope'],
+          },
+          resourceIntelligence: {
+            keyArgs: ['scope'],
+          },
+          workforceIntelligence: {
+            keyArgs: ['scope'],
+          },
+          patientIntelligence: {
+            keyArgs: ['scope'],
+          },
+        },
+      },
+      StateOverview: {
+        keyFields: ['stateId'],
+      },
+      DistrictOverview: {
+        keyFields: ['districtId'],
+      },
+      PhcDetail: {
+        keyFields: ['phcId'],
+      },
+      PhcSummary: {
+        keyFields: ['phcId'],
+      },
+      MedicineStock: {
+        keyFields: ['medicineId'],
+      },
+      ResourceItem: {
+        keyFields: ['resourceId'],
+      },
+    },
+  }),
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'cache-first',

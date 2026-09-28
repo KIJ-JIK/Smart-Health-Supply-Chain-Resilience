@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { createHash } from 'crypto';
 import { pool } from '../../db/pool';
 
 export const jurisdictionRouter = Router();
@@ -6,6 +7,7 @@ export const jurisdictionRouter = Router();
 // ---------------------------------------------------------------------------
 // GET /api/v1/jurisdiction/hierarchy
 // Returns complete geographic hierarchy based on caller's role & jurisdiction
+// Optimized with Cache-Control and ETag for fast repeat loads
 // ---------------------------------------------------------------------------
 jurisdictionRouter.get('/hierarchy', async (req: Request, res: Response) => {
   const client = await pool.connect();
@@ -47,7 +49,7 @@ jurisdictionRouter.get('/hierarchy', async (req: Request, res: Response) => {
       client.query(phcQuery, phcParams),
     ]);
 
-    return res.json({
+    const payload = {
       success: true,
       data: {
         nations: nationsRes.rows,
@@ -61,7 +63,20 @@ jurisdictionRouter.get('/hierarchy', async (req: Request, res: Response) => {
           totalPhcs: phcsRes.rows.length,
         },
       },
-    });
+    };
+
+    const bodyString = JSON.stringify(payload);
+    const etag = `"${createHash('md5').update(bodyString).digest('hex')}"`;
+
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.setHeader('ETag', etag);
+
+    if (req.headers['if-none-match'] === etag) {
+      return res.status(304).end();
+    }
+
+    res.setHeader('Content-Type', 'application/json');
+    return res.send(bodyString);
   } catch (err: any) {
     console.error('[Jurisdiction Error]', err);
     return res.status(500).json({ success: false, error: err.message || 'Failed to fetch hierarchy' });

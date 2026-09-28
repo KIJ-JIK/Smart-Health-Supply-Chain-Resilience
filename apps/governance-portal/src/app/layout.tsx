@@ -18,6 +18,27 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Priority hints for backend API and tile services */}
+        <link
+          rel="preconnect"
+          href="https://smart-health-supply-chain-resilience-production.up.railway.app"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="dns-prefetch"
+          href="https://smart-health-supply-chain-resilience-production.up.railway.app"
+        />
+        <link
+          rel="preconnect"
+          href="https://tile.openstreetmap.org"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="dns-prefetch"
+          href="https://tile.openstreetmap.org"
+        />
+      </head>
       <body>
         <script
           dangerouslySetInnerHTML={{
