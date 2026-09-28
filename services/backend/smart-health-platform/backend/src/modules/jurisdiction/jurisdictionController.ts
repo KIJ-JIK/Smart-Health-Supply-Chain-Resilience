@@ -10,8 +10,9 @@ export const jurisdictionRouter = Router();
 // Optimized with Cache-Control and ETag for fast repeat loads
 // ---------------------------------------------------------------------------
 jurisdictionRouter.get('/hierarchy', async (req: Request, res: Response) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const { stateId, districtId } = req.query;
 
     let phcQuery = `
@@ -81,7 +82,7 @@ jurisdictionRouter.get('/hierarchy', async (req: Request, res: Response) => {
     console.error('[Jurisdiction Error]', err);
     return res.status(500).json({ success: false, error: err.message || 'Failed to fetch hierarchy' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -89,8 +90,9 @@ jurisdictionRouter.get('/hierarchy', async (req: Request, res: Response) => {
 // POST /api/v1/jurisdiction/nation
 // ---------------------------------------------------------------------------
 jurisdictionRouter.post('/nation', async (req: Request, res: Response) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const { code, name, status = 'ONLINE', activeModelVersion = 'demand-forecaster-v1.20' } = req.body;
     if (!code || !name) {
       return res.status(400).json({ success: false, error: 'Both code and name are required' });
@@ -111,7 +113,7 @@ jurisdictionRouter.post('/nation', async (req: Request, res: Response) => {
     console.error('[Save Nation Error]', err);
     return res.status(500).json({ success: false, error: err.message });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -119,8 +121,9 @@ jurisdictionRouter.post('/nation', async (req: Request, res: Response) => {
 // POST /api/v1/jurisdiction/state
 // ---------------------------------------------------------------------------
 jurisdictionRouter.post('/state', async (req: Request, res: Response) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const { name, code, country = 'India' } = req.body;
     if (!name || !code) {
       return res.status(400).json({ success: false, error: 'Both state name and code are required' });
@@ -139,7 +142,7 @@ jurisdictionRouter.post('/state', async (req: Request, res: Response) => {
     console.error('[Save State Error]', err);
     return res.status(500).json({ success: false, error: err.message });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -147,8 +150,9 @@ jurisdictionRouter.post('/state', async (req: Request, res: Response) => {
 // POST /api/v1/jurisdiction/district
 // ---------------------------------------------------------------------------
 jurisdictionRouter.post('/district', async (req: Request, res: Response) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const { name, stateId } = req.body;
     if (!name || !stateId) {
       return res.status(400).json({ success: false, error: 'Both district name and stateId are required' });
@@ -166,7 +170,7 @@ jurisdictionRouter.post('/district', async (req: Request, res: Response) => {
     console.error('[Save District Error]', err);
     return res.status(500).json({ success: false, error: err.message });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -174,8 +178,9 @@ jurisdictionRouter.post('/district', async (req: Request, res: Response) => {
 // POST /api/v1/jurisdiction/phc
 // ---------------------------------------------------------------------------
 jurisdictionRouter.post('/phc', async (req: Request, res: Response) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const {
       name,
       districtId,
@@ -224,7 +229,7 @@ jurisdictionRouter.post('/phc', async (req: Request, res: Response) => {
     console.error('[Save PHC Error]', err);
     return res.status(500).json({ success: false, error: err.message });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -233,8 +238,9 @@ jurisdictionRouter.post('/phc', async (req: Request, res: Response) => {
 // Bulk dataset ingestion supporting CSV or JSON array of entities
 // ---------------------------------------------------------------------------
 jurisdictionRouter.post('/batch-import', async (req: Request, res: Response) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const { entityType, data } = req.body;
     if (!entityType || !data) {
       return res.status(400).json({ success: false, error: 'entityType and data are required.' });
@@ -342,10 +348,10 @@ jurisdictionRouter.post('/batch-import', async (req: Request, res: Response) => 
       message: `Successfully ingested ${inserted.length} ${entityType} record(s) into PostgreSQL database.`,
     });
   } catch (err: any) {
-    await client.query('ROLLBACK');
+    if (client) await client.query('ROLLBACK').catch(() => {});
     console.error('[Batch Ingestion Error]', err);
     return res.status(500).json({ success: false, error: err.message });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });

@@ -458,7 +458,7 @@ export default function CommandCenterPage() {
         <KpiTile
           label="Oxygen Status"
           value={kpi6.value}
-          unit="%"
+          unit="cylinders"
           trend="up"
           delta={0.5}
           higherIsBetter={true}

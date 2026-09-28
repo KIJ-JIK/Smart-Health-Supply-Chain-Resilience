@@ -100,12 +100,13 @@ async function refreshKpiSnapshot(): Promise<any[]> {
     const criticalPhcs = Math.max(0, Math.round(Number(alertStats.critical_alerts || 0) * 0.4));
 
     const ticks = [
-      { metric: 'Critical PHCs',   value: criticalPhcs,                                     unit: 'PHCs',   severity: criticalPhcs > 0 ? 'critical' : 'ok' },
+      { metric: 'Total PHCs',       value: Number(facStats.total_phcs || facStats.active_phcs || 0), unit: 'PHCs', severity: 'ok' },
+      { metric: 'Active PHCs',      value: Number(facStats.active_phcs || facStats.total_phcs || 0), unit: 'PHCs', severity: 'ok' },
+      { metric: 'Critical PHCs',    value: criticalPhcs,                                     unit: 'PHCs',   severity: criticalPhcs > 0 ? 'critical' : 'ok' },
       { metric: 'Medicine Alerts',  value: Number(alertStats.open_alerts || 0),              unit: 'Alerts', severity: Number(alertStats.open_alerts) > 10 ? 'warn' : 'ok' },
       { metric: 'Bed Utilization',  value: bedOccupancyRate,                                  unit: '%',      severity: bedOccupancyRate > 85 ? 'critical' : 'ok' },
       { metric: 'Oxygen Status',    value: Number(facStats.oxygen_cylinders || 0),           unit: 'cyl',    severity: Number(facStats.oxygen_cylinders) < 50 ? 'warn' : 'ok' },
       { metric: 'Pending Requests', value: Number(requestStats.pending_requests || 0),       unit: 'Reqs',   severity: Number(requestStats.pending_requests) > 5 ? 'warn' : 'ok' },
-      { metric: 'Active PHCs',      value: Number(facStats.active_phcs || facStats.total_phcs || 0), unit: 'PHCs', severity: 'ok' },
       { metric: 'Critical Alerts',  value: Number(alertStats.critical_alerts || 0),          unit: 'Alerts', severity: Number(alertStats.critical_alerts) > 0 ? 'critical' : 'ok' },
     ];
 
