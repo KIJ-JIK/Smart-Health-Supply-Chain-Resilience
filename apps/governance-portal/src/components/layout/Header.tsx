@@ -625,7 +625,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   </a>
 
                   <a
-                    href={`${process.env.NEXT_PUBLIC_PHC_URL || 'http://localhost:5173'}/login`}
+                    href={`${process.env.NEXT_PUBLIC_PHC_URL || 'https://smart-health-supply-chain-resilienc-ruby.vercel.app'}/login`}
                     onClick={() => setPortalMenuOpen(false)}
                     style={{
                       display: 'flex',
@@ -679,7 +679,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   </Link>
 
                   <a
-                    href={`${process.env.NEXT_PUBLIC_BRICS_URL || 'http://localhost:3001'}/login`}
+                    href={`${process.env.NEXT_PUBLIC_BRICS_URL || 'https://smart-health-supply-chain-resilienc-brics.vercel.app'}/login`}
                     onClick={() => setPortalMenuOpen(false)}
                     style={{
                       display: 'flex',

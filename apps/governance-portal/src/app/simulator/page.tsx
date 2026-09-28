@@ -18,9 +18,8 @@ export default function SimulatorPage() {
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [sessionActive, setSessionActive] = useState(false);
 
-  const wsUrl = process.env.NEXT_PUBLIC_WS_BACKEND_URL || (typeof window !== 'undefined'
-    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8000/api/v1/governance/simulator/session`
-    : 'ws://localhost:8000/api/v1/governance/simulator/session');
+  const wsUrl = process.env.NEXT_PUBLIC_WS_BACKEND_URL ||
+    'wss://smart-health-supply-chain-resilience-production.up.railway.app/api/v1/governance/simulator/session';
 
   const { status, messages, send, close, reconnect } = useWsSession<any, any>(
     wsUrl,

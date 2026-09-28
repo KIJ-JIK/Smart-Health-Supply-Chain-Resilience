@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 export const dynamic = 'force-dynamic';
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'http://localhost:8000';
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'https://smart-health-supply-chain-resilience-production.up.railway.app';
 
 async function fetchBackendKpis(authHeader?: string): Promise<Record<string, number>> {
   try {

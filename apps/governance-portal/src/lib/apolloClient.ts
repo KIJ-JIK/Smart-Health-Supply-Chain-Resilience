@@ -15,7 +15,7 @@ import { onError } from '@apollo/client/link/error';
 // ── Backend URL ───────────────────────────────────────────────────────────────
 const BACKEND_URL =
   (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_BACKEND_URL) ||
-  'http://localhost:8000/graphql';
+  'https://smart-health-supply-chain-resilience-production.up.railway.app/graphql';
 
 // ── Auth header injection ─────────────────────────────────────────────────────
 // Reads JWT from localStorage (set by the auth store after login).

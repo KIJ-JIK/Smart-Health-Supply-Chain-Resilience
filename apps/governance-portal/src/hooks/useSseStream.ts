@@ -88,7 +88,7 @@ export function useSseStream<T = unknown>(
     const pollFallback = async () => {
       if (!enabledRef.current) return;
       try {
-        const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'http://localhost:8000';
+        const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'https://smart-health-supply-chain-resilience-production.up.railway.app';
         const endpoints = [
           '/api/v1/governance/alerts',
           `${backendBase}/api/v1/governance/alerts`,

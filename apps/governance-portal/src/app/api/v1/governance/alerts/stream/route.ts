@@ -7,7 +7,7 @@
 export const dynamic = 'force-dynamic';
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'http://localhost:8000';
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'https://smart-health-supply-chain-resilience-production.up.railway.app';
 
 export async function GET(req: Request) {
   const encoder = new TextEncoder();
