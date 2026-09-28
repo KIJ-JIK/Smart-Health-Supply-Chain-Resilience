@@ -185,10 +185,10 @@ export default function CommandCenterPage() {
       const criticalPhcs = stateOverview?.criticalShortages ?? 0;
       const medicineAlerts = stateOverview?.stockoutAlerts ?? 0;
       const bedUtilization = stateOverview?.bedOccupancyRate ?? 0;
-      const oxygenStatus = stateOverview?.districts ? stateOverview.districts.reduce((acc, d) => acc + d.totalPhcs * 8, 0) : 0;
+      const oxygenStatus = (stateOverview as any)?.oxygenCylindersAvailable ?? (stateOverview?.districts ? stateOverview.districts.reduce((acc, d) => acc + d.totalPhcs * 8, 0) : 0);
       const staffAvailability = totalPhcs > 0 ? Math.round((activePhcs / totalPhcs) * 100) : 100;
-      const patientLoad = stateOverview?.districts ? stateOverview.districts.reduce((acc, d) => acc + d.totalPhcs * 25, 0) : 0;
-      const openEmergencies = stateOverview?.criticalAlertsCount ?? 0;
+      const patientLoad = (stateOverview as any)?.occupiedBeds ? (stateOverview as any).occupiedBeds * 8 : (stateOverview?.districts ? stateOverview.districts.reduce((acc, d) => acc + d.totalPhcs * 25, 0) : 0);
+      const openEmergencies = (stateOverview as any)?.openAlertsCount ?? stateOverview?.criticalAlertsCount ?? 0;
       const pendingRequests = stateOverview?.criticalShortages ?? 0;
 
       return {
@@ -202,6 +202,28 @@ export default function CommandCenterPage() {
         patientLoad,
         openEmergencies,
         pendingRequests,
+      };
+    }
+
+    if (level === 'phc' && phcId) {
+      const targetPhc = districtOverview?.phcList?.find(p => p.phcId === phcId);
+      const isCrit = targetPhc ? targetPhc.riskLevel === 'CRITICAL' || targetPhc.riskLevel === 'critical' : false;
+      const totalBeds = targetPhc?.totalBeds || 30;
+      const occupiedBeds = targetPhc?.occupiedBeds || 15;
+      const bedUtilization = totalBeds > 0 ? parseFloat(((occupiedBeds / totalBeds) * 100).toFixed(1)) : 0;
+      const oxygenStatus = targetPhc?.oxygenCylinders || 20;
+
+      return {
+        totalPhcs: 1,
+        activePhcs: 1,
+        criticalPhcs: isCrit ? 1 : 0,
+        medicineAlerts: targetPhc?.openAlerts || 0,
+        bedUtilization,
+        oxygenStatus,
+        staffAvailability: 100,
+        patientLoad: occupiedBeds * 8,
+        openEmergencies: targetPhc?.openAlerts || 0,
+        pendingRequests: 0,
       };
     }
 
@@ -230,7 +252,7 @@ export default function CommandCenterPage() {
       openEmergencies,
       pendingRequests,
     };
-  }, [isNationalScope, isStateScope, nationalOverview, stateOverview, districtOverview]);
+  }, [isNationalScope, isStateScope, level, phcId, nationalOverview, stateOverview, districtOverview]);
 
   // Derived live at-risk districts from stateOverview
   const liveDistricts = useMemo(() => {
@@ -255,7 +277,8 @@ export default function CommandCenterPage() {
 
   // Helper to resolve live SSE tick with GraphQL fallback
   const getKpiValue = (metricName: string, fallbackVal: number | string) => {
-    const live = liveKpiTicks[metricName];
+    // Live SSE telemetry stream sends nationwide aggregates — only apply to national scope
+    const live = isNationalScope ? liveKpiTicks[metricName] : undefined;
     if (live && live.value !== undefined) {
       return {
         value: live.value,

@@ -44,6 +44,10 @@ export const STATE_OVERVIEW = gql`
       totalDistricts
       totalPhcs
       activePhcs
+      totalBeds
+      occupiedBeds
+      oxygenCylindersAvailable
+      openAlertsCount
       stockoutAlerts
       criticalShortages
       bedOccupancyRate

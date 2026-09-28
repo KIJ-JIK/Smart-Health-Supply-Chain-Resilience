@@ -71,6 +71,10 @@ const schemaText = `
     totalDistricts: Int!
     totalPhcs: Int!
     activePhcs: Int!
+    totalBeds: Int
+    occupiedBeds: Int
+    oxygenCylindersAvailable: Int
+    openAlertsCount: Int
     stockoutAlerts: Int!
     criticalShortages: Int!
     bedOccupancyRate: Float!
@@ -575,6 +579,10 @@ export const rootResolvers = {
         totalDistricts: distRes.rows.length,
         totalPhcs: f.total_phcs || distRes.rows.reduce((sum: number, d: any) => sum + d.totalPhcs, 0),
         activePhcs: f.active_phcs || f.total_phcs || distRes.rows.reduce((sum: number, d: any) => sum + d.totalPhcs, 0),
+        totalBeds,
+        occupiedBeds,
+        oxygenCylindersAvailable: f.oxygen_cylinders || 0,
+        openAlertsCount: a.open_alerts || 0,
         stockoutAlerts: a.stockout_alerts || 0,
         criticalShortages: a.critical_shortages || 0,
         bedOccupancyRate,
@@ -734,9 +742,23 @@ export const rootResolvers = {
     }
   },
 
-  medicineIntelligence: async () => {
+  medicineIntelligence: async (args?: { scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string } }) => {
     const client = await pool.connect();
     try {
+      const scope = args?.scope;
+      let phcFilter = '';
+      const params: any[] = [];
+      if (scope?.phcId) {
+        params.push(scope.phcId);
+        phcFilter = `AND ib.phc_id = $${params.length}`;
+      } else if (scope?.districtId) {
+        params.push(scope.districtId);
+        phcFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
+      } else if (scope?.stateId) {
+        params.push(scope.stateId);
+        phcFilter = `AND ib.phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
+      }
+
       const r = await client.query(`
         SELECT 
           m.id AS "medicineId",
@@ -756,19 +778,33 @@ export const rootResolvers = {
             ELSE 'adequate'
           END AS status
         FROM medicines m
-        LEFT JOIN inventory_batches ib ON m.id = ib.medicine_id
+        LEFT JOIN inventory_batches ib ON m.id = ib.medicine_id ${phcFilter}
         GROUP BY m.id, m.name, m.category, m.unit
         ORDER BY m.name
-      `);
+      `, params);
       return r.rows;
     } finally {
       client.release();
     }
   },
 
-  resourceIntelligence: async () => {
+  resourceIntelligence: async (args?: { scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string } }) => {
     const client = await pool.connect();
     try {
+      const scope = args?.scope;
+      let whereClause = '';
+      const params: any[] = [];
+      if (scope?.phcId) {
+        params.push(scope.phcId);
+        whereClause = `WHERE id = $${params.length}`;
+      } else if (scope?.districtId) {
+        params.push(scope.districtId);
+        whereClause = `WHERE district_id = $${params.length}`;
+      } else if (scope?.stateId) {
+        params.push(scope.stateId);
+        whereClause = `WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length})`;
+      }
+
       const r = await client.query(`
         SELECT 
           'res-beds' AS "resourceId",
@@ -779,28 +815,42 @@ export const rootResolvers = {
           ROUND(COALESCE(SUM(occupied_beds) * 100.0 / NULLIF(SUM(total_beds), 0), 0))::int AS utilization,
           'beds' AS unit,
           CASE WHEN SUM(occupied_beds) * 100.0 / NULLIF(SUM(total_beds), 0) > 90 THEN 'critical' ELSE 'adequate' END AS status
-        FROM phc_facilities
+        FROM phc_facilities ${whereClause}
         UNION ALL
         SELECT 
           'res-o2' AS "resourceId",
           'Oxygen Cylinders' AS "resourceName",
           'Equipment' AS category,
           COALESCE(SUM(oxygen_cylinders_available), 0)::int AS available,
-          300 AS required,
-          ROUND(COALESCE(SUM(oxygen_cylinders_available) * 100.0 / 300, 0))::int AS utilization,
+          GREATEST(100, COALESCE(SUM(oxygen_cylinders_available), 0) + 50)::int AS required,
+          ROUND(COALESCE(SUM(oxygen_cylinders_available) * 100.0 / NULLIF(GREATEST(100, COALESCE(SUM(oxygen_cylinders_available), 0) + 50), 0), 0))::int AS utilization,
           'cylinders' AS unit,
-          CASE WHEN SUM(oxygen_cylinders_available) < 50 THEN 'critical' ELSE 'adequate' END AS status
-        FROM phc_facilities
-      `);
+          CASE WHEN SUM(oxygen_cylinders_available) < 30 THEN 'critical' ELSE 'adequate' END AS status
+        FROM phc_facilities ${whereClause}
+      `, params);
       return r.rows;
     } finally {
       client.release();
     }
   },
 
-  workforceIntelligence: async () => {
+  workforceIntelligence: async (args?: { scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string } }) => {
     const client = await pool.connect();
     try {
+      const scope = args?.scope;
+      let whereClause = '';
+      const params: any[] = [];
+      if (scope?.phcId) {
+        params.push(scope.phcId);
+        whereClause = `WHERE phc_id = $${params.length}`;
+      } else if (scope?.districtId) {
+        params.push(scope.districtId);
+        whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
+      } else if (scope?.stateId) {
+        params.push(scope.stateId);
+        whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
+      }
+
       const r = await client.query(`
         SELECT 
           'role-' || lower(replace(role, ' ', '-')) AS "roleId",
@@ -812,17 +862,32 @@ export const rootResolvers = {
           1 AS "trainingDue",
           ROUND(2.0 / (COUNT(*)::int + 2) * 100)::int AS "vacancyRate"
         FROM staff_registry
+        ${whereClause}
         GROUP BY role
-      `);
+      `, params);
       return r.rows;
     } finally {
       client.release();
     }
   },
 
-  patientIntelligence: async () => {
+  patientIntelligence: async (args?: { scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string } }) => {
     const client = await pool.connect();
     try {
+      const scope = args?.scope;
+      let whereClause = '';
+      const params: any[] = [];
+      if (scope?.phcId) {
+        params.push(scope.phcId);
+        whereClause = `WHERE phc_id = $${params.length}`;
+      } else if (scope?.districtId) {
+        params.push(scope.districtId);
+        whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE district_id = $${params.length})`;
+      } else if (scope?.stateId) {
+        params.push(scope.stateId);
+        whereClause = `WHERE phc_id IN (SELECT id FROM phc_facilities WHERE state_id = $${params.length} OR district_id IN (SELECT id FROM districts WHERE state_id = $${params.length}))`;
+      }
+
       const r = await client.query(`
         SELECT 
           COALESCE(SUM(count), 0)::int AS "totalVisits",
@@ -833,7 +898,8 @@ export const rootResolvers = {
           88.0 AS "maternalCareEnrollment",
           'Last 7 Days' AS period
         FROM patient_footfall
-      `);
+        ${whereClause}
+      `, params);
       return r.rows[0] || {
         totalVisits: 1250, avgWaitTimeMinutes: 18, referralRate: 4.2,
         ncdCoverage: 78.5, immunizationCoverage: 92.0, maternalCareEnrollment: 88.0, period: 'Last 7 Days',
