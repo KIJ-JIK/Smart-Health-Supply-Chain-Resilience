@@ -6,6 +6,7 @@ import { RESOURCE_INTELLIGENCE } from '@/graphql/queries';
 import { useScopeStore } from '@/store/scopeStore';
 import { useAuthStore } from '@/store/authStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
+import { formatNumber } from '@/lib/formatters';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
 import { RiskBadge } from '@/components/common/RiskBadge';
 import { TrendSparkline } from '@/components/common/TrendSparkline';
@@ -73,10 +74,10 @@ export default function ResourcesPage() {
   );
 
   // Live GraphQL query
-  const { data: resData } = useQuery(RESOURCE_INTELLIGENCE, {
+  const { data: resData, loading } = useQuery(RESOURCE_INTELLIGENCE, {
     variables: {
       scope: {
-        level: scope.level,
+        level: (scope.level as string).toUpperCase(),
         stateId: scope.stateId,
         districtId: scope.districtId,
         phcId: scope.phcId,
@@ -86,7 +87,7 @@ export default function ResourcesPage() {
 
   // Scope-reactive datasets — live bound from PostgreSQL
   const bedsData = useMemo(() => {
-    const liveBedItem = resData?.resourceIntelligence?.find((r: any) => r.resourceId === 'res-beds');
+    const liveBedItem = resData?.resourceIntelligence?.find((r: any) => r.resourceId === 'res-beds' || r.resourceName?.toLowerCase().includes('bed'));
     const totalLive = liveBedItem?.required ?? 0;
     const occupiedLive = liveBedItem ? Math.max(0, liveBedItem.required - liveBedItem.available) : 0;
     const utilLive = liveBedItem?.utilization || (totalLive > 0 ? Math.round((occupiedLive / totalLive) * 100) : 0);
@@ -99,7 +100,7 @@ export default function ResourcesPage() {
       { id: 'bed-isolation', name: 'Infectious Disease Isolation Wards', share: 0.04, turnover: 1.0, alos: 6.5 },
     ];
 
-    if (totalLive > 0) {
+    if (liveBedItem) {
       let allocatedTotal = 0;
       let allocatedOccupied = 0;
 
@@ -155,7 +156,7 @@ export default function ResourcesPage() {
 
   const oxygenData = useMemo(() => {
     const base = getOxygenDataByScope(scope.level);
-    const liveO2Item = resData?.resourceIntelligence?.find((r: any) => r.resourceId === 'res-o2');
+    const liveO2Item = resData?.resourceIntelligence?.find((r: any) => r.resourceId === 'res-o2' || r.resourceName?.toLowerCase().includes('oxygen'));
     if (liveO2Item) {
       const avail = liveO2Item.available ?? 0;
       const total = liveO2Item.required ?? Math.max(avail, 30);
@@ -356,6 +357,18 @@ export default function ResourcesPage() {
       return matchesSearch && matchesCategory;
     });
   }, [equipmentData, searchFilter, selectedFilterCategory]);
+  if (loading && !resData) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: '#64748b' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <span style={{ fontWeight: 500 }}>Fetching live resource intelligence...</span>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -532,7 +545,7 @@ export default function ResourcesPage() {
                 <Bed size={16} color="#64748b" />
               </div>
               <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
-                {bedAggregates.total.toLocaleString()}
+                {formatNumber(bedAggregates.total)}
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
                 Across {bedsData.length} functional wards
@@ -549,7 +562,7 @@ export default function ResourcesPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
-                  {bedAggregates.occupied.toLocaleString()}
+                  {formatNumber(bedAggregates.occupied)}
                 </span>
                 <span
                   style={{
@@ -602,7 +615,7 @@ export default function ResourcesPage() {
                 <CheckCircle2 size={16} color="#10b981" />
               </div>
               <div style={{ fontSize: 28, fontWeight: 800, color: '#059669' }}>
-                {bedAggregates.available.toLocaleString()}
+                {formatNumber(bedAggregates.available)}
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
                 Instant admit capacity
@@ -709,10 +722,10 @@ export default function ResourcesPage() {
                               ALOS: {bed.avgLengthOfStayDays}d | Turnover: {bed.turnoverIntervalDays}d
                             </div>
                           </td>
-                          <td>{bed.totalBeds.toLocaleString()}</td>
-                          <td>{bed.occupiedBeds.toLocaleString()}</td>
+                          <td>{formatNumber(bed.totalBeds)}</td>
+                          <td>{formatNumber(bed.occupiedBeds)}</td>
                           <td style={{ color: bed.availableBeds <= 2 ? '#dc2626' : '#059669', fontWeight: 600 }}>
-                            {bed.availableBeds.toLocaleString()}
+                            {formatNumber(bed.availableBeds)}
                           </td>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -809,7 +822,7 @@ export default function ResourcesPage() {
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 11, color: '#64748b' }}>Total Sanctioned</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
-                    {activeBedDetail.totalBeds.toLocaleString()} Beds
+                    {formatNumber(activeBedDetail.totalBeds)} Beds
                   </div>
                 </div>
               </div>
@@ -894,7 +907,7 @@ export default function ResourcesPage() {
                       {fw.projectedOccupancyPct}%
                     </div>
                     <div style={{ fontSize: 10, color: '#64748b' }}>
-                      ~{fw.projectedBedNeed.toLocaleString()} beds
+                      ~{formatNumber(fw.projectedBedNeed)} beds
                     </div>
                   </div>
                 ))}
@@ -921,10 +934,10 @@ export default function ResourcesPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <span style={{ fontSize: 26, fontWeight: 800, color: '#0f172a' }}>
-                  {oxygenAggregates.availableCylinders.toLocaleString()}
+                  {formatNumber(oxygenAggregates.availableCylinders)}
                 </span>
                 <span style={{ fontSize: 13, color: '#64748b' }}>
-                  / {oxygenAggregates.totalCylinders.toLocaleString()} total
+                  / {formatNumber(oxygenAggregates.totalCylinders)} total
                 </span>
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
@@ -942,10 +955,10 @@ export default function ResourcesPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <span style={{ fontSize: 26, fontWeight: 800, color: '#059669' }}>
-                  {oxygenAggregates.availableConcentrators.toLocaleString()}
+                  {formatNumber(oxygenAggregates.availableConcentrators)}
                 </span>
                 <span style={{ fontSize: 13, color: '#64748b' }}>
-                  / {oxygenAggregates.totalConcentrators.toLocaleString()} units
+                  / {formatNumber(oxygenAggregates.totalConcentrators)} units
                 </span>
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
@@ -1062,10 +1075,10 @@ export default function ResourcesPage() {
                           <div style={{ fontSize: 11, color: '#64748b' }}>{item.notes}</div>
                         </td>
                         <td>
-                          {item.totalCapacity.toLocaleString()} {item.unit}
+                          {formatNumber(item.totalCapacity)} {item.unit}
                         </td>
                         <td>
-                          {item.inUse.toLocaleString()} {item.unit}
+                          {formatNumber(item.inUse)} {item.unit}
                         </td>
                         <td
                           style={{
@@ -1073,10 +1086,10 @@ export default function ResourcesPage() {
                             color: item.daysRemaining < 1.2 ? '#dc2626' : '#059669',
                           }}
                         >
-                          {item.currentlyAvailable.toLocaleString()} {item.unit}
+                          {formatNumber(item.currentlyAvailable)} {item.unit}
                         </td>
                         <td>
-                          {item.dailyConsumptionRate.toLocaleString()} {item.unit}/day
+                          {formatNumber(item.dailyConsumptionRate)} {item.unit}/day
                         </td>
                         <td>
                           <div
@@ -1160,7 +1173,7 @@ export default function ResourcesPage() {
                 <Wrench size={16} color="#64748b" />
               </div>
               <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a' }}>
-                {equipmentAggregates.sanctioned.toLocaleString()}
+                {formatNumber(equipmentAggregates.sanctioned)}
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
                 Total mandated clinical apparatus
@@ -1177,7 +1190,7 @@ export default function ResourcesPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <span style={{ fontSize: 26, fontWeight: 800, color: '#059669' }}>
-                  {equipmentAggregates.working.toLocaleString()}
+                  {formatNumber(equipmentAggregates.working)}
                 </span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>
                   ({equipmentAggregates.operabilityPct}%)
@@ -1197,7 +1210,7 @@ export default function ResourcesPage() {
                 <AlertTriangle size={16} color="#f59e0b" />
               </div>
               <div style={{ fontSize: 26, fontWeight: 800, color: '#d97706' }}>
-                {equipmentAggregates.maintenance.toLocaleString()}
+                {formatNumber(equipmentAggregates.maintenance)}
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
                 Biomedical engineer servicing active
@@ -1226,7 +1239,7 @@ export default function ResourcesPage() {
                 })()}
               </div>
               <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
-                Deficit of {equipmentAggregates.deficit.toLocaleString()} units against sanctioned allocation
+                Deficit of {formatNumber(equipmentAggregates.deficit)} units against sanctioned allocation
               </div>
             </div>
           </div>
@@ -1333,13 +1346,13 @@ export default function ResourcesPage() {
                             {item.category}
                           </span>
                         </td>
-                        <td>{item.totalSanctioned.toLocaleString()}</td>
-                        <td style={{ color: '#059669', fontWeight: 600 }}>{item.working.toLocaleString()}</td>
+                        <td>{formatNumber(item.totalSanctioned)}</td>
+                        <td style={{ color: '#059669', fontWeight: 600 }}>{formatNumber(item.working)}</td>
                         <td style={{ color: item.underMaintenance > 0 ? '#d97706' : '#64748b' }}>
-                          {item.underMaintenance.toLocaleString()}
+                          {formatNumber(item.underMaintenance)}
                         </td>
                         <td style={{ color: item.deficit > 0 ? '#dc2626' : '#64748b', fontWeight: 600 }}>
-                          {item.deficit.toLocaleString()}
+                          {formatNumber(item.deficit)}
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

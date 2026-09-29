@@ -1,4 +1,6 @@
 'use client';
+import { formatNumber } from '@/lib/formatters';
+
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -364,8 +366,8 @@ export default function CommandCenterPage() {
   };
 
   // Resolve the 10 top row KPIs
-  const kpi1 = getKpiValue('Total PHCs', baselineKpis.totalPhcs.toLocaleString());
-  const kpi2 = getKpiValue('Active PHCs', baselineKpis.activePhcs.toLocaleString());
+  const kpi1 = getKpiValue('Total PHCs', formatNumber(baselineKpis.totalPhcs));
+  const kpi2 = getKpiValue('Active PHCs', formatNumber(baselineKpis.activePhcs));
   const kpi3 = getKpiValue('Critical PHCs', baselineKpis.criticalPhcs);
   const kpi4 = getKpiValue('Medicine Alerts', baselineKpis.medicineAlerts);
   const kpi5 = getKpiValue('Bed Utilization', baselineKpis.bedUtilization);
@@ -374,7 +376,7 @@ export default function CommandCenterPage() {
   const kpi8 = getKpiValue(
     'Patient Load',
     typeof baselineKpis.patientLoad === 'number'
-      ? baselineKpis.patientLoad.toLocaleString()
+      ? formatNumber(baselineKpis.patientLoad)
       : baselineKpis.patientLoad
   );
   const kpi9 = getKpiValue('Open Emergencies', baselineKpis.openEmergencies);
@@ -1176,7 +1178,7 @@ export default function CommandCenterPage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
                           <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 13 }}>
-                            {rec.medicineName} ({rec.quantity?.toLocaleString() ?? 0} {rec.unit || 'units'})
+                            {rec.medicineName} ({formatNumber(rec.quantity ?? 0)} {rec.unit || 'units'})
                           </div>
                           <div style={{ fontSize: 11, color: '#64748b' }}>
                             Source: <strong>{rec.fromPhcName || 'Central Depot'}</strong>

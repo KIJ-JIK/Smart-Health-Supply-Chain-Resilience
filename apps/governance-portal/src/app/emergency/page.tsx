@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { useCrisisStore } from '@/store/crisisStore';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
+import { formatDateTime } from '@/lib/formatters';
 import {
   ShieldAlert,
   Zap,
@@ -158,7 +159,7 @@ export default function EmergencyPage() {
                 {isCrisisMode ? (
                   <>
                     Declared: <strong>{crisisTitle}</strong> by <strong>{activatedBy}</strong> on{' '}
-                    {activatedAt ? new Date(activatedAt).toLocaleString() : 'Recent'}. Portal primary layout is re-prioritized across the 9 crisis tiers.
+                    {activatedAt ? formatDateTime(activatedAt) : 'Recent'}. Portal primary layout is re-prioritized across the 9 crisis tiers.
                   </>
                 ) : (
                   <>

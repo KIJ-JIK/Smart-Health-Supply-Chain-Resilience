@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
+import { formatNumber, formatDateTime } from '@/lib/formatters';
 import {
   MOCK_RECOMMENDATIONS,
   fetchRedistributionRecommendations,
@@ -186,7 +187,7 @@ export default function RedistributionPage() {
       return;
     }
     if (rec.sourceSurplus && modifyQty > rec.sourceSurplus) {
-      setModifyError(`Modified quantity cannot exceed source surplus of ${rec.sourceSurplus.toLocaleString()} ${rec.unit}.`);
+      setModifyError(`Modified quantity cannot exceed source surplus of ${formatNumber(rec.sourceSurplus)} ${rec.unit}.`);
       return;
     }
 
@@ -600,7 +601,7 @@ export default function RedistributionPage() {
                       {rec.fromPhcName}
                     </div>
                     <div style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>
-                      Surplus: +{(rec.sourceSurplus ?? 8400).toLocaleString()} {rec.unit} available
+                      Surplus: +{formatNumber(rec.sourceSurplus ?? 8400)} {rec.unit} available
                     </div>
                   </div>
 
@@ -628,7 +629,7 @@ export default function RedistributionPage() {
                       }}
                     >
                       <Truck size={14} />
-                      <span>{rec.quantity.toLocaleString()} {rec.unit}</span>
+                      <span>{formatNumber(rec.quantity)} {rec.unit}</span>
                       <ArrowRight size={14} />
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -651,7 +652,7 @@ export default function RedistributionPage() {
                       {rec.toPhcName}
                     </div>
                     <div style={{ fontSize: 12, color: '#DC2626', fontWeight: 600 }}>
-                      Stock Deficit: -{(rec.destinationDeficit ?? rec.quantity).toLocaleString()} {rec.unit}
+                      Stock Deficit: -{formatNumber(rec.destinationDeficit ?? rec.quantity)} {rec.unit}
                     </div>
                   </div>
                 </div>
@@ -781,7 +782,7 @@ export default function RedistributionPage() {
                           }}
                         >
                           <div>
-                            <strong>Decided By:</strong> {rec.decisionBy || 'Dr. S. Patil'} ({new Date(rec.decisionAt ?? rec.createdAt).toLocaleString()})
+                            <strong>Decided By:</strong> {rec.decisionBy || 'Dr. S. Patil'} ({formatDateTime(rec.decisionAt ?? rec.createdAt)})
                           </div>
                           {rec.notes && <div><strong>Notes:</strong> {rec.notes}</div>}
                         </div>

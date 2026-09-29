@@ -8,6 +8,7 @@ import { useScopeStore } from '@/store/scopeStore';
 import { useAuthStore } from '@/store/authStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
+import { formatNumber, formatDateTime } from '@/lib/formatters';
 import {
   MOCK_SHIPMENTS,
   CHAIN_STAGES,
@@ -561,7 +562,7 @@ export default function SupplyChainPage() {
                           {shipment.sourceLocation || shipment.supplier}
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                          Dispatched: {shipment.dispatchTime ? new Date(shipment.dispatchTime).toLocaleString() : 'Pending'}
+                          Dispatched: {shipment.dispatchTime ? formatDateTime(shipment.dispatchTime) : 'Pending'}
                         </div>
                       </div>
 
@@ -616,7 +617,7 @@ export default function SupplyChainPage() {
                             }}
                           >
                             <Package size={13} style={{ color: 'var(--color-primary)' }} />
-                            <span><strong>{it.medicineName}</strong>: {it.quantity.toLocaleString()} {it.unit}</span>
+                            <span><strong>{it.medicineName}</strong>: {formatNumber(it.quantity)} {it.unit}</span>
                           </div>
                         ))}
                       </div>

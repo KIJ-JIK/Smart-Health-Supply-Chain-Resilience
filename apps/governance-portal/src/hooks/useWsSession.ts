@@ -102,7 +102,7 @@ export function useWsSession<TOut = unknown, TIn = unknown>(
     let resolvedUrl = url;
     if (typeof window !== 'undefined' && !url.startsWith('ws://') && !url.startsWith('wss://')) {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = `${protocol}//${window.location.hostname}:8000`;
+      const host = `${protocol}//${window.location.host}`;
       resolvedUrl = url.startsWith('/') ? `${host}${url}` : `${host}/${url}`;
     }
 

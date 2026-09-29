@@ -1,4 +1,6 @@
 'use client';
+import { formatNumber } from '@/lib/formatters';
+
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery } from '@apollo/client';
@@ -1399,7 +1401,7 @@ export function GisMap() {
                     To: <strong>{route.toPhcName}</strong>
                   </div>
                   <div style={{ fontSize: 11, color: '#0f172a' }}>
-                    Quantity: <strong>{route.quantity.toLocaleString()} {route.unit}</strong> (ETA {route.etaHours}h)
+                    Quantity: <strong>{formatNumber(route.quantity)} {route.unit}</strong> (ETA {route.etaHours}h)
                   </div>
                 </div>
               );
@@ -1582,7 +1584,7 @@ export function GisMap() {
                             {isInbound ? `From: ${route.fromPhcName}` : `To: ${route.toPhcName}`}
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, color: '#475569' }}>
-                            <span>Qty: {route.quantity.toLocaleString()} {route.unit}</span>
+                            <span>Qty: {formatNumber(route.quantity)} {route.unit}</span>
                             <span>ETA: {route.etaHours}h</span>
                           </div>
                         </div>

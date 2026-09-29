@@ -13,6 +13,7 @@ import {
 } from '@/lib/medicineData';
 import { MedicineDetailModal } from '@/components/medicine/MedicineDetailModal';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
+import { formatNumber } from '@/lib/formatters';
 import { RiskBadge, RiskLevel } from '@/components/common/RiskBadge';
 import { DataFreshnessLabel } from '@/components/common/DataFreshnessLabel';
 import { TrendSparkline } from '@/components/common/TrendSparkline';
@@ -49,7 +50,7 @@ export default function MedicinePage() {
   const { data: medData, loading } = useQuery(MEDICINE_INTELLIGENCE, {
     variables: {
       scope: {
-        level: scope.level,
+        level: (scope.level as string).toUpperCase(),
         stateId: scope.stateId,
         districtId: scope.districtId,
         phcId: scope.phcId,
@@ -511,7 +512,7 @@ export default function MedicinePage() {
                       {/* 2. Current Stock */}
                       <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                         <div style={{ fontWeight: 700, fontSize: '13px', color: isStockout ? '#dc2626' : '#0f172a' }}>
-                          {(scopeMetrics.stock ?? 0).toLocaleString()}
+                          {formatNumber(scopeMetrics.stock ?? 0)}
                         </div>
                         <div style={{ fontSize: '11px', color: '#94a3b8' }}>{med.unit}</div>
                       </td>
@@ -618,7 +619,7 @@ export default function MedicinePage() {
                                 {lastMovement.type === 'INBOUND' ? '▲ IN' : lastMovement.type === 'REDISTRIBUTION' ? '⇄ XFER' : '▼ OUT'}
                               </span>
                               <span style={{ fontSize: '11px', fontWeight: 600 }}>
-                                {(lastMovement.quantity ?? 0).toLocaleString()}
+                                {formatNumber(lastMovement.quantity ?? 0)}
                               </span>
                             </div>
                             <div style={{ fontSize: '10px', color: '#94a3b8', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

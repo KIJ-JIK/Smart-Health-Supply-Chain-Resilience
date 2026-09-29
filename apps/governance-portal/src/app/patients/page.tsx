@@ -6,6 +6,7 @@ import { PATIENT_INTELLIGENCE } from '@/graphql/queries';
 import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
+import { formatNumber } from '@/lib/formatters';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
 import { RiskBadge } from '@/components/common/RiskBadge';
 import { TrendSparkline } from '@/components/common/TrendSparkline';
@@ -73,10 +74,10 @@ export default function PatientsPage() {
   );
 
   // Live GraphQL query
-  const { data: ptData } = useQuery(PATIENT_INTELLIGENCE, {
+  const { data: ptData, loading } = useQuery(PATIENT_INTELLIGENCE, {
     variables: {
       scope: {
-        level: scope.level,
+        level: (scope.level as string).toUpperCase(),
         stateId: scope.stateId,
         districtId: scope.districtId,
         phcId: scope.phcId,
@@ -89,7 +90,7 @@ export default function PatientsPage() {
     const base = getPatientSummaryByScope(scope.level);
     const pi = ptData?.patientIntelligence;
     if (pi && pi.totalVisits !== undefined) {
-      const visits = pi.totalVisits || 150;
+      const visits = pi.totalVisits;
       const refRate = pi.referralRate !== undefined ? pi.referralRate : base.referralRatePct;
       return {
         ...base,
@@ -171,6 +172,18 @@ export default function PatientsPage() {
     () => diseaseBreakdown.find((d) => d.id === selectedDiseaseCategory) || diseaseBreakdown[0],
     [diseaseBreakdown, selectedDiseaseCategory]
   );
+  if (loading && !ptData) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: '#64748b' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <span style={{ fontWeight: 500 }}>Fetching live patient intelligence...</span>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -227,7 +240,7 @@ export default function PatientsPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
-              {summary.totalOpdToday.toLocaleString()}
+              {formatNumber(summary.totalOpdToday)}
             </span>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#059669' }}>
               +6.4% vs 7d avg
@@ -248,7 +261,7 @@ export default function PatientsPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#dc2626' }}>
-              {summary.emergencyCasesToday.toLocaleString()}
+              {formatNumber(summary.emergencyCasesToday)}
             </span>
             <span style={{ fontSize: 12, color: '#64748b' }}>
               ({Number(((summary.emergencyCasesToday / summary.totalOpdToday) * 100).toFixed(1))}%)
@@ -269,7 +282,7 @@ export default function PatientsPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#059669' }}>
-              {summary.admissionsToday.toLocaleString()}
+              {formatNumber(summary.admissionsToday)}
             </span>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
               ({summary.admissionRatePct}% admission rate)
@@ -290,7 +303,7 @@ export default function PatientsPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed' }}>
-              {summary.referralsToday.toLocaleString()}
+              {formatNumber(summary.referralsToday)}
             </span>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>
               ({summary.referralRatePct}% rate)
@@ -789,7 +802,7 @@ export default function PatientsPage() {
                   {cat.shortCode}
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 2 }}>
-                  {cat.currentActiveCases.toLocaleString()}
+                  {formatNumber(cat.currentActiveCases)}
                 </div>
                 <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
                   {cat.sharePct}% of total presentations
@@ -852,7 +865,7 @@ export default function PatientsPage() {
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 11, color: '#64748b' }}>Active Case Volume</div>
             <div style={{ fontSize: 24, fontWeight: 800, color: activeDisease.color }}>
-              {activeDisease.currentActiveCases.toLocaleString()}
+              {formatNumber(activeDisease.currentActiveCases)}
             </div>
             <div style={{ fontSize: 11, color: '#64748b' }}>
               {activeDisease.sharePct}% caseload share

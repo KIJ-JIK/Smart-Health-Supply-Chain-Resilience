@@ -1,4 +1,6 @@
 'use client';
+import { formatDateTime } from '@/lib/formatters';
+
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -148,7 +150,7 @@ export function CrisisDashboardLayout() {
                 </span>
               </div>
               <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>
-                {crisisTitle} • Declared by <strong>{activatedBy}</strong> on {activatedAt ? new Date(activatedAt).toLocaleString() : 'Recent'}
+                {crisisTitle} • Declared by <strong>{activatedBy}</strong> on {activatedAt ? formatDateTime(activatedAt) : 'Recent'}
               </div>
             </div>
           </div>
