@@ -26,7 +26,7 @@ import { useAlertStore } from '@/store/alertStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { useThemeStore } from '@/store/themeStore';
-import { useLanguageStore } from '@/store/languageStore';
+import { useLanguageStore, useT } from '@/store/languageStore';
 import { UserRole, Alert } from '@/types';
 import { useSseStream } from '@/hooks/useSseStream';
 
@@ -208,7 +208,8 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
   const [portalMenuOpen, setPortalMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useThemeStore();
-  const { language, toggleLanguage, t } = useLanguageStore();
+  const { language, toggleLanguage } = useLanguageStore();
+  const t = useT();
 
   const portalMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);

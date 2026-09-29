@@ -19,7 +19,7 @@ import {
 import { CopilotMessageRenderer } from '@/components/copilot/CopilotMessageRenderer';
 import { CopilotSessionDrawer } from '@/components/copilot/CopilotSessionDrawer';
 import { McpToolInspectorModal } from '@/components/copilot/McpToolInspectorModal';
-import { useLanguageStore } from '@/store/languageStore';
+import { useLanguageStore, useT } from '@/store/languageStore';
 import { useChatHistoryStore } from '@/store/chatHistoryStore';
 import { useAuthStore } from '@/store/authStore';
 
@@ -51,7 +51,8 @@ function CopilotChatContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') ?? '';
   const initialSession = searchParams.get('session') ?? '';
-  const { language, t } = useLanguageStore();
+  const { language } = useLanguageStore();
+  const t = useT();
   const { user } = useAuthStore();
   const {
     activeSessionId,

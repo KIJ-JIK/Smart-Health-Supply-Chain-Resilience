@@ -104,14 +104,12 @@ interface GovLanguageState {
   language: Language;
   setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
-  t: (key: string, defaultText?: string) => string;
-  translateData: (text: string) => string;
 }
 
 const STORAGE_KEY = 'aura-portal-language';
 
 export const useLanguageStore = create<GovLanguageState>((set, get) => ({
-  language: 'en', // Hydration safe: always defaults to 'en' on the server and initial client render
+  language: 'en', // Hydration safe: always 'en' on SSR, rehydrated on mount
 
   setLanguage: (lang: Language) => {
     applyLanguage(lang);
@@ -129,18 +127,32 @@ export const useLanguageStore = create<GovLanguageState>((set, get) => ({
     }
     set({ language: nextLang });
   },
+}));
 
-  t: (key: string, defaultText?: string) => {
-    const lang = get().language;
+/**
+ * Hook that returns a translation function `t`.
+ * Because `language` is a reactive Zustand value, any component that calls
+ * useT() will automatically re-render whenever the language changes.
+ */
+export function useT(): (key: string, defaultText?: string) => string {
+  const language = useLanguageStore((s) => s.language);
+  return (key: string, defaultText?: string): string => {
     const entry = GOV_TRANSLATIONS[key];
     if (entry) {
-      return entry[lang] || entry.en || defaultText || key;
+      return entry[language] || entry.en || defaultText || key;
     }
     return defaultText || key;
-  },
+  };
+}
 
-  translateData: (text: string) => {
-    if (!text || get().language === 'en') return text;
+/**
+ * Hook that returns a data translation function.
+ * Re-created on every language change for correct reactivity.
+ */
+export function useTranslateData(): (text: string) => string {
+  const language = useLanguageStore((s) => s.language);
+  return (text: string): string => {
+    if (!text || language === 'en') return text;
     const clean = text.toLowerCase().trim();
 
     // Roles
@@ -185,5 +197,5 @@ export const useLanguageStore = create<GovLanguageState>((set, get) => ({
     if (clean === 'telangana') return 'तेलंगाना';
 
     return text;
-  },
-}));
+  };
+}

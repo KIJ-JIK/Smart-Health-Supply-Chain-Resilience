@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useAlertStore } from '@/store/alertStore';
 import { useAuthStore } from '@/store/authStore';
-import { useLanguageStore } from '@/store/languageStore';
+import { useLanguageStore, useT } from '@/store/languageStore';
 import { AuraLogo } from '@/components/brand/AuraLogo';
 
 // ── Navigation structure (masterplan §24) ─────────────────────────────────────
@@ -218,7 +218,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuthStore();
-  const { t, language } = useLanguageStore();
+  const { language } = useLanguageStore();
+  const t = useT();
   const unreadAlerts = useAlertStore((s) => s.unacknowledgedCount);
 
   // Track which sections are open (all open by default)
