@@ -149,7 +149,6 @@ export const MASTER_DICTIONARY: Record<string, string> = {
   'Download XLSX': 'एक्सेल डाउनलोड करें',
   'Ready': 'तैयार (Ready)',
   'National Health Resilience Dossier (30D)': 'राष्ट्रीय स्वास्थ्य लचीलापन डोजियर (30 दिन)',
-  'National Health Resilience Dossier': 'राष्ट्रीय स्वास्थ्य लचीलापन डोजियर',
   'State Health Resilience Dossier (30D)': 'राज्य स्वास्थ्य लचीलापन डोजियर (30 दिन)',
   'State Health Resilience Dossier': 'राज्य स्वास्थ्य लचीलापन डोजियर',
   'District Health Resilience Dossier (30D)': 'जिला स्वास्थ्य लचीलापन डोजियर (30 दिन)',
@@ -391,10 +390,153 @@ export const MASTER_DICTIONARY: Record<string, string> = {
   'STATE TIER': 'राज्य स्तर',
   'DISTRICT TIER': 'जिला स्तर',
   'PHC TIER': 'प्राथमिक स्वास्थ्य केंद्र स्तर',
-  'Strategic Buffer Coverage': 'रणनीतिक बफर कवरेज',
-  'Macro Shortage Projections & Zero-Stock Hotspots': 'मैक्रो कमी अनुमान एवं शून्य-स्टॉक हॉटस्पॉट',
-  '14-Day AI Epidemiological Surge & Patient Footfall Trajectories': '14-दिवसीय एआई महामारी प्रकोप एवं रोगी आवक प्रक्षेपवक्र',
   'National Resource Status': 'राष्ट्रीय संसाधन स्थिति',
+
+  // ── Statutory Reports & Analytics Dossiers (All Tiers) ──────────────────
+  'National Health Resilience Dossier': 'राष्ट्रीय स्वास्थ्य लचीलापन डोजियर',
+  'State Performance & Inter-District Audit': 'राज्य प्रदर्शन एवं अंतर-जिला ऑडिट',
+  'District Operational Intelligence Report': 'जिला परिचालन खुफिया रिपोर्ट',
+  'PHC Facility Granular Operational Audit': 'पीएचसी केंद्र विस्तृत परिचालन ऑडिट',
+
+  'Consolidated statutory report across all states: strategic reserves, macro forecasts, and national emergencies':
+    'सभी राज्यों की समेकित वैधानिक रिपोर्ट: रणनीतिक भंडार, मैक्रो पूर्वानुमान एवं राष्ट्रीय आपात स्थिति',
+  'State health executive report: cross-district performance indices, hospital utilization, and logistics compliance':
+    'राज्य स्वास्थ्य कार्यकारी रिपोर्ट: अंतर-जिला प्रदर्शन सूचकांक, अस्पताल उपयोग एवं लॉजिस्टिक्स अनुपालन',
+  'District health officer brief: facility-by-facility comparisons, shortage queues, and redistribution balancing':
+    'जिला स्वास्थ्य अधिकारी संक्षिप्त विवरण: केंद्र-वार तुलना, कमी कतारें एवं पुनर्वितरण संतुलन',
+  'Facility medical officer ledger: stock balance, drug dispensations, OPD volumes, staff attendance, and ward beds':
+    'केंद्र चिकित्सा अधिकारी बहीखाता: स्टॉक शेष, दवा वितरण, ओपीडी मात्रा, स्टाफ उपस्थिति एवं वार्ड बिस्तर',
+
+  'National Resource Status (Beds, Cryogenic & Cylinder Oxygen, Critical Equipment)':
+    'राष्ट्रीय संसाधन स्थिति (बिस्तर, क्रायोजेनिक एवं सिलेंडर ऑक्सीजन, महत्वपूर्ण उपकरण)',
+  'Beds, Cryogenic & Cylinder Oxygen, Critical Equipment':
+    'बिस्तर, क्रायोजेनिक एवं सिलेंडर ऑक्सीजन, महत्वपूर्ण उपकरण',
+  'Strategic Medicine Stock & Essential Drug Buffer Reserves':
+    'रणनीतिक दवा भंडार एवं आवश्यक औषधि बफर रिजर्व',
+  'Macro Shortage Projections & Zero-Stock Hotspots':
+    'मैक्रो कमी अनुमान एवं शून्य-स्टॉक हॉटस्पॉट',
+  '14-Day AI Epidemiological Surge & Patient Footfall Trajectories':
+    '14-दिवसीय एआई महामारी प्रकोप एवं रोगी आवक प्रक्षेपणवक्र',
+  'Active National Health Emergencies & Fast-Track Procurement Directives':
+    'सक्रिय राष्ट्रीय स्वास्थ्य आपात स्थिति एवं त्वरित खरीद निर्देश',
+
+  'Statewide District Performance Rankings & Governance Scorecard':
+    'राज्यव्यापी जिला प्रदर्शन रैंकिंग एवं गवर्नेंस स्कोरकार्ड',
+  'Cross-District Health Resource Utilization & ICU Saturation':
+    'अंतर-जिला स्वास्थ्य संसाधन उपयोग एवं आईसीयू संतृप्ति',
+  'Regional Pharmaceutical Supply Chain Turnaround & Transit Delay Audit':
+    'क्षेत्रीय फार्मास्युटिकल आपूर्ति श्रृंखला टर्नअराउंड एवं पारगमन विलंब ऑडिट',
+  'State Buffer Depot Inventory Reserves & Reorder Allocation':
+    'राज्य बफर डिपो इन्वेंट्री रिजर्व एवं पुनः ऑर्डर आवंटन',
+
+  'Intra-District PHC Comparative Scorecard & Patient Strain Index':
+    'अंतरा-जिला पीएचसी तुलनात्मक स्कोरकार्ड एवं रोगी दबाव सूचकांक',
+  'Facility-Level Medicine Shortages & 14-Day Stockout Projections':
+    'केंद्र-स्तरीय दवा की कमी एवं 14-दिवसीय स्टॉकआउट अनुमान',
+  'Facility Requisition Orders & Central Drug Store Fulfillments':
+    'केंद्र मांग आदेश एवं केंद्रीय दवा स्टोर पूर्ति',
+  'Approved Inter-Facility Redistribution Transfers & Transit Tracking':
+    'स्वीकृत अंतर-केंद्र पुनर्वितरण स्थानांतरण एवं पारगमन ट्रैकिंग',
+
+  'Real-Time Pharmaceutical Inventory Balance & Expiry Tracking':
+    'वास्तविक समय फार्मास्युटिकल इन्वेंट्री बैलेंस एवं समाप्ति ट्रैकिंग',
+  'Daily Outpatient & Emergency Drug Dispensation Ledger':
+    'दैनिक बाह्य रोगी एवं आपातकालीन दवा वितरण लेजर',
+  'Daily OPD / IPD Patient Footfall & Seasonal Disease Triage':
+    'दैनिक ओपीडी / आईपीडी रोगी आवक एवं मौसमी बीमारी ट्राइएज',
+  'Clinical & Para-Medical Staff Duty Roster & Attendance Logs':
+    'क्लिनिकल एवं पैरा-मेडिकल स्टाफ ड्यूटी रोस्टर एवं उपस्थिति लॉग',
+  'Ward Bed Occupancy & Medical Oxygen Cylinder Pressures':
+    'वार्ड बेड ऑक्यूपेंसी एवं मेडिकल ऑक्सीजन सिलेंडर दबाव',
+
+  'Total Monitored PHCs': 'कुल मॉनिटर किए गए पीएचसी',
+  'Strategic Buffer Coverage': 'रणनीतिक बफर कवरेज',
+  'Critical Shortage PHCs': 'गंभीर कमी वाले पीएचसी',
+  'Active Emergency Decl.': 'सक्रिय आपातकाल घोषणाएँ',
+  'State Facilities': 'राज्य स्वास्थ्य केंद्र',
+  'Mean Stockout Recovery': 'औसत स्टॉकआउट रिकवरी समय',
+  'Cold-Chain SLA Compliance': 'कोल्ड-चेन एसएलए अनुपालन',
+  'Inter-District Movements': 'अंतर-जिला दवा संचलन',
+  'District Facilities': 'जिला स्वास्थ्य केंद्र',
+  'Redistribution Executed': 'निष्पादित पुनर्वितरण',
+  'Mean Last-Mile Transit': 'औसत अंतिम छोर पारगमन',
+  'Clinical Staff Availability': 'क्लिनिकल स्टाफ उपलब्धता',
+  'Catchment Population': 'कार्यक्षेत्र जनसंख्या',
+  'Active OPD Visits / Day': 'सक्रिय ओपीडी दौरे / दिन',
+  'Bed Occupancy': 'बेड ऑक्यूपेंसी',
+  'Available D-Cylinders': 'उपलब्ध डी-टाइप सिलेंडर',
+
+  // Metric Values & Deltas
+  '98.4% operational': '98.4% संचालित',
+  '98.4% Operational': '98.4% संचालित',
+  'National mean': 'राष्ट्रीय औसत',
+  'National Mean': 'राष्ट्रीय औसत',
+  '-12 vs last month': 'पिछले महीने से -12 कम',
+  '3 Active': '3 सक्रिय',
+  'Level-3 Surge': 'स्तर-3 उछाल',
+  'Level-3': 'स्तर-3',
+  'Level-2': 'स्तर-2',
+  'Level-1': 'स्तर-1',
+  '3,682 PHCs / SDHs': '3,682 पीएचसी / एसडीएच',
+  'Maharashtra State': 'महाराष्ट्र राज्य',
+  'Pune District': 'पुणे जिला',
+  'Hadapsar PHC': 'हड़पसर पीएचसी',
+  'Target: < 5.0 days': 'लक्ष्य: < 5.0 दिन',
+  'Target: 8.0h': 'लक्ष्य: 8.0 घंटे',
+  'IoT sensors': 'आईओटी सेंसर',
+  '142 Consignments': '142 खेप',
+  'This month': 'इस महीने',
+  '64 PHCs': '64 पीएचसी',
+  '28 Transfers': '28 स्थानांतरण',
+  'Averted 4 stockouts': '4 स्टॉकआउट टाले गए',
+  'Doctor:Patient 1:85': 'डॉक्टर:मरीज 1:85',
+  '340 Patients': '340 मरीज',
+  '+42% fever surge': '+42% बुखार में उछाल',
+  '23 / 24 beds': '23 / 24 बिस्तर',
+  '4 Cylinders': '4 सिलेंडर',
+  '0.9 days coverage': '0.9 दिन का बैकअप',
+  '78 Facilities': '78 केंद्र',
+  '84.2 Days': '84.2 दिन',
+  '4.2 Days': '4.2 दिन',
+  '22.4 Hours': '22.4 घंटे',
+
+  // Tiers & Scopes
+  'NATIONAL': 'राष्ट्रीय',
+  'STATE': 'राज्य',
+  'DISTRICT': 'जिला',
+  'PHC': 'पीएचसी',
+  'National': 'राष्ट्रीय',
+  'State': 'राज्य',
+  'District': 'जिला',
+  '30D': '30 दिन',
+  '7D': '7 दिन',
+  '90D': '90 दिन',
+  '1Y': '1 वर्ष',
+  '30d': '30 दिन',
+  '7d': '7 दिन',
+  '90d': '90 दिन',
+  '1y': '1 वर्ष',
+  '(30D)': '(30 दिन)',
+  '(7D)': '(7 दिन)',
+  '(90D)': '(90 दिन)',
+  '(1Y)': '(1 वर्ष)',
+  '(30d)': '(30 दिन)',
+  '(7d)': '(7 दिन)',
+  '(90d)': '(90 दिन)',
+  '(1y)': '(1 वर्ष)',
+  'Statutory Sections': 'वैधानिक विश्लेषण अनुभाग',
+  'Metric': 'मेट्रिक',
+  'Value': 'मान',
+  'Delta / Notes': 'डेल्टा / टिप्पणियाँ',
+  'Section Description': 'अनुभाग विवरण',
+  'national_admin': 'राष्ट्रीय प्रशासक',
+  'state_admin': 'राज्य प्रशासक',
+  'district_admin': 'जिला प्रशासक',
+  'phc_admin': 'पीएचसी प्रशासक',
+  'National Health Director': 'राष्ट्रीय स्वास्थ्य निदेशक',
+  'State Health Secretary': 'राज्य स्वास्थ्य सचिव',
+  'District Health Officer': 'जिला स्वास्थ्य अधिकारी',
+  'Facility Medical Officer': 'केंद्र चिकित्सा अधिकारी',
 
   // Locations / States
   'Port Blair Island Health Command': 'पोर्ट ब्लेयर द्वीप स्वास्थ्य कमान',
@@ -443,6 +585,10 @@ export const SORTED_DICTIONARY_ENTRIES: [string, string][] = Object.entries(MAST
   (a, b) => b[0].length - a[0].length
 );
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function translateStringToHindi(text: string): string {
   if (!text || typeof text !== 'string') return text;
   const trimmed = text.trim();
@@ -473,6 +619,16 @@ export function translateStringToHindi(text: string): string {
   result = result.replace(/ID:\s*(RPT-[A-Z0-9]+)\s*•\s*([0-9:]+\s*[AP]M)\s+by\s+([^()]+)\s*\(([^)]+)\)/gi,
     'आईडी: $1 • $2, $3 ($4) द्वारा');
   result = result.replace(/ID:\s*(RPT-[A-Z0-9]+)/gi, 'आईडी: $1');
+
+  result = result.replace(/Dr\.\s*/g, 'डॉ. ');
+  result = result.replace(/\(National\)/g, '(राष्ट्रीय)');
+  result = result.replace(/\(State\)/g, '(राज्य)');
+  result = result.replace(/\(District\)/g, '(जिला)');
+  result = result.replace(/\(PHC\)/g, '(पीएचसी)');
+  result = result.replace(/\(national_admin\)/g, '(राष्ट्रीय प्रशासक)');
+  result = result.replace(/\(state_admin\)/g, '(राज्य प्रशासक)');
+  result = result.replace(/\(district_admin\)/g, '(जिला प्रशासक)');
+  result = result.replace(/\(phc_admin\)/g, '(पीएचसी प्रशासक)');
 
   result = result.replace(/(\d+)\s+occupied\s*\/\s*(\d+)\s+total/gi, '$1 भरे हुए / कुल $2');
   result = result.replace(/(\d+)\s+crit\s*·\s*(\d+)\s+warn\s*·\s*(\d+)\s+near\s+exp/gi, '$1 गंभीर · $2 चेतावनी · $3 समाप्ति निकट');
@@ -517,7 +673,11 @@ export function translateStringToHindi(text: string): string {
   // Substring replacement for all entries (longest first)
   for (const [enKey, hiVal] of SORTED_DICTIONARY_ENTRIES) {
     if (enKey.length <= 2) continue;
-    if (result.includes(enKey)) {
+    // For short words (3-4 characters), enforce word boundaries so "Mon" doesn't match in "Monitored"
+    if (/^[A-Za-z0-9_]+$/.test(enKey) && enKey.length <= 4) {
+      const reg = new RegExp(`\\b${escapeRegex(enKey)}\\b`, 'g');
+      result = result.replace(reg, hiVal);
+    } else if (result.includes(enKey)) {
       result = result.split(enKey).join(hiVal);
     }
   }
