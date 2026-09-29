@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useWsSession } from '@/hooks/useWsSession';
@@ -7,17 +7,20 @@ import { ShieldAlert, Play, Square } from 'lucide-react';
 type SimMsg = { text: string; role: 'system' | 'model'; timestamp: string };
 
 const SCENARIOS = [
-  { id: 'flood', label: 'Flash Flood — Supply Disruption', description: 'Simulates a district-wide supply chain break after severe flooding. Tests redistribution and emergency procurement.' },
+  { id: 'flood', label: 'Flash Flood â€” Supply Disruption', description: 'Simulates a district-wide supply chain break after severe flooding. Tests redistribution and emergency procurement.' },
   { id: 'outbreak', label: 'Multi-district Dengue Outbreak', description: 'Models exponential case growth and resource demand across 5 districts.' },
   { id: 'stockout', label: 'State-wide Medicine Stockout', description: 'Stress-tests redistribution and emergency procurement with complete stockout of 3 essential medicines.' },
-  { id: 'pandemic', label: 'Pandemic Surge — ICU Overflow', description: 'Projects surge capacity needs and workforce reallocation under a 10× baseline case load.' },
+  { id: 'pandemic', label: 'Pandemic Surge â€” ICU Overflow', description: 'Projects surge capacity needs and workforce reallocation under a 10Ã— baseline case load.' },
 ];
 
 export default function SimulatorPage() {
   const { user } = useAuthStore();
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [sessionActive, setSessionActive] = useState(false);
-  const wsUrl = process.env.NEXT_PUBLIC_WS_BACKEND_URL || 'wss://smart-health-supply-chain-resilience-production.up.railway.app/api/v1/governance/simulator/session';
+  let wsUrl = process.env.NEXT_PUBLIC_WS_BACKEND_URL || 'wss://smart-health-supply-chain-resilience-production.up.railway.app/api/v1/governance/simulator/session';
+  if (wsUrl.startsWith('/')) {
+    wsUrl = 'wss://smart-health-supply-chain-resilience-production.up.railway.app' + wsUrl;
+  }
 
   const { status, messages, send, close, reconnect } = useWsSession<any, any>(
     wsUrl,
@@ -31,7 +34,7 @@ export default function SimulatorPage() {
   if (!['national_admin', 'state_admin'].includes(user.role)) {
     return (
       <div style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-        🔒 Crisis Simulator requires State Admin or above.
+        ðŸ”’ Crisis Simulator requires State Admin or above.
       </div>
     );
   }
@@ -63,7 +66,7 @@ export default function SimulatorPage() {
     <>
       <div className="page-header">
         <h1 className="page-title">Crisis Simulator</h1>
-        <p className="page-subtitle">Interactive scenario planning powered by AI — decisions have no real-world effect</p>
+        <p className="page-subtitle">Interactive scenario planning powered by AI â€” decisions have no real-world effect</p>
       </div>
 
       <div className="grid-2">
@@ -144,7 +147,7 @@ export default function SimulatorPage() {
         <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="card-header">
             <span className="card-title">Session Transcript</span>
-            {sessionActive && <span className="badge badge-critical">● Live</span>}
+            {sessionActive && <span className="badge badge-critical">â— Live</span>}
           </div>
           <div
             style={{
@@ -208,3 +211,4 @@ export default function SimulatorPage() {
     </>
   );
 }
+
