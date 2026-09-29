@@ -940,3 +940,9 @@ body {
 .sse-dot.error, .sse-dot.closed {
   background: var(--color-critical);
 }
+
+/* Hindi Language Font Overrides */
+html[data-lang="hi"] {
+  font-family: 'Noto Sans Devanagari', 'Mukta', 'Hind', sans-serif !important;
+}
+

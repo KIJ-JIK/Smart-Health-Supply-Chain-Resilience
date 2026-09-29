@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useAlertStore } from '@/store/alertStore';
 import { useAuthStore } from '@/store/authStore';
+import { useLanguageStore, useT } from '@/store/languageStore';
 import { AuraLogo } from '@/components/brand/AuraLogo';
 
 // ── Navigation structure (masterplan §24) ─────────────────────────────────────
@@ -189,6 +190,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const router = useRouter();
   const { user } = useAuthStore();
   const unreadAlerts = useAlertStore((s) => s.unacknowledgedCount);
+  const t = useT();
 
   // Track which sections are open (all open by default)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
@@ -246,7 +248,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 role="button"
                 aria-expanded={isOpen}
               >
-                <span className="nav-section-label-text">{section.label}</span>
+                <span className="nav-section-label-text">{t(`nav.${section.key}`) || section.label}</span>
                 <ChevronDown
                   size={12}
                   className={`nav-section-chevron${isOpen ? ' open' : ''}`}
@@ -282,7 +284,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     >
                       {item.icon}
                       <span className="nav-item-label flex items-center justify-between gap-1 w-full">
-                        <span>{item.label}</span>
+                        <span>{t(`nav.${item.href.replace('/', '')}`) || item.label}</span>
                       </span>
                       {badge && badge > 0 ? (
                         <span className="nav-item-badge">

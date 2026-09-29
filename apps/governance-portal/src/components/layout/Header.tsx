@@ -26,6 +26,7 @@ import { useAlertStore } from '@/store/alertStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore, useT } from '@/store/languageStore';
 import { UserRole, Alert } from '@/types';
 import { useSseStream } from '@/hooks/useSseStream';
 
@@ -186,6 +187,8 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
   const [portalMenuOpen, setPortalMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useThemeStore();
+  const { language, toggleLanguage } = useLanguageStore();
+  const t = useT();
 
   const portalMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -443,6 +446,33 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                 {scopedUnacknowledgedCount > 99 ? '99+' : scopedUnacknowledgedCount}
               </span>
             )}
+          </button>
+
+          {/* Language Toggle Button (EN / हि) */}
+          <button
+            id="language-toggle-btn"
+            className="header-toggle-btn"
+            onClick={toggleLanguage}
+            title={language === 'en' ? 'Switch to Hindi (हिंदी)' : 'Switch to English'}
+            aria-label={language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
+            style={{
+              padding: '4px 8px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              cursor: 'pointer',
+              background: language === 'hi' ? '#FFF7ED' : 'var(--color-surface)',
+              color: language === 'hi' ? '#C2410C' : 'var(--color-text-secondary)',
+              fontWeight: 700,
+              fontSize: 12,
+              minWidth: 40,
+              letterSpacing: '0.01em',
+            }}
+          >
+            {language === 'en' ? <span>अ</span> : <span>EN</span>}
           </button>
 
           {/* Theme Toggle Button */}
