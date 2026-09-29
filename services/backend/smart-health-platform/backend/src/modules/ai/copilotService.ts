@@ -144,9 +144,9 @@ User Question: "${question}"
 Target Language: ${isHindiMode ? 'Hindi' : 'English'}
 
 Instructions:
-1. If the user question is a casual conversation, greeting, capability check, or polite query (e.g. "hola", "hello", "hi", "namaste", "kaiso ho aap", "aap kaise ho", "kese ho", "good morning", "how are you", "who are you", "what can you do", "thank you", "thanks"):
+1. If the user question is a casual conversation, greeting, weather question, capability check, polite query, joke, or general non-database question (e.g. "how's the weather", "weather", "konichiwa", "konnichiwa", "hola", "hello", "hi", "namaste", "kaiso ho aap", "aap kaise ho", "kese ho", "good morning", "how are you", "who are you", "what can you do", "thank you", "thanks"):
 Respond ONLY with:
-CHAT: <your warm, helpful, conversational response as AURA Copilot (AURA Health Intelligence Copilot), replying in ${isHindiMode ? 'Hindi (Devanagari script)' : "the user's language"}>
+CHAT: <your warm, helpful, conversational response as AURA Copilot (AURA Health Intelligence Copilot), replying in ${isHindiMode ? 'Hindi (Devanagari script)' : "the user's language"}. For weather or off-topic queries, politely clarify that AURA is a Public Health and Clinical Governance Copilot monitoring medical supplies, bed occupancies, doctors, and epidemic alerts across India's 36 States & UTs, and offer healthcare data queries.>
 
 2. If the user asks ANY question about health data, clinical reasons, facility status, footfall, inventory, alerts, beds, staff/doctors/nurses, equipment, transfers, districts, states, or nationwide totals:
 Write a single, safe, read-only PostgreSQL SELECT query to retrieve the necessary data.
@@ -449,9 +449,9 @@ async function executeRagQuery(
   const q = question.toLowerCase().trim();
   const qClean = q.replace(/[^a-z0-9]/g, '');
 
+  const isHindiMode = language === 'hi' || /[\u0900-\u097F]/.test(question);
   const isHindiQuery =
-    language === 'hi' ||
-    /[\u0900-\u097F]/.test(question) ||
+    isHindiMode ||
     q.includes('kya') ||
     q.includes('aap') ||
     q.includes('mujhe') ||
@@ -508,7 +508,24 @@ async function executeRagQuery(
     }
   }
 
-  // 1. Casual Chat / Greetings / Multilingual (Hindi, Hinglish, Spanish, English)
+  // 1. Casual Chat / Greetings / Weather / Multilingual (Hindi, Hinglish, Spanish, Japanese, English)
+  const isJapaneseGreeting =
+    /^(konichiwa|konnichiwa|ohayo|arigato|arigatou|sayonara|hajimemashite|ogenki|moshi moshi)/i.test(q) ||
+    q.includes('konichiwa') ||
+    q.includes('konnichiwa') ||
+    q.includes('arigato') ||
+    /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(question);
+
+  const isWeatherQuery =
+    q.includes('weather') ||
+    q.includes('temperature') ||
+    q.includes('forecast') ||
+    q.includes('rain') ||
+    q.includes('climate') ||
+    q.includes('mausam') ||
+    q.includes('barish') ||
+    q.includes('mosam');
+
   const isHindiGreeting =
     /^(kaisa|kaise|kaiso|kese|namaste|namaskar|pranam|ram ram|kya hal|kya haal)/i.test(q) ||
     q.includes('kaise ho') ||
@@ -518,26 +535,69 @@ async function executeRagQuery(
     qClean.includes('kaisohoaap') ||
     qClean.includes('kaisehoaap');
 
-  const greetingWords = ['hola', 'hello', 'hi', 'hey', 'greetings', 'namaste', 'namaskar', 'vanakkam', 'bonjour', 'ciao', 'salut', 'aloha', 'sup', 'yo'];
+  const greetingWords = [
+    'hola', 'hello', 'hi', 'hey', 'greetings', 'namaste', 'namaskar', 'vanakkam',
+    'bonjour', 'ciao', 'salut', 'aloha', 'sup', 'yo', 'konichiwa', 'konnichiwa'
+  ];
   const isGreetingWord = greetingWords.some(w => {
     return q === w || q.startsWith(w + ' ') || q.endsWith(' ' + w) || q.includes(' ' + w + ' ') || qClean === w;
   });
 
-  if (
+  const isGeneralChat =
     isHindiGreeting ||
     isGreetingWord ||
-    /^(good\s*(morning|afternoon|evening|day)|who\s*are\s*you|how\s*are\s*you|how\s*do\s*you\s*do|what('s|\s+is)\s*up|what\s*can\s*you\s*do|help|thanks|thank\s*you)/i.test(q) ||
-    q.includes('how are you')
-  ) {
-    if (isHindiGreeting || isHindiQuery) {
+    isJapaneseGreeting ||
+    isWeatherQuery ||
+    /^(good\s*(morning|afternoon|evening|day)|who\s*are\s*you|how\s*are\s*you|how\s*do\s*you\s*do|what('s|\s+is)\s*up|what\s*can\s*you\s*do|help|thanks|thank\s*you|joke|cricket|sports)/i.test(q) ||
+    q.includes('how are you') ||
+    q.includes('who are you') ||
+    q.includes('what can you do');
+
+  if (isGeneralChat) {
+    if (isWeatherQuery) {
+      if (isHindiMode || isHindiQuery) {
+        return {
+          answer: `मैं **AURA Copilot** (AURA Health Intelligence System) हूँ। 😊\n\nमेरे पास लाइव मौसम (Weather) का डेटा नहीं है, लेकिन मैं आपको भारत के **सभी 36 राज्यों और केंद्र शासित प्रदेशों** में:\n• **अस्पताल बेड एवं ICU उपलब्धता**\n• **डॉक्टर्स एवं स्वास्थ्य कर्मियों की उपस्थिति**\n• **दवाइयों के स्टॉक और स्टॉकआउट अलर्ट्स**\n• **डेंगू, मलेरिया एवं मौसमी बुखार के प्रकोप की निगरानी**\n\nका वास्तविक लाइव डेटा प्रदान कर सकता हूँ। मैं आपके स्वास्थ्य प्रशासन की क्या सहायता करूँ?`,
+          citations: [],
+          followUps: [
+            'बिहार में कितने डॉक्टर और कर्मचारी हैं?',
+            'किन आवश्यक दवाओं की कमी है?',
+            'अस्पतालों में खाली बेड्स की स्थिति दिखाएं',
+          ],
+        };
+      }
       return {
-        answer: `Main badhiya hoon, aap bataiye! 😊\n\nMain **AURA Copilot** (AURA Health Intelligence & Governance System) hoon. Main aapki kya sahayata kar sakta hoon?\n\nAap mujhse live PostgreSQL database se:\n• **Healthcare Workforce & Doctors** (Doctors, Nurses, ANM, Pharmacists sabhi rajyo aur PHCs mein)\n• **PHC Facilities & Live Capacity** (Beds, Occupancy, Oxygen cylinders - sabhi 36 rajyo mein)\n• **Patient Footfall & Outpatient Visits** (OPD, ANC, Fever clinics, Dengue/Malaria surveillance)\n• **Essential Medicines & Batch Expiry** (Stockout alerts, safety buffers, reorders)\n• **Medical Equipment & Clinical Warnings**\n\nke baare mein kisi bhi bhasha (Hindi, Hinglish, English) mein pooch sakte hain!`,
+        answer: `I am **AURA Copilot**, your Public Health Intelligence & Governance Assistant. 😊\n\nWhile I do not have direct access to meteorological weather feeds, I have real-time telemetry across **all 36 Indian States & UTs** tracking:\n• **Hospital Bed Availability & Critical ICU Capacity**\n• **Healthcare Workforce & Doctor Rosters**\n• **Medicine Inventories & Critical Stockouts**\n• **Epidemiological Surveillance (Dengue, Malaria, Fever spikes)**\n\nHow can I assist your healthcare administration or facility monitoring today?`,
         citations: [],
         followUps: [
-          'Bihar me kitne doctors aur staff hain?',
-          'Maharashtra ke PHC facilities aur patient footfall dikhayein',
+          'How many doctors are available in Bihar?',
           'Which medicines are in critical stockout?',
+          'Show bed occupancy across monitored facilities',
+        ],
+      };
+    }
+
+    if (isJapaneseGreeting) {
+      return {
+        answer: `こんにちは！(Konnichiwa!) 私は **AURA Copilot**（ヘルスケア・ガバナンス AI コパイロット）です。😊\n\nインド全36州・連邦直轄領のリアルタイムな医療データ、医師・看護師の配置状況、病床稼働率、医薬品の在庫状況、および感染症アラートを監視・サポートしています。\n\n何かお手伝いできることはありますか？ (How can I assist your health administration today?)`,
+        citations: [],
+        followUps: [
+          'How many doctors and staff are in Bihar and Maharashtra?',
+          'Which medicines have critical stockouts?',
           'Show bed occupancy across facilities',
+        ],
+      };
+    }
+
+    if (isHindiGreeting || isHindiQuery || isHindiMode) {
+      return {
+        answer: `नमस्ते! मैं **AURA Copilot** (AURA Health Intelligence & Governance System) हूँ। मैं बिल्कुल ठीक हूँ, पूछने के लिए धन्यवाद! 😊\n\nमैं आपकी क्या सहायता कर सकता हूँ? आप मुझसे लाइव PostgreSQL डेटाबेस से:\n• **स्वास्थ्य कर्मी एवं डॉक्टर्स:** *"बिहार में कितने डॉक्टर्स हैं?"*\n• **PHC सुविधाएं एवं बेड क्षमता:** *"अस्पतालों में खाली बेड्स दिखाएं"*\n• **दवा आपूर्ति एवं स्टॉकआउट:** *"किन दवाओं का स्टॉक खत्म है?"*\n• **महामारी एवं क्लिनिकल अलर्ट्स:** *"सक्रिय आपातकालीन अलर्ट दिखाएं"*\n\nके बारे में पूछ सकते हैं!`,
+        citations: [],
+        followUps: [
+          'बिहार राज्य में कितने डॉक्टर और कर्मचारी हैं?',
+          'महाराष्ट्र के PHC केंद्र और बेड उपलब्धता दिखाएं',
+          'किन आवश्यक दवाओं का स्टॉक खत्म है?',
+          'सक्रिय आपातकालीन अलर्ट्स दिखाएं',
         ],
       };
     }
@@ -1330,78 +1390,103 @@ async function executeRagQuery(
   }
 
   // 8. National Overview / Count queries across India
-  try {
-    const [cntRes, stRes, bdRes, staffCountRes] = await Promise.all([
-      client.query('SELECT COUNT(*) AS total_phcs FROM phc_facilities').catch(() => ({ rows: [] })),
-      client.query('SELECT s.name AS state_name, COUNT(p.id) AS phc_count FROM phc_facilities p JOIN states s ON p.state_id = s.id GROUP BY s.name ORDER BY phc_count DESC LIMIT 10').catch(() => ({ rows: [] })),
-      client.query('SELECT SUM(total_beds) AS tb, SUM(occupied_beds) AS ob, SUM(oxygen_cylinders_available) AS oc FROM phc_facilities').catch(() => ({ rows: [] })),
-      client.query('SELECT COUNT(*) as total_staff, COUNT(CASE WHEN role ILIKE \'%doctor%\' OR role ILIKE \'%medical officer%\' THEN 1 END) as doctors FROM staff_registry').catch(() => ({ rows: [] })),
-    ]);
-    const totalPhcs = cntRes.rows[0]?.total_phcs || 0;
-    const tb = Number(bdRes.rows[0]?.tb || 0);
-    const ob = Number(bdRes.rows[0]?.ob || 0);
-    const oc = Number(bdRes.rows[0]?.oc || 0);
-    const docCount = staffCountRes.rows[0]?.doctors || 0;
-    const staffCount = staffCountRes.rows[0]?.total_staff || 0;
-    const occPct = tb > 0 ? ((ob / tb) * 100).toFixed(1) : '0';
+  const isNationalQuery =
+    q.includes('national') ||
+    q.includes('throughout india') ||
+    q.includes('all india') ||
+    q.includes('across india') ||
+    q.includes('in india') ||
+    q.includes('bharat') ||
+    q.includes('desh bhar') ||
+    q.includes('entire country') ||
+    q.includes('total phc') ||
+    q.includes('all phc') ||
+    q.includes('how many phc') ||
+    q.includes('overall summary') ||
+    q.includes('kul phc') ||
+    q.includes('sabse zyada') ||
+    q.includes('all facilities') ||
+    q.includes('desh me kitne');
 
-    if (isHindiQuery) {
-      let ans = '### 🏥 **अखिल भारतीय स्वास्थ्य डेटा सारांश (All-India Health Summary)**\n\n';
-      ans += `**AURA Copilot** लाइव PostgreSQL डेटाबेस से पूरे भारत का विवरण प्रस्तुत कर रहा है:\n\n`;
-      ans += '#### 📊 **मुख्य राष्ट्रीय सांख्यिकी:**\n';
-      ans += `* **कुल मॉनिटर किए गए PHC:** **${totalPhcs} केंद्र**\n`;
-      ans += `* **पंजीकृत डॉक्टर्स:** **${docCount} डॉक्टर्स** (कुल कर्मी: **${staffCount}**)\n`;
-      ans += `* **कुल बेड क्षमता:** **${tb} बेड्स** (${ob} भरे हुए, **${occPct}% ऑक्यूपेंसी**)\n`;
-      ans += `* **उपलब्ध खाली बेड्स:** **${Math.max(0, tb - ob)} बेड्स खाली**\n`;
-      ans += `* **ऑक्सीजन सिलेंडर बैकअप:** **${oc} सिलेंडर** स्टैंडबाय पर\n\n`;
-      if (stRes.rows.length > 0) {
-        ans += '#### 📍 **प्रमुख राज्यों में PHC वितरण:**\n';
-        for (const r of stRes.rows) ans += `* **${r.state_name}:** ${r.phc_count} PHC केंद्र\n`;
+  if (isNationalQuery) {
+    try {
+      const [cntRes, stRes, bdRes, staffCountRes] = await Promise.all([
+        client.query('SELECT COUNT(*) AS total_phcs FROM phc_facilities').catch(() => ({ rows: [] })),
+        client.query('SELECT s.name AS state_name, COUNT(p.id) AS phc_count FROM phc_facilities p JOIN states s ON p.state_id = s.id GROUP BY s.name ORDER BY phc_count DESC LIMIT 10').catch(() => ({ rows: [] })),
+        client.query('SELECT SUM(total_beds) AS tb, SUM(occupied_beds) AS ob, SUM(oxygen_cylinders_available) AS oc FROM phc_facilities').catch(() => ({ rows: [] })),
+        client.query('SELECT COUNT(*) as total_staff, COUNT(CASE WHEN role ILIKE \'%doctor%\' OR role ILIKE \'%medical officer%\' THEN 1 END) as doctors FROM staff_registry').catch(() => ({ rows: [] })),
+      ]);
+      const totalPhcs = cntRes.rows[0]?.total_phcs || 0;
+      const tb = Number(bdRes.rows[0]?.tb || 0);
+      const ob = Number(bdRes.rows[0]?.ob || 0);
+      const oc = Number(bdRes.rows[0]?.oc || 0);
+      const docCount = staffCountRes.rows[0]?.doctors || 0;
+      const staffCount = staffCountRes.rows[0]?.total_staff || 0;
+      const occPct = tb > 0 ? ((ob / tb) * 100).toFixed(1) : '0';
+
+      if (isHindiMode || isHindiQuery) {
+        let ans = '### 🏥 **अखिल भारतीय स्वास्थ्य डेटा सारांश (All-India Health Summary)**\n\n';
+        ans += `**AURA Copilot** लाइव PostgreSQL डेटाबेस से पूरे भारत का विवरण प्रस्तुत कर रहा है:\n\n`;
+        ans += '#### 📊 **मुख्य राष्ट्रीय सांख्यिकी:**\n';
+        ans += `* **कुल मॉनिटर किए गए PHC:** **${totalPhcs} केंद्र**\n`;
+        ans += `* **पंजीकृत डॉक्टर्स:** **${docCount} डॉक्टर्स** (कुल कर्मी: **${staffCount}**)\n`;
+        ans += `* **कुल बेड क्षमता:** **${tb} बेड्स** (${ob} भरे हुए, **${occPct}% ऑक्यूपेंसी**)\n`;
+        ans += `* **उपलब्ध खाली बेड्स:** **${Math.max(0, tb - ob)} बेड्स खाली**\n`;
+        ans += `* **ऑक्सीजन सिलेंडर बैकअप:** **${oc} सिलेंडर** स्टैंडबाय पर\n\n`;
+        if (stRes.rows.length > 0) {
+          ans += '#### 📍 **प्रमुख राज्यों में PHC वितरण:**\n';
+          for (const r of stRes.rows) ans += `* **${r.state_name}:** ${r.phc_count} PHC केंद्र\n`;
+        }
+        return {
+          answer: ans,
+          citations: [],
+          followUps: [
+            'बिहार में कितने डॉक्टर और कर्मचारी हैं?',
+            'महाराष्ट्र के क्लिनिकल अलर्ट्स दिखाएं',
+            'किन आवश्यक दवाओं का स्टॉक खत्म है?',
+          ],
+        };
+      } else {
+        let ans = '### 🏥 **National PHC Facilities & Workforce Overview — India**\n\n';
+        ans += 'Live data retrieved from the AURA Health Intelligence database across all 36 States & UTs:\n\n';
+        ans += '#### 📊 **National Summary:**\n';
+        ans += `* **Total Monitored PHC Facilities:** **${totalPhcs} centers**\n`;
+        ans += `* **Registered Doctors:** **${docCount} doctors** (Total Staff: **${staffCount}**)\n`;
+        ans += `* **Total Bed Capacity:** **${tb} beds** (${ob} occupied, **${occPct}% utilization**)\n`;
+        ans += `* **Available Beds:** **${Math.max(0, tb - ob)} beds free** nationwide\n`;
+        ans += `* **Total Oxygen Cylinders:** **${oc} cylinders** on standby\n\n`;
+        if (stRes.rows.length > 0) {
+          ans += '#### 📍 **Top States by PHC Count:**\n';
+          for (const r of stRes.rows) ans += `* **${r.state_name}:** ${r.phc_count} PHC facilities\n`;
+        }
+        return {
+          answer: ans,
+          citations: [],
+          followUps: [
+            'How many doctors are in Bihar?',
+            'Which medicines have critical stockouts across states?',
+            'Show bed occupancy across facilities',
+          ],
+        };
       }
-      return {
-        answer: ans,
-        citations: [],
-        followUps: [
-          'Bihar me kitne doctors aur staff hain?',
-          'Maharashtra ke clinical alerts dikhayein',
-          'Which medicines have critical stockouts across states?',
-        ],
-      };
-    } else {
-      let ans = '### 🏥 **National PHC Facilities & Workforce Overview — India**\n\n';
-      ans += 'Live data retrieved from the AURA Health Intelligence database across all 36 States & UTs:\n\n';
-      ans += '#### 📊 **National Summary:**\n';
-      ans += `* **Total Monitored PHC Facilities:** **${totalPhcs} centers**\n`;
-      ans += `* **Registered Doctors:** **${docCount} doctors** (Total Staff: **${staffCount}**)\n`;
-      ans += `* **Total Bed Capacity:** **${tb} beds** (${ob} occupied, **${occPct}% utilization**)\n`;
-      ans += `* **Available Beds:** **${Math.max(0, tb - ob)} beds free** nationwide\n`;
-      ans += `* **Total Oxygen Cylinders:** **${oc} cylinders** on standby\n\n`;
-      if (stRes.rows.length > 0) {
-        ans += '#### 📍 **Top States by PHC Count:**\n';
-        for (const r of stRes.rows) ans += `* **${r.state_name}:** ${r.phc_count} PHC facilities\n`;
-      }
-      return {
-        answer: ans,
-        citations: [],
-        followUps: [
-          'How many doctors are in Bihar?',
-          'Which medicines have critical stockouts across states?',
-          'Show bed occupancy across facilities',
-        ],
-      };
+    } catch (e: any) {
+      console.warn('[CopilotService] National overview fallback error:', e.message);
     }
-  } catch (e: any) {
-    console.warn('[CopilotService] National overview fallback error:', e.message);
   }
 
   // 9. Default helpful guide
   return {
-    answer: isHindiQuery
-      ? `Mainne **"${question}"** ke liye live database search kiya.\n\nAap mujhse kisi bhi rajya (e.g. Bihar, Maharashtra, UP, Gujarat) ya district ke:\n• **Doctors & Staff:** *"Bihar me kitne doctors hai?"*\n• **PHC Facilities & Beds:** *"Show bed occupancy across facilities"*\n• **Medicine Shortages:** *"Which medicines are out of stock?"*\n• **Clinical Alerts:** *"Show active critical alerts"*\nke baare mein pooch sakte hain.`
-      : `I have real-time access to the healthcare database for all 36 States & UTs. You can ask me about:\n\n• **Workforce & Doctors:** *"How many doctors are in Bihar?"* or *"Who is working at Hadapsar PHC?"*\n• **State Intelligence:** *"Tell me about PHCs and patient footfall in Bihar"*\n• **Facility Profiles:** *"Can you tell me about PHC Andhra Pradesh Central 1?"*\n• **Medicine Shortages:** *"Which medicines are out of stock?"*\n• **Bed & Oxygen Capacity:** *"Show bed occupancy across PHCs"*\n• **National Overview:** *"How many PHCs are listed throughout India?"*`,
+    answer: isHindiMode || isHindiQuery
+      ? `मैंने आपकी क्वेरी **"${question}"** के संदर्भ में डेटाबेस का विश्लेषण किया।\n\nआप मुझसे भारत के किसी भी राज्य (जैसे: बिहार, महाराष्ट्र, उत्तर प्रदेश, गुजरात) या जिले के लिए निम्नलिखित पूछ सकते हैं:\n• **स्वास्थ्य कर्मी व डॉक्टर्स:** *"बिहार में कितने डॉक्टर हैं?"*\n• **PHC सुविधाएं व बेड उपलब्धता:** *"महाराष्ट्र में खाली बेड्स दिखाएं"*\n• **दवा आपूर्ति व स्टॉकआउट:** *"किन आवश्यक दवाओं की कमी है?"*\n• **महामारी व क्लिनिकल अलर्ट्स:** *"सक्रिय आपातकालीन अलर्ट्स दिखाएं"*`
+      : `I analyzed the healthcare database in relation to your inquiry: **"${question}"**.\n\nYou can query real-time health intelligence across all 36 Indian States & UTs:\n• **Workforce & Doctors:** *"How many doctors are in Bihar?"* or *"Who is working at Hadapsar PHC?"*\n• **State Intelligence:** *"Tell me about PHCs and patient footfall in Bihar"*\n• **Facility Profiles:** *"Can you tell me about PHC Andhra Pradesh Central 1?"*\n• **Medicine Shortages:** *"Which medicines are out of stock?"*\n• **Bed & Oxygen Capacity:** *"Show bed occupancy across PHCs"*\n• **National Overview:** *"How many PHCs are listed throughout India?"*`,
     citations: [],
-    followUps: [
-      'Bihar me kitne doctors aur staff hain?',
+    followUps: isHindiMode || isHindiQuery ? [
+      'बिहार में कितने डॉक्टर और कर्मचारी हैं?',
+      'किन आवश्यक दवाओं का स्टॉक खत्म है?',
+      'अस्पतालों में खाली बेड्स दिखाएं',
+      'पूरे भारत में कुल कितने PHC केंद्र हैं?',
+    ] : [
+      'How many doctors and staff are in Bihar?',
       'Which medicines have critical stockouts across states?',
       'Show bed occupancy across facilities',
       'How many PHCs are listed throughout India?',

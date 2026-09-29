@@ -24,19 +24,22 @@ function normalizeMarkdown(text: string): string {
 
   let formatted = text;
 
-  // 1. Separate crammed headers: e.g. "district of West Bengal. ### Operational Status"
-  formatted = formatted.replace(/([^\n])\s*(#{1,4}\s+)/g, '$1\n\n$2');
+  // 1. Remove lone hash lines (e.g. "#", "##") that have no text
+  formatted = formatted.replace(/^\s*#{1,6}\s*$/gm, '');
 
-  // 2. Separate crammed bullets: e.g. "active** * **Total Bed Capacity:"
+  // 2. Ensure every heading has double newlines before and after it
+  formatted = formatted.replace(/([^\n])\s*(#{1,4}\s+[^\n]+)/g, '$1\n\n$2\n\n');
+
+  // 3. Separate crammed bullets: e.g. "active** * **Total Bed Capacity:"
   formatted = formatted.replace(/([^\n])\s+([*•-]\s+)/g, '$1\n$2');
 
-  // 3. Separate crammed numbered steps: e.g. "Recommendations** 1. **Oxygen Supply..."
+  // 4. Separate crammed numbered steps: e.g. "Recommendations** 1. **Oxygen Supply..."
   formatted = formatted.replace(/([^\n])\s+(\d+\.\s+)/g, '$1\n\n$2');
 
-  // 4. Ensure headers have newlines after them if immediately followed by bullet or text
-  formatted = formatted.replace(/(#{1,4}[^\n]+?)\s+([*•-]\s+|\d+\.\s+)/g, '$1\n$2');
+  // 5. Clean excessive newlines
+  formatted = formatted.replace(/\n{3,}/g, '\n\n');
 
-  return formatted;
+  return formatted.trim();
 }
 
 /**
@@ -255,6 +258,27 @@ export const CopilotMessageRenderer: React.FC<CopilotMessageRendererProps> = ({ 
                 const lineTrimmed = line.trim();
                 if (!lineTrimmed) return null;
 
+                // Heading inside block: e.g. "#### 📊 National Summary:"
+                const innerHeading = lineTrimmed.match(/^(#{1,4})\s+(.+)$/);
+                if (innerHeading) {
+                  const rawTitle = innerHeading[2].replace(/^\*\*|\*\*$/g, '').trim();
+                  return (
+                    <div
+                      key={lIdx}
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        color: '#0F172A',
+                        padding: '4px 0 2px',
+                        borderBottom: '1px solid #E2E8F0',
+                        marginBottom: 4,
+                      }}
+                    >
+                      {renderInline(rawTitle)}
+                    </div>
+                  );
+                }
+
                 // Numbered Item: e.g. "1. **Title:** text"
                 const numMatch = lineTrimmed.match(/^(\d+)\.\s+(.+)$/);
                 if (numMatch) {
@@ -298,7 +322,8 @@ export const CopilotMessageRenderer: React.FC<CopilotMessageRendererProps> = ({ 
 
                 // Bullet Item: e.g. "* **Total Bed Capacity:** 44 beds..."
                 const bulletMatch = lineTrimmed.match(/^[*•-]\s+(.+)$/);
-                const bulletText = bulletMatch ? bulletMatch[1] : lineTrimmed;
+                let bulletText = bulletMatch ? bulletMatch[1] : lineTrimmed;
+                bulletText = bulletText.replace(/^#{1,4}\s*/, '');
 
                 const isLineWarning =
                   bulletText.includes('⚠️') ||
