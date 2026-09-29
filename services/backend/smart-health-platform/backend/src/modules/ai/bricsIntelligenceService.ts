@@ -167,17 +167,27 @@ bricsAiRouter.post('/ai-briefing', async (req: Request, res: Response) => {
     let liveAlerts: any[] = [];
 
     try {
-      const r1 = await client.query(`SELECT round_id, model_version, status, global_loss FROM federation_rounds ORDER BY id DESC LIMIT 3`);
+      const r1 = await client.query(
+        `SELECT id, round_id, model_version, status, participating_countries, started_at, completed_at
+         FROM federation_rounds ORDER BY started_at DESC LIMIT 3`
+      ).catch(() => ({ rows: [] as any[] }));
       liveRounds = r1.rows;
 
-      const r2 = await client.query(`SELECT country_id, cumulative_epsilon, budget_limit, within_budget FROM privacy_budget_ledger ORDER BY recorded_at DESC LIMIT 5`);
+      const r2 = await client.query(
+        `SELECT country_id, cumulative_epsilon, budget_limit,
+                (cumulative_epsilon <= budget_limit) AS within_budget
+         FROM privacy_budget_ledger ORDER BY recorded_at DESC LIMIT 5`
+      ).catch(() => ({ rows: [] as any[] }));
       livePrivacy = r2.rows;
 
-      const r3 = await client.query(`SELECT alert_type, severity, payload FROM alerts WHERE status = 'open' ORDER BY created_at DESC LIMIT 5`);
+      const r3 = await client.query(
+        `SELECT alert_type, severity, payload FROM alerts WHERE status = 'open' ORDER BY created_at DESC LIMIT 5`
+      ).catch(() => ({ rows: [] as any[] }));
       liveAlerts = r3.rows;
     } finally {
       client.release();
     }
+
 
     const contextPayload = {
       timestamp: new Date().toISOString(),
