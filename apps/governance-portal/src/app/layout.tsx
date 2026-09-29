@@ -57,11 +57,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   }
                 } catch (e) {}
                 try {
-                  var langStored = localStorage.getItem('governance-language');
+                  var langStored = localStorage.getItem('aura-portal-language');
                   if (langStored) {
-                    var langParsed = JSON.parse(langStored);
-                    var lang = langParsed && langParsed.state && langParsed.state.language;
-                    if (lang) {
+                    var lang = langStored.replace(/['"]/g, '');
+                    if (lang === 'en' || lang === 'hi') {
                       document.documentElement.setAttribute('lang', lang);
                       document.documentElement.setAttribute('data-lang', lang);
                     }

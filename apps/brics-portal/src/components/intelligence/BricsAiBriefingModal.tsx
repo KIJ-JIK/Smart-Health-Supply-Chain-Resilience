@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguageStore } from '@/store/languageStore';
 import {
   Sparkles,
   Globe2,
@@ -50,7 +51,8 @@ interface BricsAiBriefingModalProps {
 }
 
 export const BricsAiBriefingModal: React.FC<BricsAiBriefingModalProps> = ({ isOpen, onClose }) => {
-  const [selectedLang, setSelectedLang] = useState('en');
+  const { language } = useLanguageStore();
+  const [selectedLang, setSelectedLang] = useState<string>(language || 'en');
   const [loading, setLoading] = useState(false);
   const [briefing, setBriefing] = useState<BricsAiBriefingData | null>(null);
   const [error, setError] = useState<string | null>(null);

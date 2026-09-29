@@ -1,11 +1,7 @@
-// ---------------------------------------------------------------------------
-// Root App Component for BRICS Federated Intelligence Portal (Vite SPA)
-// Configures Apollo Provider, BrowserRouter, AppLayout, and all routes.
-// ---------------------------------------------------------------------------
-
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ApolloWrapper } from '@/components/providers';
+import { AutoTranslateProvider } from '@/components/common/AutoTranslateProvider';
 import { AppLayout } from '@/layouts/AppLayout';
 import {
   OverviewPage,
@@ -30,24 +26,27 @@ function ProtectedRoutes() {
 export function App() {
   return (
     <ApolloWrapper>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route element={<ProtectedRoutes />}>
-            <Route path="/" element={<OverviewPage />} />
-            <Route path="/nodes" element={<NodesPage />} />
-            <Route path="/rounds" element={<RoundsPage />} />
-            <Route path="/rounds/review" element={<RoundReviewPage />} />
-            <Route path="/review" element={<RoundReviewPage />} />
-            <Route path="/lineage" element={<LineagePage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <AutoTranslateProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route element={<ProtectedRoutes />}>
+              <Route path="/" element={<OverviewPage />} />
+              <Route path="/nodes" element={<NodesPage />} />
+              <Route path="/rounds" element={<RoundsPage />} />
+              <Route path="/rounds/review" element={<RoundReviewPage />} />
+              <Route path="/review" element={<RoundReviewPage />} />
+              <Route path="/lineage" element={<LineagePage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AutoTranslateProvider>
     </ApolloWrapper>
   );
 }
 
 export default App;
+

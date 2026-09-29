@@ -4,17 +4,19 @@ import { useUIStore } from '../../stores/uiStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { PHCNavTab } from '../../types';
+import { useLanguageStore } from '../../stores/languageStore';
 
-const tabs: { id: PHCNavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'dashboard', label: 'Home',      icon: LayoutDashboard },
-  { id: 'inventory', label: 'Inventory', icon: Package },
-  { id: 'billing',   label: 'Dispense',  icon: ReceiptText },
-  { id: 'footfall',  label: 'Footfall',  icon: Activity },
-  { id: 'alerts',    label: 'Alerts',    icon: Bell },
+const tabs: { id: PHCNavTab; labelKey: string; defaultLabel: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'dashboard', labelKey: 'nav.dashboard', defaultLabel: 'Home',      icon: LayoutDashboard },
+  { id: 'inventory', labelKey: 'nav.inventory', defaultLabel: 'Inventory', icon: Package },
+  { id: 'billing',   labelKey: 'nav.billing',   defaultLabel: 'Dispense',  icon: ReceiptText },
+  { id: 'footfall',  labelKey: 'nav.footfall',  defaultLabel: 'Footfall',  icon: Activity },
+  { id: 'alerts',    labelKey: 'nav.alerts',    defaultLabel: 'Alerts',    icon: Bell },
 ];
 
 export const BottomNav: React.FC = () => {
   const { activeTab, setActiveTab } = useUIStore();
+  const { t } = useLanguageStore();
 
   const alertCount = useLiveQuery(async () =>
     db.alerts.where('status').equals('open').count(), []) || 0;
@@ -29,9 +31,10 @@ export const BottomNav: React.FC = () => {
       aria-label="Mobile navigation"
       className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0a0f1a]/95 backdrop-blur-xl border-t border-slate-200/60 dark:border-[#1e2d3d] shadow-[0_-1px_12px_rgba(0,0,0,0.08)] dark:shadow-[0_-1px_24px_rgba(0,0,0,0.5)] flex items-center justify-around px-2 py-2"
     >
-      {tabs.map(({ id, label, icon: Icon }) => {
+      {tabs.map(({ id, labelKey, defaultLabel, icon: Icon }) => {
         const isActive = activeTab === id;
         const badge = badgeMap[id] ?? 0;
+        const label = t(labelKey, defaultLabel);
         return (
           <button
             key={id}

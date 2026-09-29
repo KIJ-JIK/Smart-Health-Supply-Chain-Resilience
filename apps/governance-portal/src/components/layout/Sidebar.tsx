@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useAlertStore } from '@/store/alertStore';
 import { useAuthStore } from '@/store/authStore';
-import { useLanguageStore, useT } from '@/store/languageStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { AuraLogo } from '@/components/brand/AuraLogo';
 
 // ── Navigation structure (masterplan §24) ─────────────────────────────────────
@@ -44,6 +44,35 @@ interface NavSection {
   label: string;
   items: NavItem[];
 }
+
+const NAV_ITEM_KEYS: Record<string, string> = {
+  '/governance': 'nav.governance',
+  '/gis': 'nav.gis',
+  '/medicine': 'nav.medicine',
+  '/resources': 'nav.resources',
+  '/workforce': 'nav.workforce',
+  '/patients': 'nav.patients',
+  '/copilot': 'nav.copilot',
+  '/forecasts': 'nav.forecasts',
+  '/early-warnings': 'nav.earlyWarnings',
+  '/analytics': 'nav.analytics',
+  '/redistribution': 'nav.redistribution',
+  '/supply-chain': 'nav.supplyChain',
+  '/emergency': 'nav.emergency',
+  '/simulator': 'nav.simulator',
+  '/audit': 'nav.audit',
+  '/admin': 'nav.admin',
+  '/manage-jurisdiction': 'nav.jurisdiction',
+};
+
+const SECTION_KEYS: Record<string, string> = {
+  overview: 'nav.groupMain',
+  intelligence: 'nav.groupSurveillance',
+  ai: 'nav.groupSurveillance',
+  operations: 'nav.groupLogistics',
+  crisis: 'nav.groupLogistics',
+  admin: 'nav.groupGovernance',
+};
 
 const iconClass = 'nav-item-icon';
 const sz = 16;
@@ -189,8 +218,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { t } = useLanguageStore();
   const unreadAlerts = useAlertStore((s) => s.unacknowledgedCount);
-  const t = useT();
 
   // Track which sections are open (all open by default)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
@@ -211,7 +240,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {!collapsed && (
             <div className="sidebar-logo-text flex flex-col min-w-0">
               <span className="sidebar-logo-title font-bold text-slate-900 dark:text-slate-100 text-sm tracking-tight truncate">AURA Vantage</span>
-              <span className="sidebar-logo-sub text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase truncate">Governance Command</span>
+              <span className="sidebar-logo-sub text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase truncate">{t('brand.subtitle', 'Governance Command')}</span>
             </div>
           )}
         </div>
@@ -238,6 +267,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           if (visibleItems.length === 0) return null;
 
           const isOpen = openSections[section.key] !== false;
+          const sectionTitle = t(SECTION_KEYS[section.key], section.label);
 
           return (
             <div key={section.key} className="nav-section">
@@ -248,7 +278,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 role="button"
                 aria-expanded={isOpen}
               >
-                <span className="nav-section-label-text">{t(`nav.${section.key}`) || section.label}</span>
+                <span className="nav-section-label-text">{sectionTitle}</span>
                 <ChevronDown
                   size={12}
                   className={`nav-section-chevron${isOpen ? ' open' : ''}`}
@@ -268,6 +298,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       ? pathname === '/'
                       : pathname.startsWith(item.href);
                   const badge = item.href === '/early-warnings' ? unreadAlerts : undefined;
+                  const itemTitle = t(NAV_ITEM_KEYS[item.href], item.label);
 
                   return (
                     <Link
@@ -280,11 +311,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                         } catch {}
                       }}
                       className={`nav-item${isActive ? ' active' : ''}`}
-                      title={collapsed ? item.label : undefined}
+                      title={collapsed ? itemTitle : undefined}
                     >
                       {item.icon}
                       <span className="nav-item-label flex items-center justify-between gap-1 w-full">
-                        <span>{t(`nav.${item.href.replace('/', '')}`) || item.label}</span>
+                        <span>{itemTitle}</span>
                       </span>
                       {badge && badge > 0 ? (
                         <span className="nav-item-badge">
@@ -317,7 +348,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             ) : (
               <>
                 <ChevronLeft size={16} />
-                <span>Collapse Menu</span>
+                <span>{t('action.close', 'Collapse Menu')}</span>
               </>
             )}
           </button>

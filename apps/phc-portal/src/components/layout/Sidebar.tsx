@@ -11,6 +11,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { PHCNavTab } from '../../types';
 import { AuraLogo } from '../brand/AuraLogo';
+import { useLanguageStore } from '../../stores/languageStore';
 
 interface NavItem {
   id: PHCNavTab;
@@ -22,19 +23,23 @@ interface NavItem {
 
 const groups = [
   {
-    label: 'Core Operations',
+    groupKey: 'nav.catCore',
+    defaultLabel: 'Core Operations',
     items: ['dashboard', 'facility', 'inventory', 'billing'] as PHCNavTab[],
   },
   {
-    label: 'Resource Logistics',
+    groupKey: 'nav.catClinical',
+    defaultLabel: 'Resource Logistics',
     items: ['beds', 'oxygen', 'equipment', 'staff', 'footfall'] as PHCNavTab[],
   },
   {
-    label: 'Governance & Sync',
+    groupKey: 'nav.catLogistics',
+    defaultLabel: 'Governance & Sync',
     items: ['requests', 'alerts', 'emergency', 'sync', 'settings'] as PHCNavTab[],
   },
   {
-    label: 'Developer Tools',
+    groupKey: 'nav.catDev',
+    defaultLabel: 'Developer Tools',
     items: ['testing'] as PHCNavTab[],
   },
 ];
@@ -57,27 +62,28 @@ const iconMap: Record<PHCNavTab, React.ComponentType<{ className?: string }>> = 
   settings:  Settings,
 };
 
-const labelMap: Record<PHCNavTab, string> = {
-  dashboard: 'Dashboard',
-  facility:  'Facility',
-  inventory: 'Inventory & Batches',
-  billing:   'Billing / Dispensing',
-  beds:      'Beds Management',
-  oxygen:    'Oxygen Supply',
-  equipment: 'Equipment & Bio-Med',
-  staff:     'Staff & Attendance',
-  footfall:  'Patient Footfall',
-  requests:  'Resource Requests',
-  alerts:    'Alerts & Flags',
-  emergency: 'Emergency Center',
-  sync:      'Sync & Conflicts',
-  testing:   'Offline Resilience Lab',
-  settings:  'Settings & Config',
+const tabKeyMap: Record<PHCNavTab, string> = {
+  dashboard: 'nav.dashboard',
+  facility:  'nav.facility',
+  inventory: 'nav.inventory',
+  billing:   'nav.billing',
+  beds:      'nav.beds',
+  oxygen:    'nav.oxygen',
+  equipment: 'nav.equipment',
+  staff:     'nav.staff',
+  footfall:  'nav.footfall',
+  requests:  'nav.requests',
+  alerts:    'nav.alerts',
+  emergency: 'nav.emergency',
+  sync:      'nav.sync',
+  testing:   'nav.testing',
+  settings:  'nav.settings',
 };
 
 export const Sidebar: React.FC = () => {
   const { activeTab, setActiveTab } = useUIStore();
   const { conflictCount, pendingCount } = useMutationQueue();
+  const { t } = useLanguageStore();
   const [collapsed, setCollapsed] = useState(false);
 
   const openAlertsCount = useLiveQuery(async () =>
@@ -101,12 +107,14 @@ export const Sidebar: React.FC = () => {
     const isActive = activeTab === id;
     const badge = badgeMap[id];
 
+    const tabLabel = t(tabKeyMap[id], id);
+
     return (
       <button
         onClick={() => setActiveTab(id)}
-        title={collapsed ? labelMap[id] : undefined}
+        title={collapsed ? tabLabel : undefined}
         aria-current={isActive ? 'page' : undefined}
-        aria-label={labelMap[id]}
+        aria-label={tabLabel}
         className={`
           relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium
           transition-all duration-150 group select-none
@@ -129,7 +137,7 @@ export const Sidebar: React.FC = () => {
         />
 
         {!collapsed && (
-          <span className="truncate flex-1 text-left">{labelMap[id]}</span>
+          <span className="truncate flex-1 text-left">{tabLabel}</span>
         )}
 
         {/* Badge */}
@@ -171,7 +179,7 @@ export const Sidebar: React.FC = () => {
         {!collapsed && (
           <div className="overflow-hidden">
             <div className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight whitespace-nowrap">AURA Point</div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Frontline Clinic Workbench</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">{t('brand.subtitle', 'Frontline Clinic Workbench')}</div>
           </div>
         )}
       </div>
@@ -179,10 +187,10 @@ export const Sidebar: React.FC = () => {
       {/* Nav groups */}
       <div className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {groups.map((group, gi) => (
-          <div key={group.label} className={gi > 0 ? 'pt-4' : ''}>
+          <div key={group.groupKey} className={gi > 0 ? 'pt-4' : ''}>
             {!collapsed && (
               <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
-                {group.label}
+                {t(group.groupKey, group.defaultLabel)}
               </div>
             )}
             {collapsed && gi > 0 && (

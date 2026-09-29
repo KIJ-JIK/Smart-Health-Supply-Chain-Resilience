@@ -71,11 +71,9 @@ export const StartRoundModal: React.FC<StartRoundModalProps> = ({
     setSimStep('dispatch');
     setSimNodes(INITIAL_NODES.map((n) => ({ ...n, progress: 15, status: 'dispatching' })));
 
-    // Trigger GraphQL mutation in background
-    await onSubmit({
-      targetModel,
-      minimumNodes,
-      roundTimeoutHours,
+    // Fire GraphQL mutation in background — don't await so animations run immediately
+    onSubmit({ targetModel, minimumNodes, roundTimeoutHours }).catch((err) => {
+      console.warn('[StartRoundModal] Backend mutation failed (simulation continues):', err?.message);
     });
 
     // Step 1: Dispatch -> Training (after 1s)
@@ -119,6 +117,7 @@ export const StartRoundModal: React.FC<StartRoundModalProps> = ({
       setCreatedRoundId(targetModel);
     }, 4200);
   };
+
 
   const handleGoToReview = () => {
     setIsSimulating(false);

@@ -95,9 +95,9 @@ export const usePhcAuthStore = create<PhcAuthState>()(
       },
     }),
     {
-      name: 'phc-portal-auth',
+      name: 'phc-portal-auth-v2',           // changed key busts old persisted sessions
       onRehydrateStorage: () => (state) => {
-        // If rehydrated without a valid token or facility, force login state
+        // Force login page unless both token and facility are properly persisted
         if (state) {
           if (!state.token || !state.selectedFacility?.id) {
             state.isAuthenticated = false;

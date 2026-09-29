@@ -92,19 +92,20 @@ export const useCopilotStore = create<CopilotState>((set, get) => ({
 
     try {
       // Get phcId from localStorage if available (PHC-scoped users)
-      const phcId = 'phc-001'; // default; replace with authStore in production
+      const phcId = 'phc-001';
+      const activeLang = typeof window !== 'undefined' ? (localStorage.getItem('aura-portal-language') || 'en') : 'en';
 
-      const res = await fetch(`${BACKEND}/governance/copilot/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(typeof window !== 'undefined' && localStorage.getItem('auth_token')
-            ? { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-            : {}),
-        },
-        body: JSON.stringify({ phcId, message: trimmed }),
-        signal: AbortSignal.timeout(45000),
-      });
+        const res = await fetch(`${BACKEND}/governance/copilot/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(typeof window !== 'undefined' && localStorage.getItem('auth_token')
+              ? { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
+              : {}),
+          },
+          body: JSON.stringify({ phcId, message: trimmed, language: activeLang }),
+          signal: AbortSignal.timeout(45000),
+        });
 
       let assistantMessage: CopilotMessage;
 

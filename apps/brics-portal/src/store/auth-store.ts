@@ -142,7 +142,17 @@ export const useBricsAuthStore = create<BricsAuthState>()(
       },
     }),
     {
-      name: 'brics-portal-auth',
+      name: 'brics-portal-auth-v2',          // changed key busts old persisted sessions
+      onRehydrateStorage: () => (state) => {
+        // Always force login page on cold visit — only persisted explicit logins are accepted
+        if (state && !state.currentUser?.id) {
+          state.isAuthenticated = false;
+        }
+        // Safety: if somehow isAuthenticated slipped through without a real user ID, reset
+        if (state && state.isAuthenticated && !state.currentUser?.email) {
+          state.isAuthenticated = false;
+        }
+      },
     }
   )
 );

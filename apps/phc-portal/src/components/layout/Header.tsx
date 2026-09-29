@@ -11,14 +11,8 @@ import { useSyncEngine } from '../../hooks/useSyncEngine';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { useThemeStore } from '../../stores/themeStore';
+import { useLanguageStore } from '../../stores/languageStore';
 import { AuraLogo } from '../brand/AuraLogo';
-
-const greeting = () => {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-};
 
 export const Header: React.FC = () => {
   const { isOnline, simulatedOffline, toggleSimulation } = useNetworkStatus();
@@ -26,9 +20,17 @@ export const Header: React.FC = () => {
   const { isSyncing, triggerSync } = useSyncEngine(isOnline);
   const { setActiveTab, setEmergencyModalOpen } = useUIStore();
   const { isDark, toggleTheme } = useThemeStore();
+  const { language, toggleLanguage, t } = useLanguageStore();
   const { currentStaff, selectedFacility, logout, isAuthenticated } = usePhcAuthStore();
   const [portalMenuOpen, setPortalMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return t('header.greetingMorning', 'Good morning');
+    if (h < 17) return t('header.greetingAfternoon', 'Good afternoon');
+    return t('header.greetingEvening', 'Good evening');
+  };
 
   const portalMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -138,6 +140,17 @@ export const Header: React.FC = () => {
                 {pendingCount}
               </span>
             )}
+          </button>
+
+          {/* Language toggle */}
+          <button
+            onClick={toggleLanguage}
+            aria-label={`Current language: ${language === 'en' ? 'English' : 'Hindi'}. Click to toggle.`}
+            title={language === 'en' ? 'Switch to हिन्दी' : 'Switch to English'}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#111827] dark:hover:bg-[#1e2d3d] text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-[#1e2d3d] transition-all cursor-pointer shadow-xs active:scale-95"
+          >
+            <Globe2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+            <span className="font-semibold">{language === 'en' ? 'हिन्दी' : 'English'}</span>
           </button>
 
           {/* Theme toggle */}

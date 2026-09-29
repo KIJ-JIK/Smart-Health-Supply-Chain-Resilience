@@ -88,8 +88,14 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'governance-portal-auth',
+      name: 'governance-portal-auth-v2',      // changed key busts stale dev sessions
       partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+      onRehydrateStorage: () => (state) => {
+        // Only trust persisted session if it has a valid user id/role
+        if (state && state.isAuthenticated && !state.user?.id) {
+          state.isAuthenticated = false;
+        }
+      },
     },
   ),
 );
