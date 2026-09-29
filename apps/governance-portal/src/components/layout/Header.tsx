@@ -242,7 +242,6 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
     enabled: true,
   });
 
-  const { language, toggleLanguage, t } = useLanguageStore();
 
   // Build breadcrumb with localization
   const currentLabel = t(ROUTE_KEYS[pathname], ROUTE_LABELS[pathname] ?? pathname.replace('/', ''));
