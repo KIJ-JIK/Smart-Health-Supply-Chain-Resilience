@@ -1,4 +1,6 @@
 'use client';
+import { formatNumber } from '@/lib/formatters';
+
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -104,15 +106,15 @@ export function MedicineDetailModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#1a56db', fontWeight: 600 }}>Predicted Dispensation:</span>
-                <strong>{dataPoint.predictedValue.toLocaleString()} {medicine.unit}</strong>
+                <strong>{formatNumber(dataPoint.predictedValue)} {medicine.unit}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0369a1' }}>
                 <span>90% Upper Bound (Peak):</span>
-                <span>{dataPoint.upperBound.toLocaleString()} {medicine.unit}</span>
+                <span>{formatNumber(dataPoint.upperBound)} {medicine.unit}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0284c7' }}>
                 <span>90% Lower Bound:</span>
-                <span>{dataPoint.lowerBound.toLocaleString()} {medicine.unit}</span>
+                <span>{formatNumber(dataPoint.lowerBound)} {medicine.unit}</span>
               </div>
               <div
                 style={{
@@ -131,7 +133,7 @@ export function MedicineDetailModal({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#475569' }}>Actual Dispensed:</span>
-                <strong>{dataPoint.historicalActual?.toLocaleString()} {medicine.unit}</strong>
+                <strong>{formatNumber(dataPoint.historicalActual)} {medicine.unit}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626', marginTop: 2 }}>
                 <span>Wastage/Loss:</span>
@@ -263,7 +265,7 @@ export function MedicineDetailModal({
           <div>
             <div style={{ fontSize: 11, color: '#64748b' }}>Current Stock</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: (scopeMetrics.stock ?? 0) === 0 ? '#dc2626' : '#0f172a' }}>
-              {(scopeMetrics.stock ?? 0).toLocaleString()} {medicine.unit}
+              {formatNumber(scopeMetrics.stock ?? 0)} {medicine.unit}
             </div>
           </div>
 
@@ -488,16 +490,16 @@ export function MedicineDetailModal({
                           {new Date(pt.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                         </td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', color: '#475569' }}>
-                          {pt.lowerBound.toLocaleString()}
+                          {formatNumber(pt.lowerBound)}
                         </td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#1a56db' }}>
-                          {pt.predictedValue.toLocaleString()}
+                          {formatNumber(pt.predictedValue)}
                         </td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#dc2626' }}>
-                          {pt.upperBound.toLocaleString()}
+                          {formatNumber(pt.upperBound)}
                         </td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', color: '#0e9f6e', fontWeight: 600 }}>
-                          +{Math.round(pt.upperBound - pt.predictedValue).toLocaleString()} {medicine.unit}
+                          +{formatNumber(Math.round(pt.upperBound - pt.predictedValue))} {medicine.unit}
                         </td>
                       </tr>
                     ))}
@@ -549,7 +551,7 @@ export function MedicineDetailModal({
                     <tr key={b.batchNumber} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '10px 12px', fontWeight: 600 }}>{b.batchNumber}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>
-                        {b.quantity.toLocaleString()} {medicine.unit}
+                        {formatNumber(b.quantity)} {medicine.unit}
                       </td>
                       <td style={{ padding: '10px 12px', color: '#64748b' }}>
                         {new Date(b.manufacturingDate).toLocaleDateString('en-IN')}
@@ -623,7 +625,7 @@ export function MedicineDetailModal({
                     </div>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>
-                        {mov.type}: {mov.quantity.toLocaleString()} {mov.unit}
+                        {mov.type}: {formatNumber(mov.quantity)} {mov.unit}
                       </div>
                       <div style={{ fontSize: 11, color: '#64748b' }}>
                         {mov.sourceDestination} • Batch {mov.batchNumber}

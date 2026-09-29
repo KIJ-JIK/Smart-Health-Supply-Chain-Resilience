@@ -6,6 +6,7 @@ import { PATIENT_INTELLIGENCE } from '@/graphql/queries';
 import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
+import { formatNumber } from '@/lib/formatters';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
 import { RiskBadge } from '@/components/common/RiskBadge';
 import { TrendSparkline } from '@/components/common/TrendSparkline';
@@ -76,7 +77,7 @@ export default function PatientsPage() {
   const { data: ptData } = useQuery(PATIENT_INTELLIGENCE, {
     variables: {
       scope: {
-        level: scope.level,
+        level: (scope.level as string).toUpperCase(),
         stateId: scope.stateId,
         districtId: scope.districtId,
         phcId: scope.phcId,
@@ -227,7 +228,7 @@ export default function PatientsPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
-              {summary.totalOpdToday.toLocaleString()}
+              {formatNumber(summary.totalOpdToday)}
             </span>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#059669' }}>
               +6.4% vs 7d avg
@@ -248,7 +249,7 @@ export default function PatientsPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#dc2626' }}>
-              {summary.emergencyCasesToday.toLocaleString()}
+              {formatNumber(summary.emergencyCasesToday)}
             </span>
             <span style={{ fontSize: 12, color: '#64748b' }}>
               ({Number(((summary.emergencyCasesToday / summary.totalOpdToday) * 100).toFixed(1))}%)
@@ -269,7 +270,7 @@ export default function PatientsPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#059669' }}>
-              {summary.admissionsToday.toLocaleString()}
+              {formatNumber(summary.admissionsToday)}
             </span>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
               ({summary.admissionRatePct}% admission rate)
@@ -290,7 +291,7 @@ export default function PatientsPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed' }}>
-              {summary.referralsToday.toLocaleString()}
+              {formatNumber(summary.referralsToday)}
             </span>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>
               ({summary.referralRatePct}% rate)
@@ -789,7 +790,7 @@ export default function PatientsPage() {
                   {cat.shortCode}
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 2 }}>
-                  {cat.currentActiveCases.toLocaleString()}
+                  {formatNumber(cat.currentActiveCases)}
                 </div>
                 <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
                   {cat.sharePct}% of total presentations
@@ -852,7 +853,7 @@ export default function PatientsPage() {
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 11, color: '#64748b' }}>Active Case Volume</div>
             <div style={{ fontSize: 24, fontWeight: 800, color: activeDisease.color }}>
-              {activeDisease.currentActiveCases.toLocaleString()}
+              {formatNumber(activeDisease.currentActiveCases)}
             </div>
             <div style={{ fontSize: 11, color: '#64748b' }}>
               {activeDisease.sharePct}% caseload share

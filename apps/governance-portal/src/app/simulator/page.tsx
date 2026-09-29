@@ -17,8 +17,16 @@ export default function SimulatorPage() {
   const { user } = useAuthStore();
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [sessionActive, setSessionActive] = useState(false);
-  const [status, setStatus] = useState<'closed' | 'connecting' | 'open'>('closed');
-  const [messages, setMessages] = useState<SimMsg[]>([]);
+  const wsUrl = process.env.NEXT_PUBLIC_WS_BACKEND_URL || '/api/v1/governance/simulator/session';
+
+  const { status, messages, send, close, reconnect } = useWsSession<any, any>(
+    wsUrl,
+    {
+      enabled: sessionActive,
+      autoReconnect: false,
+      onMessage: (msg) => console.debug('[Simulator]', msg),
+    },
+  );
 
   if (!['national_admin', 'state_admin'].includes(user.role)) {
     return (
@@ -31,43 +39,23 @@ export default function SimulatorPage() {
   const startSession = () => {
     if (!selectedScenario) return;
     setSessionActive(true);
-    setStatus('connecting');
-    setMessages([]);
-
     setTimeout(() => {
-      setStatus('open');
-      setMessages([{
-        text: 'Crisis simulator session initialized. Ready for scenarios.',
-        role: 'system',
-        timestamp: new Date().toISOString()
-      }]);
-
       const scenarioObj = SCENARIOS.find((s) => s.id === selectedScenario);
       const scenarioName = scenarioObj?.label || selectedScenario;
-
-      setTimeout(() => {
-        let resultText = '';
-        if (selectedScenario === 'flood') {
-          resultText = `Simulation Run: ${scenarioName} (deterministic mode)\nProjected days to depletion: 5 days.\nCritical facilities impacted: 12 (District 3 & 4).\nProjected stockout medicines: med-ivfluids, med-antibiotics.\nRecommended transfers: 400 units from state-warehouse to phc-fld-001; 200 units from district-002 to district-003`;
-        } else if (selectedScenario === 'outbreak') {
-          resultText = `Simulation Run: ${scenarioName} (deterministic mode)\nProjected surge in cases: +450% over 14 days.\nCritical facilities impacted: 8 (Epicenter Districts).\nProjected stockout medicines: med-paracetamol, med-ivfluids.\nRecommended transfers: Shift 50 additional medical staff to Zone B; request 1000 IV fluids from national reserve.`;
-        } else if (selectedScenario === 'stockout') {
-          resultText = `Simulation Run: ${scenarioName} (deterministic mode)\nProjected days to depletion: 2 days.\nCritical facilities impacted: 45.\nProjected stockout medicines: med-paracetamol, med-amoxicillin, med-insulin.\nRecommended transfers: Emergency procurement required. Reallocate 150 units from phc-bho-002 to phc-bho-001 to delay critical failure.`;
-        } else {
-          resultText = `Simulation Run: ${scenarioName} (deterministic mode)\nProjected days to ICU overflow: 9 days.\nCritical facilities impacted: 22.\nProjected deficits: 45 ICU beds, 120 oxygen cylinders.\nRecommended action: Activate surge capacity at District Hospitals; reroute non-critical patients to secondary care.`;
-        }
-
-        setMessages(prev => [...prev, {
-          text: resultText,
-          role: 'model',
-          timestamp: new Date().toISOString()
-        }]);
-      }, 1200);
-    }, 600);
+      send('start_scenario', {
+        action: 'RUN_SIMULATION',
+        scenario: {
+          id: selectedScenario,
+          name: scenarioName,
+          description: scenarioObj?.description || '',
+        },
+        payload: selectedScenario,
+      });
+    }, 800);
   };
 
   const endSession = () => {
-    setStatus('closed');
+    close();
     setSessionActive(false);
   };
 
@@ -177,10 +165,26 @@ export default function SimulatorPage() {
                 Start a scenario to begin the simulation session.
               </div>
             )}
-            {messages.map((m, i) => {
-              const text = m.text;
-              const isModel = m.role === 'model';
-              const timeStr = new Date(m.timestamp).toLocaleTimeString('en-IN');
+            {messages.map((m: any, i) => {
+              const text =
+                m?.payload?.text ||
+                (typeof m?.payload === 'string' ? m.payload : '') ||
+                m?.message ||
+                (typeof m?.result === 'object' ? JSON.stringify(m.result, null, 2) : m?.result) ||
+                (typeof m?.payload?.result === 'object' ? JSON.stringify(m.payload.result, null, 2) : m?.payload?.result) ||
+                m?.text ||
+                (m?.error ? `Error: ${m.error}` : '') ||
+                (typeof m?.payload === 'object' ? JSON.stringify(m.payload) : String(m?.payload || ''));
+
+              const isModel =
+                m?.payload?.role === 'model' ||
+                m?.role === 'model' ||
+                m?.type === 'SIMULATION_RESULT' ||
+                m?.type === 'CONNECTED';
+
+              const timeStr = m?.timestamp
+                ? new Date(m.timestamp).toLocaleTimeString('en-IN')
+                : new Date().toLocaleTimeString('en-IN');
 
               return (
                 <div

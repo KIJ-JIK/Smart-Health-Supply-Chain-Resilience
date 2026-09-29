@@ -6,6 +6,7 @@ import { FORECASTS } from '@/graphql/queries';
 import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
+import { formatNumber } from '@/lib/formatters';
 import { RiskBadge } from '@/components/common/RiskBadge';
 import { DataFreshnessLabel } from '@/components/common/DataFreshnessLabel';
 import {
@@ -99,7 +100,7 @@ export default function ForecastsPage() {
 
   const formatNum = (val: number | string | undefined | null): string => {
     if (val == null || isNaN(Number(val))) return '0';
-    return Number(val).toLocaleString();
+    return formatNumber(val);
   };
 
   return (
@@ -344,10 +345,10 @@ export default function ForecastsPage() {
                     Predicted Value & Band (§33.3)
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: '#2563eb', marginTop: 2 }}>
-                    {(card.predictedValue ?? 0).toLocaleString()} {card.unit}
+                    {formatNumber(card.predictedValue ?? 0)} {card.unit}
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>
-                    Band: [{(card.lowerBound ?? 0).toLocaleString()} – {(card.upperBound ?? 0).toLocaleString()}]
+                    Band: [{formatNumber(card.lowerBound ?? 0)} – {formatNumber(card.upperBound ?? 0)}]
                   </div>
                 </div>
 
@@ -372,7 +373,7 @@ export default function ForecastsPage() {
                       Forward Trajectory with Lower / Upper Confidence Bounds (Uncertainty Band)
                     </span>
                     <span style={{ fontSize: 11, color: '#64748b' }}>
-                      Visualized Band: {(card.lowerBound ?? 0).toLocaleString()} to {(card.upperBound ?? 0).toLocaleString()} {card.unit}
+                      Visualized Band: {formatNumber(card.lowerBound ?? 0)} to {formatNumber(card.upperBound ?? 0)} {card.unit}
                     </span>
                   </div>
 

@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { getDistrictsForState, getStateById } from '@/lib/geography';
+import { formatNumber } from '@/lib/formatters';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
 import { RiskBadge } from '@/components/common/RiskBadge';
 import { DataFreshnessLabel } from '@/components/common/DataFreshnessLabel';
@@ -79,7 +80,7 @@ export default function WorkforcePage() {
   const { data: wfData } = useQuery(WORKFORCE_INTELLIGENCE, {
     variables: {
       scope: {
-        level: scope.level,
+        level: (scope.level as string).toUpperCase(),
         stateId: scope.stateId,
         districtId: scope.districtId,
         phcId: scope.phcId,
@@ -385,11 +386,11 @@ export default function WorkforcePage() {
                 <Users size={16} color="#2563eb" />
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
-                  {summary.inPosition.toLocaleString()}
+                <span suppressHydrationWarning style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
+                  {formatNumber(summary.inPosition)}
                 </span>
                 <span style={{ fontSize: 13, color: '#64748b' }}>
-                  / {summary.totalSanctioned.toLocaleString()} sanctioned
+                  / {formatNumber(summary.totalSanctioned)} sanctioned
                 </span>
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
@@ -406,8 +407,8 @@ export default function WorkforcePage() {
                 <UserCheck size={16} color="#059669" />
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: 28, fontWeight: 800, color: '#059669' }}>
-                  {summary.presentCount.toLocaleString()}
+                <span suppressHydrationWarning style={{ fontSize: 28, fontWeight: 800, color: '#059669' }}>
+                  {formatNumber(summary.presentCount)}
                 </span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>
                   ({summary.attendanceRate}%)
@@ -430,14 +431,14 @@ export default function WorkforcePage() {
                 <div>
                   <div style={{ fontSize: 11, color: '#64748b' }}>On Leave</div>
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#d97706' }}>
-                    {summary.leaveCount.toLocaleString()}
+                    {formatNumber(summary.leaveCount)}
                   </div>
                 </div>
                 <div style={{ width: 1, height: 28, background: '#e2e8f0' }} />
                 <div>
                   <div style={{ fontSize: 11, color: '#64748b' }}>Unplanned Absent</div>
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#dc2626' }}>
-                    {summary.absentCount.toLocaleString()}
+                    {formatNumber(summary.absentCount)}
                   </div>
                 </div>
               </div>
@@ -462,7 +463,7 @@ export default function WorkforcePage() {
                   size="lg"
                 />
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#dc2626' }}>
-                  {summary.vacancies.toLocaleString()} posts ({summary.vacancyRate}%)
+                  {formatNumber(summary.vacancies)} posts ({summary.vacancyRate}%)
                 </span>
               </div>
               <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
@@ -531,14 +532,14 @@ export default function WorkforcePage() {
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 11, color: '#64748b' }}>Today's Patient Load</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
-                    {demandMetric.currentDailyPatientLoad.toLocaleString()}
+                    {formatNumber(demandMetric.currentDailyPatientLoad)}
                   </div>
                 </div>
                 <div style={{ width: 1, height: 28, background: '#e2e8f0' }} />
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 11, color: '#64748b' }}>Active Clinical Staff</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: '#059669' }}>
-                    {demandMetric.activeStaffOnDuty.toLocaleString()}
+                    {formatNumber(demandMetric.activeStaffOnDuty)}
                   </div>
                 </div>
                 <div style={{ width: 1, height: 28, background: '#e2e8f0' }} />
@@ -702,15 +703,15 @@ export default function WorkforcePage() {
                   <div style={{ padding: 10, background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
                     <div style={{ fontSize: 11, color: '#64748b' }}>Doctors on Duty</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
-                      {roleBreakdown.find((r) => r.category === 'Doctors')?.present.toLocaleString()} /{' '}
-                      {roleBreakdown.find((r) => r.category === 'Doctors')?.sanctioned.toLocaleString()}
+                      {formatNumber(roleBreakdown.find((r) => r.category === 'Doctors')?.present)} /{' '}
+                      {formatNumber(roleBreakdown.find((r) => r.category === 'Doctors')?.sanctioned)}
                     </div>
                   </div>
                   <div style={{ padding: 10, background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
                     <div style={{ fontSize: 11, color: '#64748b' }}>Nurses on Duty</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
-                      {roleBreakdown.find((r) => r.category === 'Nurses')?.present.toLocaleString()} /{' '}
-                      {roleBreakdown.find((r) => r.category === 'Nurses')?.sanctioned.toLocaleString()}
+                      {formatNumber(roleBreakdown.find((r) => r.category === 'Nurses')?.present)} /{' '}
+                      {formatNumber(roleBreakdown.find((r) => r.category === 'Nurses')?.sanctioned)}
                     </div>
                   </div>
                 </div>
@@ -871,9 +872,9 @@ export default function WorkforcePage() {
                         <div style={{ fontWeight: 600, color: '#0f172a' }}>{dist.districtName}</div>
                         <div style={{ fontSize: 11, color: '#64748b' }}>State: {dist.stateCode}</div>
                       </td>
-                      <td>{dist.sanctionedStaff.toLocaleString()}</td>
-                      <td style={{ color: '#059669', fontWeight: 600 }}>{dist.activeStaff.toLocaleString()}</td>
-                      <td>{dist.patientDailyLoad.toLocaleString()}</td>
+                      <td>{formatNumber(dist.sanctionedStaff)}</td>
+                      <td style={{ color: '#059669', fontWeight: 600 }}>{formatNumber(dist.activeStaff)}</td>
+                      <td>{formatNumber(dist.patientDailyLoad)}</td>
                       <td>
                         <span
                           style={{
@@ -947,10 +948,10 @@ export default function WorkforcePage() {
 
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                     <span style={{ fontSize: 26, fontWeight: 800, color: '#0f172a' }}>
-                      {role.inPosition.toLocaleString()}
+                      {formatNumber(role.inPosition)}
                     </span>
                     <span style={{ fontSize: 12, color: '#64748b' }}>
-                      / {role.sanctioned.toLocaleString()} sanctioned
+                      / {formatNumber(role.sanctioned)} sanctioned
                     </span>
                   </div>
 
@@ -1041,14 +1042,14 @@ export default function WorkforcePage() {
                       <td>
                         <div style={{ fontWeight: 600, color: '#0f172a' }}>{role.roleName}</div>
                       </td>
-                      <td>{role.sanctioned.toLocaleString()}</td>
-                      <td style={{ color: '#2563eb', fontWeight: 600 }}>{role.inPosition.toLocaleString()}</td>
-                      <td style={{ color: '#059669', fontWeight: 600 }}>{role.present.toLocaleString()}</td>
+                      <td>{formatNumber(role.sanctioned)}</td>
+                      <td style={{ color: '#2563eb', fontWeight: 600 }}>{formatNumber(role.inPosition)}</td>
+                      <td style={{ color: '#059669', fontWeight: 600 }}>{formatNumber(role.present)}</td>
                       <td style={{ color: '#64748b' }}>
                         {role.onLeave} leave / {role.absent} abs
                       </td>
                       <td style={{ color: role.vacancies > 0 ? '#dc2626' : '#64748b', fontWeight: 700 }}>
-                        {role.vacancies.toLocaleString()}
+                        {formatNumber(role.vacancies)}
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
