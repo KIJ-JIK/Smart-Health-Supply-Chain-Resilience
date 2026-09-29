@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
@@ -8,10 +8,12 @@ import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
 import {
   REPORT_TIERS,
+  INITIAL_GENERATED_REPORTS,
   ReportTier,
   ExportFormat,
   GeneratedReport,
 } from '@/lib/analyticsData';
+import { generateReport } from '@/lib/reportGenerator';
 import {
   FileText,
   Download,
@@ -70,17 +72,21 @@ export default function AnalyticsPage() {
 
   const [selectedTier, setSelectedTier] = useState<ReportTier>(defaultTier);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | 'quarter' | 'ytd'>('30d');
-  const [reports, setReports] = useState<GeneratedReport[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('governance_analytics_reports');
-        if (stored) return JSON.parse(stored);
-      } catch (e) {
-        // Fallback to empty
+  const [reports, setReports] = useState<GeneratedReport[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('governance_analytics_reports');
+      if (stored) {
+        setReports(JSON.parse(stored));
+      } else {
+        // Seed with demo reports on first load (no external URLs)
+        setReports(INITIAL_GENERATED_REPORTS);
       }
+    } catch (e) {
+      setReports(INITIAL_GENERATED_REPORTS);
     }
-    return [];
-  });
+  }, []);
 
   const updateReports = (newReports: GeneratedReport[] | ((prev: GeneratedReport[]) => GeneratedReport[])) => {
     setReports((prev) => {
@@ -105,7 +111,7 @@ export default function AnalyticsPage() {
     setSelectedTier(tier);
   };
 
-  // Non-blocking async report generation
+  // Non-blocking async report generation using real file generators
   const handleGenerate = (format: ExportFormat) => {
     if (!isAllowed) return;
 
@@ -120,41 +126,44 @@ export default function AnalyticsPage() {
       format,
       status: 'processing',
       progressPct: 20,
-      size: format === 'PDF' ? '3.4 MB' : format === 'CSV' ? '920 KB' : '1.8 MB',
+      size: format === 'PDF' ? '—' : format === 'CSV' ? '—' : '—',
       createdAt: new Date().toISOString(),
       scopeLabel: currentScope,
       generatedBy: `${user.name} (${user.role})`,
     };
 
-    // Prepend to list immediately without blocking UI
     updateReports((prev) => [newJob, ...prev]);
 
-    // Simulate backend async processing pipeline (e.g. Lambda/Worker + S3 Object Storage)
+    // Show 65% progress tick after 800ms, then generate the real file
     setTimeout(() => {
       updateReports((prev) =>
-        prev.map((r) =>
-          r.id === newReportId
-            ? { ...r, progressPct: 65 }
-            : r
-        )
+        prev.map((r) => (r.id === newReportId ? { ...r, progressPct: 65 } : r))
       );
-    }, 1000);
+    }, 800);
 
-    setTimeout(() => {
-      const s3Url = `https://gov-health-reports.s3.ap-south-1.amazonaws.com/exports/2026/09/${selectedTier}_${format.toLowerCase()}_${newReportId}.${format.toLowerCase()}`;
+    // Generate real, openable file via jsPDF / SheetJS / CSV
+    generateReport({
+      reportId: newReportId,
+      title: newReportTitle,
+      tier: selectedTier,
+      format,
+      dateRange,
+      scopeLabel: currentScope,
+      generatedBy: `${user.name} (${user.role})`,
+      config: activeConfig,
+    }).then((localUrl) => {
       updateReports((prev) =>
         prev.map((r) =>
           r.id === newReportId
-            ? {
-                ...r,
-                status: 'ready',
-                progressPct: 100,
-                downloadUrl: s3Url,
-              }
+            ? { ...r, status: 'ready', progressPct: 100, downloadUrl: localUrl }
             : r
         )
       );
-    }, 2400);
+    }).catch(() => {
+      updateReports((prev) =>
+        prev.map((r) => (r.id === newReportId ? { ...r, status: 'failed', progressPct: 0 } : r))
+      );
+    });
   };
 
   return (
@@ -618,6 +627,7 @@ export default function AnalyticsPage() {
                           href={r.downloadUrl}
                           target="_blank"
                           rel="noopener noreferrer"
+                          download={`governance_${r.tier}_report_${r.id}.${r.format.toLowerCase()}`}
                           style={{
                             padding: '5px 12px',
                             background: '#EFF6FF',
@@ -637,6 +647,10 @@ export default function AnalyticsPage() {
                           <span>Download {r.format}</span>
                           <ExternalLink size={10} />
                         </a>
+                      ) : isReady && !r.downloadUrl ? (
+                        <span style={{ fontSize: 11, color: '#64748B', fontStyle: 'italic' }}>
+                          Use Export buttons ↑ to download
+                        </span>
                       ) : (
                         <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
                           Building object…
