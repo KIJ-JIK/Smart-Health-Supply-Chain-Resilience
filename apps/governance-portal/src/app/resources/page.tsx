@@ -74,7 +74,7 @@ export default function ResourcesPage() {
   );
 
   // Live GraphQL query
-  const { data: resData } = useQuery(RESOURCE_INTELLIGENCE, {
+  const { data: resData, loading } = useQuery(RESOURCE_INTELLIGENCE, {
     variables: {
       scope: {
         level: (scope.level as string).toUpperCase(),
@@ -100,7 +100,7 @@ export default function ResourcesPage() {
       { id: 'bed-isolation', name: 'Infectious Disease Isolation Wards', share: 0.04, turnover: 1.0, alos: 6.5 },
     ];
 
-    if (totalLive > 0) {
+    if (liveBedItem) {
       let allocatedTotal = 0;
       let allocatedOccupied = 0;
 
@@ -357,6 +357,18 @@ export default function ResourcesPage() {
       return matchesSearch && matchesCategory;
     });
   }, [equipmentData, searchFilter, selectedFilterCategory]);
+  if (loading && !resData) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: '#64748b' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <span style={{ fontWeight: 500 }}>Fetching live resource intelligence...</span>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

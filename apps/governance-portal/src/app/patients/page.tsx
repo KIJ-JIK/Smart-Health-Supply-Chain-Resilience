@@ -74,7 +74,7 @@ export default function PatientsPage() {
   );
 
   // Live GraphQL query
-  const { data: ptData } = useQuery(PATIENT_INTELLIGENCE, {
+  const { data: ptData, loading } = useQuery(PATIENT_INTELLIGENCE, {
     variables: {
       scope: {
         level: (scope.level as string).toUpperCase(),
@@ -90,7 +90,7 @@ export default function PatientsPage() {
     const base = getPatientSummaryByScope(scope.level);
     const pi = ptData?.patientIntelligence;
     if (pi && pi.totalVisits !== undefined) {
-      const visits = pi.totalVisits || 150;
+      const visits = pi.totalVisits;
       const refRate = pi.referralRate !== undefined ? pi.referralRate : base.referralRatePct;
       return {
         ...base,
@@ -172,6 +172,18 @@ export default function PatientsPage() {
     () => diseaseBreakdown.find((d) => d.id === selectedDiseaseCategory) || diseaseBreakdown[0],
     [diseaseBreakdown, selectedDiseaseCategory]
   );
+  if (loading && !ptData) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: '#64748b' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <span style={{ fontWeight: 500 }}>Fetching live patient intelligence...</span>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

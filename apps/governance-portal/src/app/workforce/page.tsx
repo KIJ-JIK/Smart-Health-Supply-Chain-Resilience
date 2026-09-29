@@ -77,7 +77,7 @@ export default function WorkforcePage() {
   );
 
   // Live GraphQL query
-  const { data: wfData } = useQuery(WORKFORCE_INTELLIGENCE, {
+  const { data: wfData, loading } = useQuery(WORKFORCE_INTELLIGENCE, {
     variables: {
       scope: {
         level: (scope.level as string).toUpperCase(),
@@ -94,8 +94,8 @@ export default function WorkforcePage() {
     if (wfData?.workforceIntelligence && wfData.workforceIntelligence.length > 0) {
       return wfData.workforceIntelligence.map((r: any) => {
         const matching = base.find((b) => b.roleId === r.roleId || b.roleName.toLowerCase() === r.roleName.toLowerCase());
-        const sanctioned = r.sanctioned || 10;
-        const inPosition = r.inPosition || 8;
+        const sanctioned = r.sanctioned || 0;
+        const inPosition = r.inPosition || 0;
         const vacancies = r.vacancies ?? Math.max(0, sanctioned - inPosition);
         const vacancyRate = r.vacancyRate ?? (sanctioned > 0 ? Math.round((vacancies / sanctioned) * 100) : 0);
         return {
@@ -214,6 +214,18 @@ export default function WorkforcePage() {
     const desired = ['Doctors', 'Nurses', 'Pharmacists', 'Technicians'];
     return roleBreakdown.filter((r) => desired.includes(r.category));
   }, [roleBreakdown]);
+  if (loading && !wfData) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: '#64748b' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <span style={{ fontWeight: 500 }}>Fetching live workforce intelligence...</span>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
