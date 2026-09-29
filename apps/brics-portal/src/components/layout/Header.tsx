@@ -24,6 +24,7 @@ import {
 import { useCurrentUser, useMemberPrivacyBudget } from '@/hooks';
 import { useBricsAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { BricsAiBriefingModal } from '../intelligence/BricsAiBriefingModal';
 import { AuraLogo } from '../brand/AuraLogo';
 
@@ -32,6 +33,7 @@ export function Header() {
   const navigate = useNavigate();
   const logout = useBricsAuthStore((state) => state.logout);
   const { isDark, toggleTheme } = useThemeStore();
+  const { language, toggleLanguage, t } = useLanguageStore();
   const { cumulativeEpsilon, budgetLimit } = useMemberPrivacyBudget(user?.countryCode || 'IN');
   const [isBriefingOpen, setIsBriefingOpen] = useState(false);
   const [portalMenuOpen, setPortalMenuOpen] = useState(false);
@@ -117,6 +119,17 @@ export function Header() {
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">AI Briefing</span>
+          </button>
+
+          {/* Language toggle */}
+          <button
+            onClick={toggleLanguage}
+            aria-label={`Current language: ${language === 'en' ? 'English' : 'Hindi'}. Click to toggle.`}
+            title={language === 'en' ? 'Switch to हिन्दी' : 'Switch to English'}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#111827] dark:hover:bg-[#1e2d3d] text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-800 transition-all cursor-pointer shadow-xs active:scale-95"
+          >
+            <Globe2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+            <span className="font-semibold">{language === 'en' ? 'हिन्दी' : 'English'}</span>
           </button>
 
           {/* Theme Toggle Button */}

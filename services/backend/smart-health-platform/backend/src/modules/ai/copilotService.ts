@@ -132,18 +132,21 @@ export interface CopilotChatResponse {
 // ─────────────────────────────────────────────────────────────────────────────
 async function runAgenticQuery(
   client: import('pg').PoolClient,
-  question: string
+  question: string,
+  language: string = 'en'
 ): Promise<{ answer: string; citations: any[]; followUps: string[]; model: string }> {
+  const isHindiMode = language === 'hi' || /[\u0900-\u097F]/.test(question);
   const plannerPrompt = `You are the SQL & Intent Planner for AURA Copilot (AURA Health Intelligence & Governance System).
 Database Schema:
 ${DATABASE_SCHEMA_PROMPT}
 
 User Question: "${question}"
+Target Language: ${isHindiMode ? 'Hindi' : 'English'}
 
 Instructions:
 1. If the user question is a casual conversation, greeting, capability check, or polite query (e.g. "hola", "hello", "hi", "namaste", "kaiso ho aap", "aap kaise ho", "kese ho", "good morning", "how are you", "who are you", "what can you do", "thank you", "thanks"):
 Respond ONLY with:
-CHAT: <your warm, helpful, conversational response as AURA Copilot (AURA Health Intelligence Copilot), replying in the user's language (Hindi, Hinglish, English, Spanish, etc.) warmly>
+CHAT: <your warm, helpful, conversational response as AURA Copilot (AURA Health Intelligence Copilot), replying in ${isHindiMode ? 'Hindi (Devanagari script)' : "the user's language"}>
 
 2. If the user asks ANY question about health data, clinical reasons, facility status, footfall, inventory, alerts, beds, staff/doctors/nurses, equipment, transfers, districts, states, or nationwide totals:
 Write a single, safe, read-only PostgreSQL SELECT query to retrieve the necessary data.
@@ -165,7 +168,7 @@ Critical Rules for SQL:
   const planRes = await callLlmWithFallback(question, plannerPrompt).catch(() => null);
 
   if (!planRes) {
-    const fallbackRes = await executeRagQuery(client, question);
+    const fallbackRes = await executeRagQuery(client, question, language);
     return { ...fallbackRes, model: 'aura-rag-v2.5' };
   }
 
@@ -174,7 +177,12 @@ Critical Rules for SQL:
     return {
       answer: chatMsg,
       citations: [],
-      followUps: [
+      followUps: isHindiMode ? [
+        'बिहार राज्य में कितने डॉक्टर और कर्मचारी हैं?',
+        'किन आवश्यक दवाओं की कमी है?',
+        'अस्पताल बिस्तरों और ऑक्सीजन की स्थिति दिखाएं',
+        'सक्रिय आपातकालीन अलर्ट्स दिखाएं',
+      ] : [
         'Bihar rajya me kitne doctors aur staff hain?',
         'Which medicines have critical stockouts across states?',
         'Show bed occupancy across Bihar and Maharashtra PHCs',
@@ -190,7 +198,7 @@ Critical Rules for SQL:
 
   const upperSql = sql.toUpperCase();
   if (!upperSql.startsWith('SELECT') && !upperSql.startsWith('WITH')) {
-    const fallbackRes = await executeRagQuery(client, question);
+    const fallbackRes = await executeRagQuery(client, question, language);
     return { ...fallbackRes, model: 'aura-rag-v2.5' };
   }
 
@@ -203,9 +211,9 @@ Critical Rules for SQL:
     upperSql.includes('TRUNCATE ')
   ) {
     return {
-      answer: 'Invalid query: Only read-only data operations are permitted.',
+      answer: isHindiMode ? 'अमान्य क्वेरी: केवल पढ़ने योग्य डेटा संचालन की अनुमति है।' : 'Invalid query: Only read-only data operations are permitted.',
       citations: [],
-      followUps: ['Show inventory status', 'Show bed occupancy'],
+      followUps: isHindiMode ? ['दवाओं की उपलब्धता दिखाएं', 'बिस्तरों की स्थिति दिखाएं'] : ['Show inventory status', 'Show bed occupancy'],
       model: 'security-guard',
     };
   }
@@ -242,26 +250,27 @@ SQL: <fixed SQL query>`;
   }
 
   if (!dbRows || dbRows.length === 0) {
-    const fallbackRes = await executeRagQuery(client, question);
+    const fallbackRes = await executeRagQuery(client, question, language);
     return { ...fallbackRes, model: 'aura-rag-v2.5' };
   }
 
   const synthSystemPrompt = `You are AURA Copilot, the AI Clinical Epidemiologist, Public Health Intelligence Officer, and Health Governance Copilot for the AURA Platform.
 User Query: "${question}"
+Target Language: ${isHindiMode ? 'Hindi (Devanagari script)' : 'English'}
 
 Real-time ground-truth data retrieved from PostgreSQL:
 ${JSON.stringify(dbRows, null, 2)}
 
 Formatting & Structural Instructions:
 1. Provide a clean, executive operational brief formatted with clear Markdown sections.
-2. If the user asked in Hindi or Hinglish, respond in natural, professional Hindi/Hinglish with accurate numbers and clear formatting.
+2. ${isHindiMode ? 'IMPORTANT: The user selected Hindi or asked in Hindi. Generate the ENTIRE operational response in clear, formal, fluent Hindi (हिन्दी) using Devanagari script. Transliterate technical terms into Devanagari (जैसे: प्राथमिक स्वास्थ्य केंद्र, डॉक्टर, नर्स, ऑक्सीजन सिलेंडर, बिस्तर उपलब्धता, आपातकालीन अलर्ट) and include accurate numerical counts.' : 'If the user asked in Hindi or Hinglish, respond in natural, professional Hindi/Hinglish with accurate numbers and clear formatting.'}
 3. ALWAYS place double newlines before every heading (###) and start every bullet point (* ) on its own fresh line.
 4. Bold all key metrics, numbers, patient counts, staff/doctor counts, and facility names.
 5. Provide actionable clinical or administrative directives for healthcare authorities.`;
 
   const synthRes = await callLlmWithFallback(question, synthSystemPrompt).catch(() => null);
   if (!synthRes) {
-    const fallbackRes = await executeRagQuery(client, question);
+    const fallbackRes = await executeRagQuery(client, question, language);
     return { ...fallbackRes, model: 'aura-rag-v2.5' };
   }
 
@@ -432,11 +441,17 @@ const DISTRICT_KEYWORDS: { [key: string]: string } = {
   indore: 'Indore',
 };
 
-async function executeRagQuery(client: import('pg').PoolClient, question: string): Promise<RagQueryResult> {
+async function executeRagQuery(
+  client: import('pg').PoolClient,
+  question: string,
+  language: string = 'en'
+): Promise<RagQueryResult> {
   const q = question.toLowerCase().trim();
   const qClean = q.replace(/[^a-z0-9]/g, '');
 
   const isHindiQuery =
+    language === 'hi' ||
+    /[\u0900-\u097F]/.test(question) ||
     q.includes('kya') ||
     q.includes('aap') ||
     q.includes('mujhe') ||
@@ -1401,7 +1416,8 @@ export class CopilotService {
   static async chat(
     _claims: TenantClaims,
     _phcId: string,
-    userMessage: string
+    userMessage: string,
+    language: string = 'en'
   ): Promise<CopilotChatResponse> {
     const sessionId = `session-${Date.now()}`;
     const generatedAt = new Date().toISOString();
@@ -1422,7 +1438,7 @@ export class CopilotService {
       }
 
       try {
-        const result = await runAgenticQuery(client, userMessage);
+        const result = await runAgenticQuery(client, userMessage, language);
         return {
           sessionId,
           message: result.answer,
@@ -1434,7 +1450,7 @@ export class CopilotService {
         };
       } catch (innerErr: any) {
         console.warn('[CopilotService] Agentic query failed, executing robust RAG fallback:', innerErr.message);
-        const fallbackRes = await executeRagQuery(client, userMessage);
+        const fallbackRes = await executeRagQuery(client, userMessage, language);
         return {
           sessionId,
           message: fallbackRes.answer,
@@ -1466,10 +1482,11 @@ export class CopilotService {
   static async query(
     claims: TenantClaims,
     prompt: string,
-    entityContext?: { phc_id?: string; district_id?: string }
+    entityContext?: { phc_id?: string; district_id?: string },
+    language: string = 'en'
   ): Promise<CopilotResponse> {
     try {
-      const chatResponse = await CopilotService.chat(claims, entityContext?.phc_id ?? 'national', prompt);
+      const chatResponse = await CopilotService.chat(claims, entityContext?.phc_id ?? 'national', prompt, language);
       return {
         answer: chatResponse.message,
         supporting_data: { citations: chatResponse.citations },
@@ -1557,10 +1574,10 @@ export const copilotRouter = Router();
 copilotRouter.post('/governance/copilot/query', async (req: Request, res: Response) => {
   try {
     const claims = (req as any).claims || { role: 'national_admin', sub: 'dev' };
-    const { prompt, entity_context } = req.body;
+    const { prompt, entity_context, language } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Missing required field: prompt' });
 
-    const response = await CopilotService.query(claims, prompt, entity_context);
+    const response = await CopilotService.query(claims, prompt, entity_context, language);
     return res.status(200).json(response);
   } catch (err: any) {
     return res.status(200).json({
@@ -1600,10 +1617,10 @@ copilotRouter.post('/governance/copilot/suggest', async (req: Request, res: Resp
 copilotRouter.post('/governance/copilot/chat', async (req: Request, res: Response) => {
   try {
     const claims = (req as any).claims || { role: 'national_admin', sub: 'dev' };
-    const { phcId, message } = req.body;
+    const { phcId, message, language } = req.body;
     if (!message) return res.status(400).json({ error: 'Missing required field: message' });
 
-    const response = await CopilotService.chat(claims, phcId ?? 'national', message);
+    const response = await CopilotService.chat(claims, phcId ?? 'national', message, language);
     return res.status(200).json(response);
   } catch (err: any) {
     return res.status(200).json({

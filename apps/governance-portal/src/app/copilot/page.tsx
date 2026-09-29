@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useWsSession } from '@/hooks/useWsSession';
 import { Send, Bot, Sparkles, HelpCircle, ArrowRight } from 'lucide-react';
 import { CopilotMessageRenderer } from '@/components/copilot/CopilotMessageRenderer';
+import { useLanguageStore } from '@/store/languageStore';
 
 interface ChatMessage {
   id: string;
@@ -13,17 +14,26 @@ interface ChatMessage {
   timestamp: string;
 }
 
-const SUGGESTED = [
-  'Which PHCs in Pune are at risk of stockout this week?',
-  'Why is Paracetamol consumption spiking at Kothrud PHC?',
-  'Summarise redistribution decisions made in the last 7 days',
-  'What are the top 3 workforce vacancy hotspots in Maharashtra?',
-  'What caused the sudden OPD footfall surge at Chakan PHC?',
+const SUGGESTED_EN = [
+  'How many doctors and staff are in Bihar and Maharashtra?',
+  'Which medicines have critical stockouts across Indian states?',
+  'Show bed occupancy and available capacity across all facilities',
+  'What are the active clinical and epidemiological outbreak alerts?',
+  'How many PHCs are listed throughout India?',
+];
+
+const SUGGESTED_HI = [
+  'बिहार और महाराष्ट्र में कितने डॉक्टर्स और स्टाफ उपलब्ध हैं?',
+  'किन-किन राज्यों में दवाओं का गंभीर स्टॉकआउट (Stockout) है?',
+  'सभी PHC केंद्रों में बेड ऑक्यूपेंसी और खाली बेड्स की स्थिति दिखाएं',
+  'वर्तमान में सक्रिय डेंगू और मलेरिया के क्या अलर्ट हैं?',
+  'पूरे भारत में कुल कितने PHC केंद्र पंजीकृत हैं?',
 ];
 
 function CopilotChatContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') ?? '';
+  const { language, t } = useLanguageStore();
 
   const [input, setInput] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -31,6 +41,8 @@ function CopilotChatContent() {
   const [sessionOpen, setSessionOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
+
+  const SUGGESTED = language === 'hi' ? SUGGESTED_HI : SUGGESTED_EN;
 
   const { status, send } = useWsSession('governance-copilot');
 
@@ -67,16 +79,18 @@ function CopilotChatContent() {
       const res = await fetch('/api/v1/governance/copilot/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phcId: 'phc-001', message: trimmed }),
+        body: JSON.stringify({ phcId: 'phc-001', message: trimmed, language }),
         signal: AbortSignal.timeout(15000),
       });
 
       let replyText: string;
       if (res.ok) {
         const data = await res.json();
-        replyText = data.message ?? data.answer ?? 'No response from AI engine.';
+        replyText = data.message ?? data.answer ?? (language === 'hi' ? 'एआई इंजन से कोई प्रतिक्रिया नहीं मिली।' : 'No response from AI engine.');
       } else {
-        replyText = `Backend connection error (HTTP ${res.status}). Please check system connectivity and retry.`;
+        replyText = language === 'hi'
+          ? `बैकएंड कनेक्शन त्रुटि (HTTP ${res.status})। कृपया सिस्टम कनेक्टिविटी जांचें और पुनः प्रयास करें।`
+          : `Backend connection error (HTTP ${res.status}). Please check system connectivity and retry.`;
       }
 
       setChatHistory((prev) =>
@@ -117,10 +131,10 @@ function CopilotChatContent() {
       <div className="page-header">
         <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Bot size={24} style={{ color: 'var(--color-primary)' }} />
-          AURA AI Copilot
+          {t('copilot.title', 'AURA AI Copilot')}
         </h1>
         <p className="page-subtitle">
-          Natural language root-cause analysis, epidemiological intelligence, and decision support
+          {t('copilot.subtitle', 'Natural language root-cause analysis, epidemiological intelligence, and decision support')}
         </p>
       </div>
 
@@ -142,16 +156,16 @@ function CopilotChatContent() {
             </div>
             <div>
               <span className="card-title" style={{ fontSize: 14, fontWeight: 700 }}>
-                Interactive Intelligence Agent
+                {language === 'hi' ? 'इंटरैक्टिव स्वास्थ्य खुफिया एजेंट' : 'Interactive Intelligence Agent'}
               </span>
               <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                Equipped with real-time telemetry, masterplan §88.9 forecast contracts, and alert causal graph
+                {language === 'hi' ? 'लाइव टेलीमेट्री, 36 राज्यों के PHC डेटा और क्लिनिकल अलर्ट ग्राफ से सुसज्जित' : 'Equipped with real-time telemetry, masterplan §88.9 forecast contracts, and alert causal graph'}
               </div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-text-muted)' }}>
             <span className={`sse-dot ${sessionOpen ? status : 'connected'}`} />
-            <span>{sessionOpen ? `WS ${status}` : 'AI Ready'}</span>
+            <span>{sessionOpen ? `WS ${status}` : (language === 'hi' ? 'एआई तैयार है' : 'AI Ready')}</span>
           </div>
         </div>
 
@@ -186,15 +200,15 @@ function CopilotChatContent() {
                 <Bot size={28} />
               </div>
               <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>
-                How can I assist your health administration today?
+                {language === 'hi' ? 'मैं आपके स्वास्थ्य प्रशासन की क्या सहायता कर सकता हूँ?' : 'How can I assist your health administration today?'}
               </h2>
               <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5, marginBottom: 24 }}>
-                Ask questions about facility stockouts, early warning alert causes, bed occupancies, epidemic clusters, or redistribution logic.
+                {language === 'hi' ? 'PHC सुविधाओं, डॉक्टर्स/स्टाफ, दवा स्टॉकआउट, बेड ऑक्यूपेंसी, या सक्रिय महामारी अलर्ट के बारे में पूछें।' : 'Ask questions about facility stockouts, doctors/staff, bed occupancies, epidemic clusters, or redistribution logic.'}
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Suggested Inquiries
+                  {t('copilot.quickPrompts', 'Suggested Inquiries')}
                 </span>
                 {SUGGESTED.map((s, i) => (
                   <button
@@ -273,7 +287,7 @@ function CopilotChatContent() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder="Ask about alert reasons, stockouts, redistribution logic, or epidemiology..."
+            placeholder={t('copilot.placeholder', 'Ask about alert reasons, stockouts, redistribution logic, or epidemiology...')}
             style={{
               flex: 1,
               padding: '10px 14px',
@@ -306,7 +320,7 @@ function CopilotChatContent() {
             }}
             aria-label="Send message to copilot"
           >
-            <Send size={15} /> Send
+            <Send size={15} /> {t('copilot.send', 'Send')}
           </button>
         </div>
       </div>

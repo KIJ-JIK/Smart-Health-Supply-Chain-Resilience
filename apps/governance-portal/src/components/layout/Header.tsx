@@ -26,10 +26,32 @@ import { useAlertStore } from '@/store/alertStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { useThemeStore } from '@/store/themeStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { UserRole, Alert } from '@/types';
 import { useSseStream } from '@/hooks/useSseStream';
 
 // ── Breadcrumb map ─────────────────────────────────────────────────────────────
+const ROUTE_KEYS: Record<string, string> = {
+  '/':                   'nav.overview',
+  '/governance':         'nav.governance',
+  '/manage-jurisdiction':'nav.jurisdiction',
+  '/gis':                'nav.gis',
+  '/medicine':           'nav.medicine',
+  '/resources':          'nav.resources',
+  '/workforce':          'nav.workforce',
+  '/patients':           'nav.patients',
+  '/forecasts':          'nav.forecasts',
+  '/early-warnings':     'nav.earlyWarnings',
+  '/redistribution':     'nav.redistribution',
+  '/supply-chain':       'nav.supplyChain',
+  '/emergency':          'nav.emergency',
+  '/simulator':          'nav.simulator',
+  '/copilot':            'nav.copilot',
+  '/analytics':          'nav.analytics',
+  '/audit':              'nav.audit',
+  '/admin':              'nav.admin',
+};
+
 const ROUTE_LABELS: Record<string, string> = {
   '/':                   'Platform Overview',
   '/governance':         'National Command Center',
@@ -219,8 +241,10 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
     enabled: true,
   });
 
-  // Build breadcrumb
-  const currentLabel = ROUTE_LABELS[pathname] ?? pathname.replace('/', '');
+  const { language, toggleLanguage, t } = useLanguageStore();
+
+  // Build breadcrumb with localization
+  const currentLabel = t(ROUTE_KEYS[pathname], ROUTE_LABELS[pathname] ?? pathname.replace('/', ''));
   const isHome = pathname === '/';
 
   const initials = user.name
@@ -443,6 +467,30 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                 {scopedUnacknowledgedCount > 99 ? '99+' : scopedUnacknowledgedCount}
               </span>
             )}
+          </button>
+
+          {/* Language Switcher */}
+          <button
+            id="lang-toggle-btn"
+            onClick={toggleLanguage}
+            title={language === 'en' ? 'Switch to हिन्दी' : 'Switch to English'}
+            aria-label={`Language: ${language === 'en' ? 'English' : 'Hindi'}. Click to switch.`}
+            style={{
+              padding: '5px 10px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              cursor: 'pointer',
+              background: 'var(--color-surface)',
+              color: 'var(--color-primary)',
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            <Globe2 size={14} className="text-teal-600 dark:text-teal-400" />
+            <span>{language === 'en' ? 'हिन्दी' : 'English'}</span>
           </button>
 
           {/* Theme Toggle Button */}
