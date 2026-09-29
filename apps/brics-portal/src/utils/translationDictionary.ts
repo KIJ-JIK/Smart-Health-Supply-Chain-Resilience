@@ -32,8 +32,10 @@ export const MASTER_DICTIONARY: Record<string, string> = {
 
   // Enclaves & Badges
   '5/5 ENCLAVES ACTIVE': '5/5 संप्रभु नोड्स सक्रिय',
-  '5 Online': '5 सक्रिय (Online)',
   '5/5 Enclaves Active': '5/5 संप्रभु नोड्स सक्रिय',
+  '5 Online': '5 सक्रिय (Online)',
+  '5-NATION CONSENSUS ACTIVE': '5-राष्ट्र आम सहमति सक्रिय',
+  '5-Nation Consensus Active': '5-राष्ट्र आम सहमति सक्रिय',
   'Live': 'लाइव',
   'Action': 'कार्रवाई',
   'Online': 'ऑनलाइन',
@@ -47,6 +49,12 @@ export const MASTER_DICTIONARY: Record<string, string> = {
   'unacknowledged': 'अनिस्तारित',
   'Enclave Active': 'एन्क्लेव सक्रिय',
   'NATIONAL HEALTH GRID': 'राष्ट्रीय स्वास्थ्य ग्रिड',
+  'PARTICIPATING': 'भागीदार (सक्रिय)',
+  'SUPERSEDED': 'प्रतिस्थापित (Superseded)',
+  '5/5 Nodes Done': '5/5 नोड्स पूर्ण',
+  'In Progress (FedAvg)': 'प्रगति पर (FedAvg)',
+  'Awaiting Aggregation': 'एकत्रीकरण की प्रतीक्षा',
+  '100% Dispatched': '100% प्रेषित',
 
   // Sovereign Nodes & Countries
   'Sovereign Nodes: 🇮🇳 India · 🇧🇷 Brazil · 🇷🇺 Russia · 🇨🇳 China · 🇿🇦 South Africa':
@@ -69,6 +77,45 @@ export const MASTER_DICTIONARY: Record<string, string> = {
   'China': 'चीन',
   'South Africa': 'दक्षिण अफ्रीका',
 
+  // BRICS Overview & Lineage Full Content Sentences
+  'Coordinated epidemiological demand forecasting across India, Brazil, Russia, China, and South Africa. Guarantees 100% sovereign data residency via Differential Privacy & Data Residency':
+    'भारत, ब्राजील, रूस, चीन और दक्षिण अफ्रीका में समन्वित महामारी विज्ञान मांग पूर्वानुमान। अंतर गोपनीयता और डेटा संप्रभुता के माध्यम से 100% संप्रभु डेटा सुरक्षा की गारंटी।',
+  'Sovereign Enclave Registry & Node Diagnostics': 'संप्रभु एन्क्लेव रजिस्ट्री एवं नोड निदान (Diagnostics)',
+  'Real-time diagnostics, local convergence curves, and cryptographic delta verification for member states.':
+    'सदस्य देशों के लिए रीयल-टाइम डायग्नोस्टिक्स, स्थानीय कन्वर्जेंस वक्र और क्रिप्टोग्राफिक डेल्टा सत्यापन।',
+  'GLOBAL MODEL LINEAGE & VALIDATION DAG': 'वैश्विक मॉडल वंशावली एवं सत्यापन DAG',
+  'Global Model Lineage & Validation DAG': 'वैश्विक मॉडल वंशावली एवं सत्यापन DAG',
+  'Immutable cryptographic version tree of cross-border FedAvg models, weight hashes, and epidemic prediction benchmarks.':
+    'सीमा पार FedAvg मॉडल, भार हैश और महामारी पूर्वानुमान बेंचमार्क का अपरिवर्तनीय क्रिप्टोग्राफिक संस्करण ट्री।',
+  'What is Model Lineage & Why It Matters in Pandemic Response':
+    'मॉडल वंशावली क्या है और महामारी प्रतिक्रिया में यह क्यों महत्वपूर्ण है?',
+  "Because sovereign nations do not share raw patient records, every federated model is mathematically composed of encrypted gradient contributions from India, Brazil, Russia, China, and South Africa. This Lineage DAG proves algorithmic transparency: tracking each version's accuracy gain (MAE / RMSE), its parent checkpoint, and cryptographic SHA-256 signatures to guarantee that no rogue entity injected poisoned data.":
+    'चूंकि संप्रभु राष्ट्र कभी भी कच्चे रोगी रिकॉर्ड साझा नहीं करते हैं, प्रत्येक फेडरेटेड मॉडल गणितीय रूप से भारत, ब्राजील, रूस, चीन और दक्षिण अफ्रीका के एन्क्रिप्टेड ग्रेडिएंट योगदान से बना होता है। यह वंशावली DAG एल्गोरिथम पारदर्शिता साबित करता है: प्रत्येक संस्करण की सटीकता वृद्धि (MAE / RMSE), उसके मूल चेकपॉइंट, और क्रिप्टोग्राफिक SHA-256 हस्ताक्षरों को ट्रैक करके यह सुनिश्चित करता है कि कोई दुर्भावनापूर्ण डेटा शामिल न हो सके।',
+  'What is Differential Privacy & What Does This Screen Do?':
+    'अंतर गोपनीयता (Differential Privacy) क्या है और यह स्क्रीन क्या करती है?',
+  'Think of ε (Epsilon) like a "Privacy Fuel Gauge". Each time a member country trains the federated AI on local clinic records to predict disease outbreaks, a small amount of privacy budget (Δε = 0.18) is consumed by injecting mathematical noise (σ = 1.12). The alliance enforces a hard regulatory ceiling of ε ≤ 5.0. If any country approaches this cap, training rounds are automatically throttled to mathematically guarantee that zero patient identities or hospital inventories can ever be reverse-engineered.':
+    'ε (एप्सिलॉन) को "गोपनीयता ईंधन गेज" की तरह समझें। जब भी कोई सदस्य देश बीमारी के प्रकोप का पूर्वानुमान लगाने के लिए स्थानीय क्लिनिक रिकॉर्ड पर फेडरेटेड एआई को प्रशिक्षित करता है, तो गणितीय शोर (σ = 1.12) इंजेक्ट करके गोपनीयता बजट की एक छोटी मात्रा (Δε = 0.18) खर्च होती है। गठबंधन ε ≤ 5.0 की सख्त नियामक सीमा लागू करता है। यदि कोई देश इस सीमा के करीब पहुंचता है, तो प्रशिक्षण राउंड स्वचालित रूप से धीमे हो जाते हैं ताकि यह गारंटी मिल सके कि किसी भी मरीज की पहचान या अस्पताल सूची को कभी भी रिवर्स-इंजीनियर नहीं किया जा सकता।',
+  'SOVEREIGN DATA RESIDENCY & ZERO RAW EGRESS GUARANTEE':
+    'संप्रभु डेटा सुरक्षा एवं शून्य कच्चा डेटा निकास गारंटी',
+  'Sovereign Data Residency & Zero Raw Egress Guarantee':
+    'संप्रभु डेटा सुरक्षा एवं शून्य कच्चा डेटा निकास गारंटी',
+  'The central coordinator only ever aggregates encrypted gradient updates. Patient records, inventory quantities, and facility telemetry never leave their sovereign national borders. Gaussian noise addition (σ = 1.12) mathematically prevents model inversion and membership inference attacks.':
+    'केंद्रीय समन्वयक केवल एन्क्रिप्टेड ग्रेडिएंट अपडेट एकत्र करता है। रोगी रिकॉर्ड, दवा सूची और सुविधा टेलीमेट्री कभी भी अपनी संप्रभु राष्ट्रीय सीमाओं को नहीं छोड़ते हैं। गॉसियन शोर जोड़ना (σ = 1.12) मॉडल इनवर्जन और अनुमानित हमलों को गणितीय रूप से रोकता है।',
+  'CUMULATIVE DIFFERENTIAL PRIVACY CONSUMPTION (E) ACROSS FEDERATED ROUNDS':
+    'फेडरेटेड राउंड्स में संचयी अंतर गोपनीयता खपत (ε)',
+  'Cumulative Differential Privacy Consumption (E) Across Federated Rounds':
+    'फेडरेटेड राउंड्स में संचयी अंतर गोपनीयता खपत (ε)',
+  'DIFFERENTIAL PRIVACY & CRYPTOGRAPHIC LEDGER':
+    'अंतर गोपनीयता एवं क्रिप्टोग्राफिक लेजर',
+  'Differential Privacy & Cryptographic Ledger':
+    'अंतर गोपनीयता एवं क्रिप्टोग्राफिक लेजर',
+  'Real-time tracking of (ε, δ) privacy budget consumption across all 5 sovereign member enclaves.':
+    'सभी 5 संप्रभु सदस्य एन्क्लेव में (ε, δ) गोपनीयता बजट खपत की रीयल-टाइम ट्रैकिंग।',
+  'All Nodes Within Sovereign Limit (ε ≤ 5.0)': 'सभी नोड्स संप्रभु सीमा (ε ≤ 5.0) के भीतर हैं',
+  'Weights encrypted prior to cross-border transit': 'सीमा पार पारगमन से पहले भार (Weights) एन्क्रिप्ट किए गए',
+  'Rényi Differential Privacy (RDP, Mironov 2017) composition bound at fixed target δ = 1e-5. Epsilon increases monotonically with each training iteration.':
+    'निश्चित लक्ष्य δ = 1e-5 पर रेनी अंतर गोपनीयता (RDP) संरचना बाध्य। प्रत्येक प्रशिक्षण पुनरावृत्ति के साथ एप्सिलॉन बढ़ता है।',
+
   // Navigation Groups & Items - BRICS
   'Consortium & Surveillance': 'गठबंधन एवं निगरानी',
   'Federated Training & AI': 'फेडरेटेड लर्निंग एवं एआई',
@@ -78,7 +125,7 @@ export const MASTER_DICTIONARY: Record<string, string> = {
   'Training Rounds': 'प्रशिक्षण राउंड्स',
   'Model Lineage (DAG)': 'मॉडल वंशावली (Lineage DAG)',
   'Model Review & Sign-Off': 'मॉडल समीक्षा एवं स्वीकृति',
-  'Differential Privacy': 'अंतर गोपनीयता (Differential Privacy)',
+  'Differential Privacy': 'अंतर गोपनीयता',
   'Coordinator Settings': 'समन्वयक सेटिंग्स',
   'AI Briefing': 'एआई ब्रीफिंग',
   'Privacy Budget': 'गोपनीयता बजट',
@@ -180,6 +227,32 @@ export const MASTER_DICTIONARY: Record<string, string> = {
   'Resolved Alerts': 'निस्तारित अलर्ट्स',
   'Total Doctors': 'कुल डॉक्टर्स',
   'Total Staff': 'कुल स्वास्थ्य कर्मी',
+  'Participant Node': 'भागीदार नोड',
+  'Local Samples': 'स्थानीय नमूने (Samples)',
+  'Gradient Norm': 'ग्रेडिएंट मानदंड (Norm)',
+  'Privacy Spent (Total)': 'कुल खर्च किया गया DP बजट',
+  'Noise Mechanism': 'शोर तंत्र (Noise Mechanism)',
+  'Cryptographic Protocol': 'क्रिप्टोग्राफिक प्रोटोकॉल',
+  'Ground Data Volume': 'ग्राउंड डेटा वॉल्यूम',
+  'Encryption Protocol': 'एन्क्रिप्शन प्रोटोकॉल',
+  'Local Model Convergence & Loss Curve': 'स्थानीय मॉडल कन्वर्जेंस एवं लॉस कर्व',
+  'Local Loss (MSE)': 'स्थानीय लॉस (MSE)',
+  'MEAN ABSOLUTE ERROR (MAE)': 'माध्य निरपेक्ष त्रुटि (MAE)',
+  'ROOT MEAN SQUARED ERROR (RMSE)': 'रूट मीन स्क्वेर्ड त्रुटि (RMSE)',
+  'BACKTEST FORECAST HORIZON': 'बैकटेस्ट पूर्वानुमान क्षितिज',
+  'Backtest Forecast Horizon': 'बैकटेस्ट पूर्वानुमान क्षितिज',
+  'Mean Absolute Error (MAE)': 'माध्य निरपेक्ष त्रुटि (MAE)',
+  'Root Mean Squared Error (RMSE)': 'रूट मीन स्क्वेर्ड त्रुटि (RMSE)',
+  '12 Weeks': '12 सप्ताह',
+  'Contributors:': 'योगदानकर्ता:',
+  'Contributors': 'योगदानकर्ता',
+  'Derived from': 'से व्युत्पन्न',
+  'Aggregated 1d ago': '1 दिन पहले एकत्रित',
+  'Artifact:': 'आर्टिफैक्ट:',
+  'Artifact': 'आर्टिफैक्ट',
+  'Audit Ledger': 'ऑडिट लेजर',
+  'Refresh Lineage': 'वंशावली रिफ्रेश करें',
+  '5,000 Records': '5,000 रिकॉर्ड',
   'Critical': 'गंभीर स्थिति',
   'Warning': 'चेतावनी',
   'Optimal': 'संतोषजनक',
@@ -204,6 +277,8 @@ export const MASTER_DICTIONARY: Record<string, string> = {
   'Stockout': 'स्टॉक समाप्त',
 
   // Actions & Buttons
+  'Launch Training Round': 'प्रशिक्षण राउंड शुरू करें',
+  'Model Governance': 'मॉडल गवर्नेंस',
   'Search...': 'खोजें...',
   'Search': 'खोजें',
   'Filter': 'फ़िल्टर',
@@ -403,7 +478,7 @@ export function translateStringToHindi(text: string): string {
   const trimmed = text.trim();
   if (!trimmed) return text;
 
-  // Direct exact match
+  // Direct exact match (handles full paragraphs, sentences, headers, buttons)
   if (MASTER_DICTIONARY[trimmed]) {
     return text.replace(trimmed, MASTER_DICTIONARY[trimmed]);
   }
@@ -411,8 +486,9 @@ export function translateStringToHindi(text: string): string {
   // Multi-term substring replacement (longest matches first)
   let result = text;
   for (const [enKey, hiVal] of SORTED_DICTIONARY_ENTRIES) {
-    if (enKey.length <= 2) continue;
+    if (enKey.length <= 2) continue; // Skip very short abbreviations unless exact
     if (result.includes(enKey)) {
+      // Replace with global regex escaping special characters
       const escaped = enKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`\\b${escaped}\\b`, 'g');
       result = result.replace(regex, hiVal);

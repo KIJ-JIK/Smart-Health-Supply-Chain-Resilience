@@ -6,6 +6,8 @@ const originalTextMap = new WeakMap<Node, string>();
 const originalPlaceholderMap = new WeakMap<Element, string>();
 const originalTitleMap = new WeakMap<Element, string>();
 
+let isTranslating = false;
+
 function shouldSkipNode(node: Node): boolean {
   if (!node.parentElement) return false;
   const tagName = node.parentElement.tagName.toLowerCase();
@@ -19,56 +21,68 @@ function shouldSkipNode(node: Node): boolean {
 }
 
 function translateDOMTree(root: Element | Document = document) {
-  // 1. Translate all text nodes
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (shouldSkipNode(node)) return NodeFilter.FILTER_REJECT;
-      if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_SKIP;
-      return NodeFilter.FILTER_ACCEPT;
-    },
-  });
+  if (isTranslating) return;
+  isTranslating = true;
 
-  const nodesToTranslate: Node[] = [];
-  while (walker.nextNode()) {
-    nodesToTranslate.push(walker.currentNode);
+  try {
+    // 1. Translate all text nodes
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (shouldSkipNode(node)) return NodeFilter.FILTER_REJECT;
+        if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_SKIP;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+
+    const nodesToTranslate: Node[] = [];
+    while (walker.nextNode()) {
+      nodesToTranslate.push(walker.currentNode);
+    }
+
+    for (const node of nodesToTranslate) {
+      let original = originalTextMap.get(node);
+      if (original === undefined) {
+        original = node.nodeValue || '';
+        originalTextMap.set(node, original);
+      }
+
+      // Always translate from pristine original English
+      const translated = translateStringToHindi(original);
+      if (node.nodeValue !== translated) {
+        node.nodeValue = translated;
+      }
+    }
+
+    // 2. Translate placeholders & titles
+    const elements = root.querySelectorAll('input, textarea, button, [title], [placeholder]');
+    elements.forEach((el) => {
+      if (el.hasAttribute('placeholder')) {
+        let origPh = originalPlaceholderMap.get(el);
+        if (origPh === undefined) {
+          origPh = el.getAttribute('placeholder') || '';
+          originalPlaceholderMap.set(el, origPh);
+        }
+        const transPh = translateStringToHindi(origPh);
+        if (el.getAttribute('placeholder') !== transPh) {
+          el.setAttribute('placeholder', transPh);
+        }
+      }
+
+      if (el.hasAttribute('title')) {
+        let origTitle = originalTitleMap.get(el);
+        if (origTitle === undefined) {
+          origTitle = el.getAttribute('title') || '';
+          originalTitleMap.set(el, origTitle);
+        }
+        const transTitle = translateStringToHindi(origTitle);
+        if (el.getAttribute('title') !== transTitle) {
+          el.setAttribute('title', transTitle);
+        }
+      }
+    });
+  } finally {
+    isTranslating = false;
   }
-
-  for (const node of nodesToTranslate) {
-    if (!originalTextMap.has(node)) {
-      originalTextMap.set(node, node.nodeValue || '');
-    }
-    const current = node.nodeValue || '';
-    const translated = translateStringToHindi(current);
-    if (translated !== current) {
-      node.nodeValue = translated;
-    }
-  }
-
-  // 2. Translate placeholders & titles
-  const elements = root.querySelectorAll('input, textarea, button, [title], [placeholder]');
-  elements.forEach((el) => {
-    if (el.hasAttribute('placeholder')) {
-      if (!originalPlaceholderMap.has(el)) {
-        originalPlaceholderMap.set(el, el.getAttribute('placeholder') || '');
-      }
-      const ph = el.getAttribute('placeholder') || '';
-      const transPh = translateStringToHindi(ph);
-      if (transPh !== ph) {
-        el.setAttribute('placeholder', transPh);
-      }
-    }
-
-    if (el.hasAttribute('title')) {
-      if (!originalTitleMap.has(el)) {
-        originalTitleMap.set(el, el.getAttribute('title') || '');
-      }
-      const title = el.getAttribute('title') || '';
-      const transTitle = translateStringToHindi(title);
-      if (transTitle !== title) {
-        el.setAttribute('title', transTitle);
-      }
-    }
-  });
 }
 
 function restoreDOMTree(root: Element | Document = document) {
@@ -77,7 +91,10 @@ function restoreDOMTree(root: Element | Document = document) {
   while (walker.nextNode()) {
     const node = walker.currentNode;
     if (originalTextMap.has(node)) {
-      node.nodeValue = originalTextMap.get(node) || '';
+      const orig = originalTextMap.get(node) || '';
+      if (node.nodeValue !== orig) {
+        node.nodeValue = orig;
+      }
     }
   }
 
@@ -97,7 +114,7 @@ export function AutoTranslateProvider({ children }: { children: React.ReactNode 
   const { language, setLanguage } = useLanguageStore();
   const observerRef = useRef<MutationObserver | null>(null);
 
-  // Sync with global storage events across portals
+  // Sync across tabs and portals
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'aura-portal-language' && e.newValue) {
@@ -114,12 +131,11 @@ export function AutoTranslateProvider({ children }: { children: React.ReactNode 
     if (typeof window === 'undefined') return;
 
     if (language === 'hi') {
-      // Perform initial translation
       translateDOMTree(document.body);
 
-      // Setup MutationObserver for dynamic React DOM updates
       let timeoutId: any = null;
       const observer = new MutationObserver(() => {
+        if (isTranslating) return;
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
           translateDOMTree(document.body);
@@ -129,7 +145,7 @@ export function AutoTranslateProvider({ children }: { children: React.ReactNode 
       observer.observe(document.body, {
         childList: true,
         subtree: true,
-        characterData: true,
+        characterData: false, // Prevents text modification self-trigger loops
       });
 
       observerRef.current = observer;
@@ -142,7 +158,6 @@ export function AutoTranslateProvider({ children }: { children: React.ReactNode 
         clearTimeout(timeoutId);
       };
     } else {
-      // Disconnect observer and revert to English
       if (observerRef.current) {
         observerRef.current.disconnect();
         observerRef.current = null;
