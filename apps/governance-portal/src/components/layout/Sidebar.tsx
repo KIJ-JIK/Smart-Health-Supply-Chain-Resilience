@@ -218,7 +218,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuthStore();
-  const { t } = useLanguageStore();
+  const { t, language } = useLanguageStore();
   const unreadAlerts = useAlertStore((s) => s.unacknowledgedCount);
 
   // Track which sections are open (all open by default)

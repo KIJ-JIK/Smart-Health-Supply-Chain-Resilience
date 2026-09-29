@@ -116,8 +116,15 @@ export function AutoTranslateProvider({ children }: { children: React.ReactNode 
   const { language, setLanguage } = useLanguageStore();
   const observerRef = useRef<MutationObserver | null>(null);
 
-  // Sync across tabs and portals
+  // Sync across tabs and initialize on mount
   useEffect(() => {
+    // Initialize on mount
+    const saved = localStorage.getItem('aura-portal-language');
+    if (saved === 'en' || saved === 'hi') {
+      setLanguage(saved);
+    }
+
+    // Sync across tabs
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'aura-portal-language' && e.newValue) {
         if (e.newValue === 'en' || e.newValue === 'hi') {

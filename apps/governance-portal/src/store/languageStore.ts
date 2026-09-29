@@ -111,7 +111,7 @@ interface GovLanguageState {
 const STORAGE_KEY = 'aura-portal-language';
 
 export const useLanguageStore = create<GovLanguageState>((set, get) => ({
-  language: (typeof window !== 'undefined' && (localStorage.getItem(STORAGE_KEY) as Language)) || 'en',
+  language: 'en', // Hydration safe: always defaults to 'en' on the server and initial client render
 
   setLanguage: (lang: Language) => {
     applyLanguage(lang);
