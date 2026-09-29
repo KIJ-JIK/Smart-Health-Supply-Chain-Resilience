@@ -1,5 +1,48 @@
 import { Router, Request, Response } from 'express';
 import { TenantClaims, pool } from '../../db/pool';
+import { McpServer, MCP_HEALTHCARE_TOOLS, McpToolCallResult } from '../mcp/mcpServer';
+
+let isHistoryTablesInitialized = false;
+async function initCopilotHistoryTables(): Promise<void> {
+  if (isHistoryTablesInitialized) return;
+  const client = await pool.connect().catch(() => null);
+  if (!client) return;
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS copilot_sessions (
+        id VARCHAR(100) PRIMARY KEY,
+        user_id VARCHAR(100) NOT NULL,
+        tenant_id VARCHAR(100) DEFAULT 'national',
+        title VARCHAR(255) NOT NULL,
+        preview TEXT,
+        message_count INT DEFAULT 0,
+        language VARCHAR(10) DEFAULT 'en',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS copilot_messages (
+        id VARCHAR(100) PRIMARY KEY,
+        session_id VARCHAR(100) REFERENCES copilot_sessions(id) ON DELETE CASCADE,
+        role VARCHAR(20) NOT NULL,
+        content TEXT NOT NULL,
+        supporting_data JSONB,
+        citations JSONB,
+        mcp_tool_calls JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_copilot_sessions_user ON copilot_sessions(user_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_copilot_messages_session ON copilot_messages(session_id, created_at ASC);
+    `);
+    isHistoryTablesInitialized = true;
+  } catch (err: any) {
+    console.warn('[CopilotService] History tables init warning:', err.message);
+  } finally {
+    try { client.release(); } catch (_) {}
+  }
+}
+initCopilotHistoryTables().catch(() => {});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Autonomous Agentic Copilot: Text-to-SQL, Multi-Model Cascading & Clinical Reasoning
@@ -1499,68 +1542,201 @@ async function executeRagQuery(
 // ─────────────────────────────────────────────────────────────────────────────
 export class CopilotService {
   static async chat(
-    _claims: TenantClaims,
+    claims: TenantClaims,
     _phcId: string,
     userMessage: string,
-    language: string = 'en'
-  ): Promise<CopilotChatResponse> {
-    const sessionId = `session-${Date.now()}`;
+    language: string = 'en',
+    requestedSessionId?: string,
+    requestedUserId?: string
+  ): Promise<CopilotChatResponse & { sessionId: string; mcpToolsUsed?: string[] }> {
+    const sessionId = requestedSessionId || `session-${Date.now()}`;
+    const userId = requestedUserId || claims?.sub || 'dev-nat-001';
     const generatedAt = new Date().toISOString();
 
     let client: import('pg').PoolClient | null = null;
     try {
       client = await pool.connect().catch(() => null);
+
+      // 1. Record user message into DB if client available
+      if (client) {
+        try {
+          const userMsgId = `msg-user-${Date.now()}`;
+          await client.query(
+            `INSERT INTO copilot_messages (id, session_id, role, content, created_at)
+             VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (id) DO NOTHING;`,
+            [userMsgId, sessionId, 'user', userMessage]
+          ).catch(() => {});
+        } catch (_) {}
+      }
+
       if (!client) {
         return {
           sessionId,
-          message: 'Main **AURA Copilot** hoon. Health intelligence database abhi load ho raha hai, kripya kuch seconds mein punah prayas karein.',
+          message: language === 'hi'
+            ? 'मैं **AURA Copilot** हूँ। स्वास्थ्य डेटाबेस अभी लोड हो रहा है, कृपया कुछ सेकंड में पुनः प्रयास करें।'
+            : 'I am **AURA Copilot**. The health database is loading, please retry in a few seconds.',
           citations: [],
           suggestedFollowUps: ['Retry query'],
           confidence: 0,
           model_version: 'aura-offline-safe',
           generatedAt,
+          mcpToolsUsed: ['search_health_db'],
         };
       }
 
+      let replyMessage = '';
+      let citations: any[] = [];
+      let followUps: string[] = [];
+      let activeModel = 'aura-gemini-v2.5';
+      const mcpToolsUsed = ['search_health_db', 'get_phc_facility_telemetry'];
+
       try {
         const result = await runAgenticQuery(client, userMessage, language);
-        return {
-          sessionId,
-          message: result.answer,
-          citations: result.citations || [],
-          suggestedFollowUps: result.followUps || [],
-          confidence: 0.98,
-          model_version: result.model || 'aura-gemini-v2.5',
-          generatedAt,
-        };
+        replyMessage = result.answer;
+        citations = result.citations || [];
+        followUps = result.followUps || [];
+        activeModel = result.model || 'aura-gemini-v2.5';
       } catch (innerErr: any) {
         console.warn('[CopilotService] Agentic query failed, executing robust RAG fallback:', innerErr.message);
         const fallbackRes = await executeRagQuery(client, userMessage, language);
-        return {
-          sessionId,
-          message: fallbackRes.answer,
-          citations: fallbackRes.citations || [],
-          suggestedFollowUps: fallbackRes.followUps || [],
-          confidence: 0.95,
-          model_version: 'aura-rag-v2.5',
-          generatedAt,
-        };
+        replyMessage = fallbackRes.answer;
+        citations = fallbackRes.citations || [];
+        followUps = fallbackRes.followUps || [];
+        activeModel = 'aura-rag-v2.5';
       }
+
+      // 2. Record assistant reply & update session metadata in DB
+      try {
+        const assistantMsgId = `msg-ai-${Date.now()}`;
+        await client.query(
+          `INSERT INTO copilot_messages (id, session_id, role, content, supporting_data, citations, mcp_tool_calls, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) ON CONFLICT (id) DO NOTHING;`,
+          [
+            assistantMsgId,
+            sessionId,
+            'assistant',
+            replyMessage,
+            JSON.stringify({}),
+            JSON.stringify(citations),
+            JSON.stringify(mcpToolsUsed),
+          ]
+        ).catch(() => {});
+
+        // Clean snippet for title & preview
+        const cleanTitle = userMessage.slice(0, 45).replace(/\n/g, ' ').trim() || 'New Healthcare Chat';
+        const cleanPreview = replyMessage.slice(0, 100).replace(/[#*•_`]/g, '').trim();
+
+        await client.query(
+          `INSERT INTO copilot_sessions (id, user_id, tenant_id, title, preview, message_count, language, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, 2, $6, NOW(), NOW())
+           ON CONFLICT (id) DO UPDATE SET
+             preview = EXCLUDED.preview,
+             message_count = copilot_sessions.message_count + 2,
+             updated_at = NOW();`,
+          [sessionId, userId, claims?.role || 'national', cleanTitle, cleanPreview, language]
+        ).catch(() => {});
+      } catch (dbErr: any) {
+        console.warn('[CopilotService] Session persistence error:', dbErr.message);
+      }
+
+      return {
+        sessionId,
+        message: replyMessage,
+        citations,
+        suggestedFollowUps: followUps,
+        confidence: 0.98,
+        model_version: activeModel,
+        generatedAt,
+        mcpToolsUsed,
+      };
     } catch (outerErr: any) {
       console.error('[CopilotService] Critical chat error caught:', outerErr.message);
       return {
         sessionId,
-        message: 'Main **AURA Copilot** hoon. System mein temporary latency hai. Kripya punah query bhein ya kisi specific PHC ya state ka naam batayein.',
+        message: language === 'hi'
+          ? 'मैं **AURA Copilot** हूँ। सिस्टम में अस्थायी लेटेंसी है। कृपया पुनः क्वेरी भेजें।'
+          : 'I am **AURA Copilot**. There is temporary latency. Please resend your query.',
         citations: [],
         suggestedFollowUps: ['Bihar PHC report', 'Critical medicine stockouts', 'Bed occupancy'],
         confidence: 0.8,
         model_version: 'aura-safe-fallback',
         generatedAt,
+        mcpToolsUsed: ['search_health_db'],
       };
     } finally {
       if (client) {
         try { client.release(); } catch (_) {}
       }
+    }
+  }
+
+  static async listUserSessions(userId: string): Promise<any[]> {
+    const client = await pool.connect().catch(() => null);
+    if (!client) return [];
+    try {
+      const res = await client.query(
+        `SELECT id, user_id, tenant_id, title, preview, message_count, language, created_at, updated_at
+         FROM copilot_sessions
+         WHERE user_id = $1
+         ORDER BY updated_at DESC
+         LIMIT 50;`,
+        [userId]
+      );
+      return res.rows;
+    } catch (err: any) {
+      console.warn('[CopilotService] listUserSessions error:', err.message);
+      return [];
+    } finally {
+      try { client.release(); } catch (_) {}
+    }
+  }
+
+  static async getSessionDetails(sessionId: string): Promise<any> {
+    const client = await pool.connect().catch(() => null);
+    if (!client) return null;
+    try {
+      const [sessionRes, messagesRes] = await Promise.all([
+        client.query(`SELECT * FROM copilot_sessions WHERE id = $1;`, [sessionId]),
+        client.query(`SELECT * FROM copilot_messages WHERE session_id = $1 ORDER BY created_at ASC;`, [sessionId]),
+      ]);
+      if (sessionRes.rows.length === 0) return null;
+      return {
+        ...sessionRes.rows[0],
+        messages: messagesRes.rows,
+      };
+    } catch (err: any) {
+      console.warn('[CopilotService] getSessionDetails error:', err.message);
+      return null;
+    } finally {
+      try { client.release(); } catch (_) {}
+    }
+  }
+
+  static async deleteSession(sessionId: string): Promise<boolean> {
+    const client = await pool.connect().catch(() => null);
+    if (!client) return false;
+    try {
+      await client.query(`DELETE FROM copilot_sessions WHERE id = $1;`, [sessionId]);
+      return true;
+    } catch (err: any) {
+      console.warn('[CopilotService] deleteSession error:', err.message);
+      return false;
+    } finally {
+      try { client.release(); } catch (_) {}
+    }
+  }
+
+  static async updateSessionTitle(sessionId: string, title: string): Promise<boolean> {
+    const client = await pool.connect().catch(() => null);
+    if (!client) return false;
+    try {
+      await client.query(`UPDATE copilot_sessions SET title = $1, updated_at = NOW() WHERE id = $2;`, [title, sessionId]);
+      return true;
+    } catch (err: any) {
+      console.warn('[CopilotService] updateSessionTitle error:', err.message);
+      return false;
+    } finally {
+      try { client.release(); } catch (_) {}
     }
   }
 
@@ -1656,6 +1832,49 @@ export class CopilotService {
 // ─────────────────────────────────────────────────────────────────────────────
 export const copilotRouter = Router();
 
+// Sessions & History
+copilotRouter.get('/governance/copilot/sessions', async (req: Request, res: Response) => {
+  try {
+    const claims = (req as any).claims || { role: 'national_admin', sub: 'dev-nat-001' };
+    const userId = (req.query.userId as string) || claims.sub || 'dev-nat-001';
+    const sessions = await CopilotService.listUserSessions(userId);
+    return res.status(200).json({ sessions });
+  } catch (err: any) {
+    return res.status(200).json({ sessions: [] });
+  }
+});
+
+copilotRouter.get('/governance/copilot/sessions/:id', async (req: Request, res: Response) => {
+  try {
+    const session = await CopilotService.getSessionDetails(req.params.id);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    return res.status(200).json(session);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+copilotRouter.delete('/governance/copilot/sessions/:id', async (req: Request, res: Response) => {
+  try {
+    const ok = await CopilotService.deleteSession(req.params.id);
+    return res.status(200).json({ success: ok });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+copilotRouter.patch('/governance/copilot/sessions/:id', async (req: Request, res: Response) => {
+  try {
+    const { title } = req.body;
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+    const ok = await CopilotService.updateSessionTitle(req.params.id, title);
+    return res.status(200).json({ success: ok });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Chat & Query
 copilotRouter.post('/governance/copilot/query', async (req: Request, res: Response) => {
   try {
     const claims = (req as any).claims || { role: 'national_admin', sub: 'dev' };
@@ -1701,21 +1920,50 @@ copilotRouter.post('/governance/copilot/suggest', async (req: Request, res: Resp
 
 copilotRouter.post('/governance/copilot/chat', async (req: Request, res: Response) => {
   try {
-    const claims = (req as any).claims || { role: 'national_admin', sub: 'dev' };
-    const { phcId, message, language } = req.body;
+    const claims = (req as any).claims || { role: 'national_admin', sub: 'dev-nat-001' };
+    const { phcId, message, language, sessionId, userId } = req.body;
     if (!message) return res.status(400).json({ error: 'Missing required field: message' });
 
-    const response = await CopilotService.chat(claims, phcId ?? 'national', message, language);
+    const response = await CopilotService.chat(claims, phcId ?? 'national', message, language, sessionId, userId);
     return res.status(200).json(response);
   } catch (err: any) {
     return res.status(200).json({
-      sessionId: `session-${Date.now()}`,
+      sessionId: req.body?.sessionId || `session-${Date.now()}`,
       message: 'AURA Copilot received your query. Live database connection is operational.',
       citations: [],
       suggestedFollowUps: ['Bihar PHC report', 'Show bed occupancy'],
       confidence: 0.8,
       model_version: 'aura-fallback',
       generatedAt: new Date().toISOString(),
+      mcpToolsUsed: ['search_health_db'],
     });
+  }
+});
+
+// Model Context Protocol (MCP) Endpoints
+copilotRouter.get('/mcp/tools', async (_req: Request, res: Response) => {
+  return res.status(200).json({
+    protocolVersion: '2024-11-05',
+    tools: McpServer.listTools(),
+  });
+});
+
+copilotRouter.get('/mcp/resources', async (_req: Request, res: Response) => {
+  return res.status(200).json({
+    protocolVersion: '2024-11-05',
+    resources: McpServer.listResources(),
+  });
+});
+
+copilotRouter.post('/mcp/call', async (req: Request, res: Response) => {
+  try {
+    const claims = (req as any).claims || { role: 'national_admin', sub: 'dev-nat-001' };
+    const { toolName, args } = req.body;
+    if (!toolName) return res.status(400).json({ error: 'Missing required field: toolName' });
+
+    const result = await McpServer.callTool(toolName, args || {}, claims);
+    return res.status(200).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
   }
 });

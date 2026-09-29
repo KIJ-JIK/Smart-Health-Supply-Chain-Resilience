@@ -187,7 +187,25 @@ export function CopilotDockedPanel() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Link
+              href="/copilot/history"
+              onClick={closeCopilot}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-text-muted)',
+                cursor: 'pointer',
+                padding: 4,
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title="View Conversation History"
+            >
+              <Clock size={16} />
+            </Link>
+
             {messages.length > 0 && (
               <button
                 onClick={clearHistory}
@@ -198,6 +216,8 @@ export function CopilotDockedPanel() {
                   cursor: 'pointer',
                   padding: 4,
                   borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
                 title="Clear Copilot Conversation"
               >
