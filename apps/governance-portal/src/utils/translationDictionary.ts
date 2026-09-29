@@ -30,6 +30,152 @@ export const MASTER_DICTIONARY: Record<string, string> = {
   'Hindi': 'हिन्दी',
   'हिन्दी': 'हिन्दी',
 
+  // Telemetry Stale Warnings & Top Header Actions
+  'Inspect Sync Health': 'सिंक स्वास्थ्य जांचें',
+  'TELEMETRY STALE': 'टेलीमेट्री विलंबित (Stale)',
+  'Activate Crisis': 'आपातकालीन मोड सक्रिय करें',
+  'Jurisdiction Setup': 'क्षेत्राधिकार सेटअप',
+  'Ask Copilot "Why"': 'कोपायलट से पूछें "कारण"',
+  'Ask Copilot': 'कोपायलट से पूछें',
+  'AI Active': 'एआई सक्रिय',
+  'Authorized': 'अधिकृत (Authorized)',
+  'SURPLUS': 'अधिशेष (Surplus)',
+  'ADEQUATE': 'पर्याप्त (Adequate)',
+  'LOW (3-7D)': 'कम स्टॉक (3-7 दिन)',
+  'Forecast': 'मांग पूर्वानुमान',
+  'Forecasts': 'मांग पूर्वानुमान',
+
+  // Resource Management / Beds / Oxygen / Equipment
+  'Beds Intelligence': 'बेड्स उपलब्धता एवं विश्लेषण',
+  'Oxygen Buffer & Logistics': 'ऑक्सीजन बफर एवं लॉजिस्टिक्स',
+  'Clinical Equipment': 'क्लिनिकल उपकरण एवं मशीनें',
+  'TOTAL SANCTIONED BEDS': 'कुल स्वीकृत बेड्स',
+  'Total Sanctioned Beds': 'कुल स्वीकृत बेड्स',
+  'Across 5 functional wards': '5 कार्यशील वार्डों में वितरित',
+  'OCCUPANCY & UTILIZATION': 'बेड ऑक्यूपेंसी एवं उपयोग दर',
+  'Occupancy & Utilization': 'बेड ऑक्यूपेंसी एवं उपयोग दर',
+  'AVAILABLE VACANCIES': 'उपलब्ध खाली बेड्स',
+  'Available Vacancies': 'उपलब्ध खाली बेड्स',
+  'Instant admit capacity': 'तत्काल भर्ती क्षमता',
+  'CAPACITY CLASSIFICATION': 'क्षमता वर्गीकरण',
+  'Capacity Classification': 'क्षमता वर्गीकरण',
+  'Sufficient surplus buffer (<65% occupancy).': 'पर्याप्त बफर क्षमता उपलब्ध (<65% ऑक्यूपेंसी)।',
+  '2 Deficit': '2 केंद्र कमी में (Deficit)',
+
+  // Medicine Inventory Table Headers & Rows
+  'At current OPD burn': 'वर्तमान ओपीडी खपत पर',
+  'At current burn': 'वर्तमान खपत दर पर',
+  'Req: 15d': 'आवश्यकता: 15 दिन',
+  'Req:': 'आवश्यकता:',
+  'wastage': 'अपव्यय',
+  'tablet': 'गोली (Tablet)',
+  'capsule': 'कैप्सूल',
+  'bottle': 'शीशी (Bottle)',
+  'vial': 'वायल (Vial)',
+  'tablets': 'गोलियां',
+  'capsules': 'कैप्सूल',
+  'bottles': 'शीशियां',
+  'vials': 'वायल',
+  'Anthelmintic': 'कृमिनाशक',
+  'Antibiotic': 'एंटीबायोटिक',
+  'Antimalarial': 'मलेरिया रोधी',
+  'Antidiabetic': 'मधुमेह रोधी',
+  'Supplement': 'पोषक सप्लीमेंट',
+  'Analgesic': 'दर्द निवारक',
+  'District Medical Warehouse': 'जिला मेडिकल वेयरहाउस',
+  'जिला Medical Warehouse': 'जिला मेडिकल वेयरहाउस',
+
+  // Patient Intelligence & Surge Detection
+  'Surge Detection': 'प्रकोप पहचान (Surge Detection)',
+  'Integrated patient flow trajectories, disease category breakdowns, and multi-facility outbreak verification':
+    'एकीकृत रोगी आवक प्रवाह, रोग श्रेणी विश्लेषण, एवं बहु-सुविधा प्रकोप सत्यापन',
+  'Last updated: Just now': 'अंतिम अपडेट: अभी-अभी',
+  'Last updated:': 'अंतिम अपडेट:',
+  'Just now': 'अभी-अभी',
+  'Current Jurisdiction: National Overview': 'वर्तमान क्षेत्राधिकार: राष्ट्रीय अवलोकन',
+  'Current Jurisdiction:': 'वर्तमान क्षेत्राधिकार:',
+  'National Overview': 'राष्ट्रीय अवलोकन',
+  'SCOPE:': 'दायरा (Scope):',
+  'SCOPE': 'दायरा',
+  'Scope: NATIONAL': 'दायरा: राष्ट्रीय स्तर',
+  'Scope:': 'दायरा:',
+  'National Jurisdiction (192 PHCs)': 'राष्ट्रीय क्षेत्राधिकार (192 PHC केंद्र)',
+  'National Admin': 'राष्ट्रीय प्रशासक',
+  '-- All States (National) --': '-- सभी राज्य (राष्ट्रीय) --',
+  'All Districts': 'सभी जिले',
+  'All PHCs': 'सभी PHC केंद्र',
+  'OPD CONSULTATIONS': 'ओपीडी परामर्श (OPD Consultations)',
+  'OPD Consultations': 'ओपीडी परामर्श',
+  'Primary care presentations today': 'आज प्राथमिक स्वास्थ्य केंद्रों में आए कुल मरीज',
+  'EMERGENCY & TRAUMA TRIAGE': 'आपातकालीन एवं ट्रॉमा ट्राइएज',
+  'Emergency & Trauma Triage': 'आपातकालीन एवं ट्रॉमा ट्राइएज',
+  'Red & Yellow triage cases': 'रेड एवं येलो गंभीर ट्राइएज मामले',
+  'INPATIENT ADMISSIONS': 'अस्पताल में भर्ती मरीज (Inpatients)',
+  'Inpatient Admissions': 'अस्पताल में भर्ती मरीज',
+  'Ward admissions logged today': 'आज वार्डों में भर्ती किए गए मरीज',
+  'admission rate': 'भर्ती दर',
+
+  // AI Forecasts
+  'OXYGEN DEMAND': 'ऑक्सीजन मांग',
+  'Oxygen Demand': 'ऑक्सीजन मांग',
+  'Type-D Oxygen Cylinder Daily Burn Rate': 'टाइप-D ऑक्सीजन सिलेंडर दैनिक खपत दर',
+  'प्रकार-D Oxygen Cylinder Daily Burn Rate': 'टाइप-D ऑक्सीजन सिलेंडर दैनिक खपत दर',
+  'HIGH CONFIDENCE (90%+)': 'उच्च सटीकता विश्वास (90%+)',
+  'High Confidence': 'उच्च सटीकता विश्वास',
+  'Model: Temporal-Fusion-Transformer v1.2.0': 'एआई मॉडल: टेम्पोरल-फ्यूजन-ट्रांसफार्मर v1.2.0',
+  'ENTITY (CONTRACT §33.1)': 'संस्था (अनुबंध §33.1)',
+  'National Health Mission Central Grid': 'राष्ट्रीय स्वास्थ्य मिशन केंद्रीय ग्रिड',
+  'FORECAST WINDOW (§33.2)': 'पूर्वानुमान अवधि (§33.2)',
+  'Forecast Window': 'पूर्वानुमान अवधि',
+  '14-Day Forward Horizon': '14-दिवसीय अग्रिम पूर्वानुमान',
+  'PREDICTED VALUE & BAND (§33.3)': 'अनुमानित मूल्य एवं सीमा बैंड (§33.3)',
+  'Predicted Value & Band': 'अनुमानित मूल्य एवं सीमा बैंड',
+  'cylinders/day': 'सिलेंडर/दिन',
+  'Band:': 'अनुमानित सीमा बैंड:',
+  'TRAINING WINDOW & GENERATED (§33.4)': 'प्रशिक्षण डेटा अवधि एवं निर्माण समय (§33.4)',
+  'Training Window & Generated': 'प्रशिक्षण डेटा अवधि एवं निर्माण समय',
+  'Forward Trajectory with Lower / Upper Bounds (Uncertainty Band)': 'निम्न / उच्च सीमा के साथ अग्रिम प्रक्षेपवक्र (अनिश्चितता बैंड)',
+  'Visualized Band:': 'प्रदर्शित सीमा बैंड:',
+
+  // Analytics & Reports
+  'NATIONAL TIER': 'राष्ट्रीय स्तर',
+  'STATE TIER': 'राज्य स्तर',
+  'DISTRICT TIER': 'जिला स्तर',
+  'PHC TIER': 'PHC केंद्र स्तर',
+  'National Health Resilience Dossier': 'राष्ट्रीय स्वास्थ्य लचीलापन दस्तावेज (Dossier)',
+  'Consolidated statutory report across all states: strategic reserves, macro forecasts, and national emergencies':
+    'सभी राज्यों की समेकित वैधानिक रिपोर्ट: रणनीतिक भंडार, पूर्वानुमान एवं आपातकालीन प्रबंधन',
+  'Performance & Inter-District Audit': 'प्रदर्शन एवं अंतर-जिला ऑडिट',
+  'राज्य Performance & Inter-जिला Audit': 'राज्य प्रदर्शन एवं अंतर-जिला ऑडिट',
+  'District Intelligence Report': 'जिला खुफिया रिपोर्ट',
+  'जिला कार्यरत Intelligence Report': 'जिला स्वास्थ्य खुफिया रिपोर्ट',
+  'PHC Facility Granular Audit': 'PHC सुविधा विस्तृत ऑडिट',
+  'PHC Facility Granular कार्यरत Audit': 'PHC सुविधा विस्तृत संचालन ऑडिट',
+  'Period:': 'अवधि:',
+  'Last 7 Days': 'पिछले 7 दिन',
+  'Last 30 Days': 'पिछले 30 दिन',
+  'Q2 FY26': 'द्वितीय तिमाही (Q2 FY26)',
+  'Year to Date': 'वर्ष से आज तक (YTD)',
+  'Total Monitored PHCs': 'कुल मॉनिटर किए गए PHC केंद्र',
+  'Strategic Buffer Coverage': 'रणनीतिक बफर कवरेज',
+  'Shortage PHCs': 'कमी वाले PHC केंद्र',
+  'Emergency Decl.': 'आपातकालीन घोषणाएं',
+  'सक्रिय Emergency Decl.': 'सक्रिय आपातकालीन घोषणाएं',
+  'National mean': 'राष्ट्रीय औसत',
+  'Level-3 Surge': 'स्तर-3 महामारी प्रकोप (Level-3 Surge)',
+  'INCLUDED STATUTORY ANALYSIS SECTIONS:': 'शामिल वैधानिक विश्लेषण अनुभाग:',
+  'Strategic Medicine Stock & Essential Drug Buffer Reserves': 'रणनीतिक दवा स्टॉक एवं आवश्यक दवा बफर भंडार',
+  'Macro Shortage Projections & Zero-Stock Hotspots': 'मैक्रो कमी अनुमान एवं शून्य-स्टॉक संवेदनशील क्षेत्र (Hotspots)',
+  '14-Day AI Epidemiological Surge & Patient Footfall Trajectories': '14-दिवसीय एआई महामारी प्रकोप एवं रोगी आवक प्रक्षेपवक्र',
+  '14-Day AI Epidemiological Surge & रोगी आवक (रोगी आवक) Trajectories': '14-दिवसीय एआई महामारी प्रकोप एवं रोगी आवक प्रक्षेपवक्र',
+  '14-Day AI Epidemiological Surge & रोगी आवक Trajectories': '14-दिवसीय एआई महामारी प्रकोप एवं रोगी आवक प्रक्षेपवक्र',
+  'Active National Health Emergencies & Fast-Track Procurement Directives': 'सक्रिय राष्ट्रीय स्वास्थ्य आपात स्थिति एवं त्वरित खरीद निर्देश',
+  'सक्रिय National Health Emergencies & Fast-Track Procurement Directives': 'सक्रिय राष्ट्रीय स्वास्थ्य आपात स्थिति एवं त्वरित खरीद निर्देश',
+  'National Resource Status (Beds, Cryogenic & Cylinder Oxygen, Critical Equipment)':
+    'राष्ट्रीय संसाधन स्थिति (बेड्स, क्रायोजेनिक एवं सिलेंडर ऑक्सीजन, गंभीर उपकरण)',
+  'National Resource स्थिति (Beds, Cryogenic & Cylinder Oxygen, गंभीर स्थिति Equipment)':
+    'राष्ट्रीय संसाधन स्थिति (बेड्स, क्रायोजेनिक एवं सिलेंडर ऑक्सीजन, गंभीर उपकरण)',
+
   // Enclaves & Badges
   '5/5 ENCLAVES ACTIVE': '5/5 संप्रभु नोड्स सक्रिय',
   '5/5 Enclaves Active': '5/5 संप्रभु नोड्स सक्रिय',
@@ -378,7 +524,6 @@ export const MASTER_DICTIONARY: Record<string, string> = {
   'Analgesic & Antipyretic': 'दर्द व बुखार निवारक',
   'Broad-Spectrum Antibiotic': 'ब्रॉड-स्पेक्ट्रम एंटीबायोटिक',
   'Oral Rehydration Solution': 'ओआरएस घोल (ORS)',
-  'Antimalarial': 'मलेरिया रोधी',
   'Antidiabetic / Insulin': 'मधुमेह रोधी / इंसुलिन',
   'Antihypertensive': 'रक्तचाप नियंत्रक (BP)',
   'Nutritional Supplement': 'पोषक सप्लीमेंट',
@@ -478,17 +623,32 @@ export function translateStringToHindi(text: string): string {
   const trimmed = text.trim();
   if (!trimmed) return text;
 
-  // Direct exact match (handles full paragraphs, sentences, headers, buttons)
+  // Direct exact match
   if (MASTER_DICTIONARY[trimmed]) {
     return text.replace(trimmed, MASTER_DICTIONARY[trimmed]);
   }
 
   // Multi-term substring replacement (longest matches first)
   let result = text;
+
+  // Dynamic sentence replacers for patterns seen in UI
+  result = result.replace(/(\d+)\s+of\s+(\d+)\s+PHCs\s+\((\d+)%\)\s+in\s+your\s+jurisdiction\s+haven't\s+synced\s+in\s+over\s+(\d+)\s+minutes\.\s+Portal\s+numbers\s+may\s+reflect\s+cached\s+offline\s+state\./gi,
+    'आपके क्षेत्राधिकार में $2 में से $1 PHC ($3%) पिछले $4 मिनट से सिंक नहीं हुए हैं। पोर्टल डेटा कैश्ड ऑफलाइन स्थिति दर्शा सकता है।');
+
+  result = result.replace(/In\s+(\d+)\s+days/gi, '$1 दिन में');
+  result = result.replace(/(\d+)\s+Days/g, '$1 दिन');
+  result = result.replace(/(\d+)\s+Weeks/gi, '$1 सप्ताह');
+  result = result.replace(/(\d+)\s+Facilities/gi, '$1 केंद्र');
+  result = result.replace(/(\d+)\s+Records/gi, '$1 रिकॉर्ड');
+  result = result.replace(/(\d+)\s+cylinders\/day/gi, '$1 सिलेंडर/दिन');
+  result = result.replace(/(\d+\.?\d*)%\s+wastage\s+\((\d+)u\)/gi, '$1% अपव्यय ($2 यूनिट)');
+  result = result.replace(/\+?(\d+\.?\d*)%\s+vs\s+7d\s+avg/gi, 'पिछले 7 दिन के औसत से $1% अधिक');
+  result = result.replace(/\((-?\d+\.?\d*)%\s+admission\s+rate\)/gi, '($1% भर्ती दर)');
+  result = result.replace(/-(\d+)\s+vs\s+last\s+month/gi, 'पिछले महीने से -$1 कम');
+
   for (const [enKey, hiVal] of SORTED_DICTIONARY_ENTRIES) {
-    if (enKey.length <= 2) continue; // Skip very short abbreviations unless exact
+    if (enKey.length <= 2) continue;
     if (result.includes(enKey)) {
-      // Replace with global regex escaping special characters
       const escaped = enKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`\\b${escaped}\\b`, 'g');
       result = result.replace(regex, hiVal);
