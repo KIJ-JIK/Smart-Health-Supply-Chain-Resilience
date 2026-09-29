@@ -52,11 +52,9 @@ export function rotateGeminiApiKey(): void {
 }
 
 const VISION_MODELS = [
+  'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-flash',
-  'gemini-flash-lite-latest',
-  'gemini-2.5-flash-lite',
-  'gemini-3.8-flash',
 ];
 
 interface ExtractedMedicine {
@@ -96,20 +94,25 @@ interface VisionExtractionResult {
 }
 
 /**
- * Call Gemini Vision with outer key rotation loop across the 3-key pool on 429 / rate limits.
+ * Call Gemini Vision with outer key rotation loop across the key pool.
  */
 async function callGeminiVision(
   imageBase64: string,
   mimeType: string,
   userInstruction: string
-): Promise<{ text: string; model: string } | null> {
+): Promise<{ text: string; model: string } | { error: string }> {
   const keys = getGeminiApiKeys();
-  if (keys.length === 0) return null;
+  if (keys.length === 0) {
+    return {
+      error: 'GEMINI_API_KEY is not configured on the backend server. Please add your Google Gemini API key to the backend environment variables.',
+    };
+  }
 
   // Clean base64 string if data URL prefix was included
-  const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '').trim();
+  const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '').trim();
 
   const startIdx = keyIndex % keys.length;
+  let lastErrorDetail = '';
 
   // Outer key rotation loop across the key pool
   for (let attempt = 0; attempt < keys.length; attempt++) {
@@ -145,20 +148,21 @@ async function callGeminiVision(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(12000),
+          signal: AbortSignal.timeout(18000),
         });
 
         if (res.status === 429) {
-          console.warn(`[Gemini Vision] HTTP 429 Rate Limit encountered on key pool slot ${currentKeyIdx + 1}/${keys.length} (${maskedKey}). Rotating to next key in pool.`);
+          console.warn(`[Gemini Vision] HTTP 429 Rate Limit on key slot ${currentKeyIdx + 1}/${keys.length} (${maskedKey}). Rotating to next key.`);
           keyExhausted = true;
           keyIndex = (currentKeyIdx + 1) % keys.length;
-          break; // Break model loop to advance to next key in pool
+          break; // Advance to next key
         }
 
         if (!res.ok) {
           const errBody = await res.text().catch(() => '');
+          lastErrorDetail = `HTTP ${res.status}: ${errBody.slice(0, 150)}`;
           if (errBody.includes('RESOURCE_EXHAUSTED') || errBody.includes('quota') || errBody.includes('RATE_LIMIT')) {
-            console.warn(`[Gemini Vision] Quota/Rate Limit response (${errBody.slice(0, 80)}) on key slot ${currentKeyIdx + 1}/${keys.length} (${maskedKey}). Rotating.`);
+            console.warn(`[Gemini Vision] Quota exhausted on key ${maskedKey}. Rotating.`);
             keyExhausted = true;
             keyIndex = (currentKeyIdx + 1) % keys.length;
             break;
@@ -169,11 +173,12 @@ async function callGeminiVision(
         const data: any = await res.json();
         const textPart = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (textPart) {
-          // Success: advance round-robin index for subsequent requests
+          // Success: update round-robin index
           keyIndex = (currentKeyIdx + 1) % keys.length;
           return { text: textPart.trim(), model };
         }
       } catch (err: any) {
+        lastErrorDetail = err?.message || 'Network timeout or connection error';
         if (err?.name === 'AbortError') {
           console.warn(`[Gemini Vision] Request timeout on model ${model} with key ${maskedKey}`);
         }
@@ -182,11 +187,13 @@ async function callGeminiVision(
     }
 
     if (keyExhausted) {
-      continue; // Immediately retry with next key in pool
+      continue;
     }
   }
 
-  return null;
+  return {
+    error: `Google Gemini Vision API request failed (${lastErrorDetail || 'Invalid API Key or quota exhausted'}). Please check your GEMINI_API_KEY in backend settings.`,
+  };
 }
 
 /**
@@ -196,7 +203,7 @@ async function handleVisionExtraction(req: Request, res: Response) {
   try {
     const { imageBase64, mimeType = 'image/jpeg', phcId, sampleType } = req.body;
 
-    // Handle curated demo samples if requested or if sampleType is set
+    // Handle curated demo samples if requested explicitly by sample button
     if (sampleType === 'sample_rx_amoxicillin') {
       const matched = await matchMedicinesAgainstDb([
         { name: 'Amoxicillin 500mg', genericName: 'Amoxicillin', dosage: '500mg', frequency: 'TDS (3 times/day)', duration: '5 days', quantity: 15, instructions: 'After meals' },
@@ -209,7 +216,7 @@ async function handleVisionExtraction(req: Request, res: Response) {
         data: {
           detectedType: 'prescription',
           confidence: 0.96,
-          modelVersion: 'Google Gemini 2.0 / 3.8 Flash Vision',
+          modelVersion: 'Curated Demo Sample (Amoxicillin OPD Rx)',
           patient: { name: 'Ramesh Patil', age: '34 Y / Male', diagnosis: 'Acute Bronchial Infection & Pyrexia' },
           medicines: matched,
           packaging: null,
@@ -232,7 +239,7 @@ async function handleVisionExtraction(req: Request, res: Response) {
         data: {
           detectedType: 'medicine_packaging',
           confidence: 0.98,
-          modelVersion: 'Google Gemini 2.0 / 3.8 Flash Vision',
+          modelVersion: 'Curated Demo Sample (Paracetamol Packaging)',
           patient: null,
           medicines: matched,
           packaging: {
@@ -255,12 +262,19 @@ async function handleVisionExtraction(req: Request, res: Response) {
       return res.status(400).json({ error: 'imageBase64 or sampleType is required' });
     }
 
-    const instruction = `You are a clinical computer vision AI assistant for Indian Primary Health Clinics (PHCs).
-Analyze the provided medical prescription image or medicine strip blister pack.
-Extract all clinical information and return strictly valid JSON matching this schema:
+    const instruction = `You are a clinical computer vision AI assistant for Primary Health Clinics (PHCs).
+Analyze the provided medical image (handwritten prescription, typed medical report, doctor note, or medicine blister pack/packaging).
+
+CRITICAL INSTRUCTIONS:
+1. Carefully read and transcribe all legible text on the document or packaging.
+2. If this is a medical prescription or treatment note, extract every medicine explicitly written, its strength/dosage (e.g. 500mg, 10ml), dosage frequency (e.g. 1-0-1, OD, BD, TDS), duration (e.g. 5 days), quantity (integer), and administration instructions.
+3. If this is a medicine box or blister strip packaging, extract the brand name, active generic name, batch number, expiry date, manufacturer, and strength.
+4. DO NOT invent, hallucinate, or guess medicine names that are not visible in the image. If the image does not contain any medicines, return an empty array for "medicines": [] and clearly describe the image content in "summary".
+
+Return strictly valid JSON matching this schema:
 {
   "detectedType": "prescription" | "medicine_packaging" | "medical_document",
-  "confidence": float (between 0.8 and 0.99),
+  "confidence": float (between 0.70 and 0.99),
   "patient": {
     "name": string or null,
     "age": string or null,
@@ -268,11 +282,11 @@ Extract all clinical information and return strictly valid JSON matching this sc
   },
   "medicines": [
     {
-      "name": string (trade or generic name),
+      "name": string (exact trade or generic medicine name visible in image),
       "genericName": string,
       "dosage": string (e.g. "500mg"),
-      "frequency": string (e.g. "1-0-1", "TDS", "OD"),
-      "duration": string (e.g. "5 days"),
+      "frequency": string (e.g. "1-0-1", "TDS", "OD", "Once daily"),
+      "duration": string (e.g. "5 days", "1 week"),
       "quantity": number (integer estimate of units needed),
       "instructions": string
     }
@@ -285,54 +299,51 @@ Extract all clinical information and return strictly valid JSON matching this sc
     "strength": string or null
   },
   "clinicalFlags": [string],
-  "summary": string (concise clinical summary)
+  "summary": string (accurate concise description of the scanned text and clinical contents)
 }`;
 
     const geminiRes = await callGeminiVision(imageBase64, mimeType, instruction);
 
-    if (!geminiRes) {
-      // Fallback response if API key is exhausted or offline
-      const fallbackMeds = await matchMedicinesAgainstDb([
-        { name: 'Amoxicillin 500mg', genericName: 'Amoxicillin', dosage: '500mg', frequency: '1-0-1', duration: '5 days', quantity: 10 },
-      ], phcId);
-      return res.json({
-        success: true,
-        data: {
-          detectedType: 'prescription',
-          confidence: 0.88,
-          modelVersion: 'Gemini Vision (Edge Fallback)',
-          medicines: fallbackMeds,
-          clinicalFlags: ['Image resolution low; clinical pharmacist manual verification advised.'],
-          summary: 'Prescription scanned via Google Gemini Vision engine.',
-        },
+    if ('error' in geminiRes) {
+      // Return honest error instead of inventing fake medications!
+      return res.status(503).json({
+        success: false,
+        error: geminiRes.error,
       });
     }
 
     let parsed: any;
     try {
-      parsed = JSON.parse(geminiRes.text);
+      // Strip markdown code fences if model wrapped response in ```json ... ```
+      const cleanedJson = geminiRes.text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      parsed = JSON.parse(cleanedJson);
     } catch {
-      return res.status(500).json({ error: 'Failed to parse Gemini Vision JSON output', raw: geminiRes.text });
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to parse Gemini Vision structured JSON output',
+        raw: geminiRes.text,
+      });
     }
 
     // Match extracted medicines against real PostgreSQL database
-    const enrichedMedicines = await matchMedicinesAgainstDb(parsed.medicines || [], phcId);
+    const extractedMeds = Array.isArray(parsed.medicines) ? parsed.medicines : [];
+    const enrichedMedicines = await matchMedicinesAgainstDb(extractedMeds, phcId);
 
     const result: VisionExtractionResult = {
       detectedType: parsed.detectedType || 'prescription',
-      confidence: parsed.confidence || 0.94,
+      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.92,
       modelVersion: `Google Gemini Vision (${geminiRes.model})`,
       patient: parsed.patient || null,
       medicines: enrichedMedicines,
       packaging: parsed.packaging || null,
-      clinicalFlags: parsed.clinicalFlags || [],
-      summary: parsed.summary || 'Prescription successfully analyzed via Google Gemini Vision.',
+      clinicalFlags: Array.isArray(parsed.clinicalFlags) ? parsed.clinicalFlags : [],
+      summary: parsed.summary || 'Document successfully scanned and analyzed via Google Gemini Vision.',
     };
 
     return res.json({ success: true, data: result });
   } catch (err: any) {
     console.error('[VisionService Error]', err);
-    return res.status(500).json({ error: err.message || 'Vision analysis failed' });
+    return res.status(500).json({ success: false, error: err.message || 'Vision analysis failed' });
   }
 }
 

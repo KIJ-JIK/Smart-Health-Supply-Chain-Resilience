@@ -374,45 +374,51 @@ export const PrescriptionScannerModal: React.FC<PrescriptionScannerModalProps> =
                 <span className="text-[10px] text-neutral-400 font-mono">Cross-referenced with PostgreSQL</span>
               </div>
 
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                {visionResult.medicines.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className="p-2.5 rounded-lg border border-neutral-200 bg-white flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div>
-                      <div className="font-semibold text-neutral-900 flex items-center gap-1.5">
-                        <span>{m.name}</span>
-                        {m.dosage && <span className="text-neutral-500 font-normal">({m.dosage})</span>}
+              {visionResult.medicines.length === 0 ? (
+                <div className="p-3 text-center text-xs text-neutral-500 bg-neutral-50 rounded-lg border border-neutral-200">
+                  No specific medicines were recognized in this image. Please ensure the prescription text is clearly visible or enter medicines manually.
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {visionResult.medicines.map((m, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 rounded-lg border border-neutral-200 bg-white flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div>
+                        <div className="font-semibold text-neutral-900 flex items-center gap-1.5">
+                          <span>{m.name}</span>
+                          {m.dosage && <span className="text-neutral-500 font-normal">({m.dosage})</span>}
+                        </div>
+                        <div className="text-[11px] text-neutral-500">
+                          {m.frequency} · {m.duration} · Qty: {m.quantity}
+                        </div>
+                        {m.instructions && (
+                          <div className="text-[10px] text-neutral-400 italic">{m.instructions}</div>
+                        )}
                       </div>
-                      <div className="text-[11px] text-neutral-500">
-                        {m.frequency} · {m.duration} · Qty: {m.quantity}
-                      </div>
-                      {m.instructions && (
-                        <div className="text-[10px] text-neutral-400 italic">{m.instructions}</div>
-                      )}
-                    </div>
 
-                    <div className="text-right shrink-0">
-                      <span
-                        className={`text-[10px] font-mono px-2 py-0.5 rounded font-semibold ${
-                          m.stockStatus === 'IN_STOCK'
-                            ? 'bg-emerald-100 text-emerald-800'
+                      <div className="text-right shrink-0">
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded font-semibold ${
+                            m.stockStatus === 'IN_STOCK'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : m.stockStatus === 'LOW_STOCK'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {m.stockStatus === 'IN_STOCK'
+                            ? `IN STOCK (${m.currentStock})`
                             : m.stockStatus === 'LOW_STOCK'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {m.stockStatus === 'IN_STOCK'
-                          ? `IN STOCK (${m.currentStock})`
-                          : m.stockStatus === 'LOW_STOCK'
-                          ? `LOW STOCK (${m.currentStock})`
-                          : 'OUT OF STOCK'}
-                      </span>
+                            ? `LOW STOCK (${m.currentStock})`
+                            : 'OUT OF STOCK'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Clinical Flags & Warnings */}
@@ -438,14 +444,14 @@ export const PrescriptionScannerModal: React.FC<PrescriptionScannerModalProps> =
             Cancel
           </Button>
 
-          {visionResult && (
+          {visionResult && visionResult.medicines.length > 0 && (
             <Button
               variant="primary"
               onClick={handleApply}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-1.5"
             >
               <Check className="w-4 h-4" />
-              <span>Apply Medicines to Dispensing Queue</span>
+              <span>Apply {visionResult.medicines.length} Medicine(s) to Dispensing Queue</span>
             </Button>
           )}
         </div>
