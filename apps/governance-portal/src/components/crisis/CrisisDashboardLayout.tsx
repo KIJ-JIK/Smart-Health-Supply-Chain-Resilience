@@ -98,9 +98,15 @@ export function CrisisDashboardLayout() {
   const { user } = useAuthStore();
   const { level, stateId, districtId, phcId } = useScopeStore();
   const { isCrisisMode, activatedAt, activatedBy, crisisTitle, crisisLevel, deactivateCrisisMode } = useCrisisStore();
-  const { alerts, acknowledgeAlert } = useAlertStore();
+  const { alerts, acknowledgeAlert, acknowledgedIds } = useAlertStore();
 
   const [acknowledgedActions, setAcknowledgedActions] = useState<Record<string, boolean>>({});
+  const [localAck, setLocalAck] = useState<Record<string, boolean>>({});
+
+  const handleAcknowledgeAlert = (alertId: string) => {
+    setLocalAck((prev) => ({ ...prev, [alertId]: true }));
+    acknowledgeAlert(alertId);
+  };
 
   // ── Live GraphQL Queries ──────────────────────────────────────────────────
   const isNationalScope = level === 'national' || (!stateId && !districtId && !phcId);
@@ -187,7 +193,7 @@ export function CrisisDashboardLayout() {
           entityId: ga.phcId || ga.districtId || 'PHC-01',
           entityName: ga.entityName || ga.phcName || 'Frontline Node',
           alertType: 'emergency_report',
-          acknowledged: ga.acknowledged ?? false,
+          acknowledged: Boolean(ga.acknowledged || acknowledgedIds?.[ga.id] || localAck[ga.id]),
           timestamp: ga.timestamp || new Date().toISOString(),
         } as any);
       }
@@ -201,11 +207,11 @@ export function CrisisDashboardLayout() {
         entityId: 'PHC-BARAMATI',
         entityName: 'Baramati SDH',
         alertType: 'emergency_report',
-        acknowledged: false,
+        acknowledged: Boolean(acknowledgedIds?.['emg-001'] || localAck['emg-001']),
         timestamp: new Date().toISOString(),
       }
     ];
-  }, [alerts, alertsData]);
+  }, [alerts, alertsData, acknowledgedIds, localAck]);
 
   // 3. Resource Deficits (§29 Critical Deficit Standards)
   const resourceDeficits = useMemo(() => {
@@ -496,72 +502,121 @@ export function CrisisDashboardLayout() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {activeEmergencies.slice(0, 3).map((a) => (
-              <div
-                key={a.id}
-                className="card"
-                style={{
-                  background: '#FFF5F5',
-                  border: '2px solid #DC2626',
-                  padding: 16,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ padding: 10, borderRadius: 8, background: '#DC2626', color: 'white' }}>
-                    <Siren size={20} />
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: '#991B1B' }}>{a.title}</span>
-                      <span style={{ fontSize: 11, background: '#FEE2E2', color: '#991B1B', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
-                        {a.entityName || a.entityId}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 12, color: '#4B5563', marginTop: 2 }}>{a.message}</div>
-                  </div>
-                </div>
+            {activeEmergencies.slice(0, 3).map((a) => {
+              const isAck = Boolean(a.acknowledged || acknowledgedIds?.[a.id] || localAck[a.id]);
 
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Link
-                    href={`/copilot?q=${encodeURIComponent((a as any).copilotQuery || a.title)}`}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 4,
-                      background: 'white',
-                      border: '1px solid #DC2626',
-                      color: '#DC2626',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      textDecoration: 'none',
-                    }}
-                  >
-                    Copilot Causal Brief
-                  </Link>
-                  {!a.acknowledged && (
-                    <button
-                      onClick={() => acknowledgeAlert(a.id)}
+              return (
+                <div
+                  key={a.id}
+                  className="card"
+                  style={{
+                    background: isAck ? '#F8FAFC' : '#FFF5F5',
+                    border: `2px solid ${isAck ? '#86EFAC' : '#DC2626'}`,
+                    padding: 16,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div
                       style={{
-                        padding: '6px 14px',
-                        borderRadius: 4,
-                        background: '#DC2626',
-                        border: 'none',
+                        padding: 10,
+                        borderRadius: 8,
+                        background: isAck ? '#16A34A' : '#DC2626',
                         color: 'white',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: 'pointer',
+                        transition: 'background 0.2s ease',
                       }}
                     >
-                      Acknowledge
-                    </button>
-                  )}
+                      {isAck ? <CheckCircle size={20} /> : <Siren size={20} />}
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: isAck ? '#166534' : '#991B1B' }}>
+                          {a.title}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            background: isAck ? '#DCFCE7' : '#FEE2E2',
+                            color: isAck ? '#166534' : '#991B1B',
+                            padding: '1px 6px',
+                            borderRadius: 4,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {a.entityName || a.entityId}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#4B5563', marginTop: 2 }}>{a.message}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Link
+                      href={`/copilot?q=${encodeURIComponent((a as any).copilotQuery || a.title)}`}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 4,
+                        background: 'white',
+                        border: `1px solid ${isAck ? '#86EFAC' : '#DC2626'}`,
+                        color: isAck ? '#166534' : '#DC2626',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Copilot Causal Brief
+                    </Link>
+
+                    {isAck ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '6px 14px',
+                          borderRadius: 4,
+                          background: '#DCFCE7',
+                          color: '#15803D',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          border: '1px solid #86EFAC',
+                        }}
+                      >
+                        <CheckCircle size={14} />
+                        Acknowledged
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleAcknowledgeAlert(a.id)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: 4,
+                          background: '#DC2626',
+                          border: 'none',
+                          color: 'white',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: '0 1px 4px rgba(220, 38, 38, 0.3)',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        Acknowledge
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
