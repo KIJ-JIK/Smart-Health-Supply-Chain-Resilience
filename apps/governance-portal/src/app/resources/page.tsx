@@ -183,16 +183,14 @@ export default function ResourcesPage() {
         return o;
       });
     }
-    return {
-      ...base,
-      capacityCylinders: 0,
-      availableCylinders: 0,
-      requiredCylinders: 0,
-      utilizationPct: 0,
-      shortageCount: 0,
-      status: 'CRITICAL',
-      consumptionTrend: [0, 0, 0, 0, 0, 0, 0]
-    };
+    return base.map(o => ({
+      ...o,
+      currentlyAvailable: 0,
+      totalCapacity: 0,
+      inUse: 0,
+      daysRemaining: 0,
+      classification: 'CRITICAL_DEFICIT' as const
+    }));
   }, [scope.level, resData]);
 
   const equipmentData = useMemo(() => {
