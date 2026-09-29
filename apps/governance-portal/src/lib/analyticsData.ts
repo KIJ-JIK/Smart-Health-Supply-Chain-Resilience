@@ -120,7 +120,7 @@ export const INITIAL_GENERATED_REPORTS: GeneratedReport[] = [
     progressPct: 100,
     size: '4.8 MB',
     createdAt: new Date(Date.now() - 4 * 3600_000).toISOString(),
-    downloadUrl: 'https://gov-reports.mohfw.gov.in/exports/2026/09/national_resilience_dossier.pdf',
+    // No external URL — use the Export buttons above to generate a fresh local download
     scopeLabel: 'National Overview',
     generatedBy: 'Dr. V. Sharma (National Health Director)',
   },
@@ -133,7 +133,7 @@ export const INITIAL_GENERATED_REPORTS: GeneratedReport[] = [
     progressPct: 100,
     size: '1.2 MB',
     createdAt: new Date(Date.now() - 12 * 3600_000).toISOString(),
-    downloadUrl: 'https://gov-reports.mohfw.gov.in/exports/2026/09/mh_state_district_comparison.csv',
+    // No external URL — use the Export buttons above to generate a fresh local download
     scopeLabel: 'Maharashtra State',
     generatedBy: 'Dr. A. Deshmukh (State Health Secretary)',
   },
@@ -146,7 +146,7 @@ export const INITIAL_GENERATED_REPORTS: GeneratedReport[] = [
     progressPct: 100,
     size: '2.4 MB',
     createdAt: new Date(Date.now() - 24 * 3600_000).toISOString(),
-    downloadUrl: 'https://gov-reports.mohfw.gov.in/exports/2026/09/pune_district_redistribution.pdf',
+    // No external URL — use the Export buttons above to generate a fresh local download
     scopeLabel: 'Pune District',
     generatedBy: 'Dr. S. Patil (District Health Officer)',
   },
@@ -159,7 +159,7 @@ export const INITIAL_GENERATED_REPORTS: GeneratedReport[] = [
     progressPct: 100,
     size: '890 KB',
     createdAt: new Date(Date.now() - 48 * 3600_000).toISOString(),
-    downloadUrl: 'https://gov-reports.mohfw.gov.in/exports/2026/09/hadapsar_phc_inventory.xlsx',
+    // No external URL — use the Export buttons above to generate a fresh local download
     scopeLabel: 'Hadapsar PHC',
     generatedBy: 'Dr. R. Kulkarni (Medical Officer)',
   },
