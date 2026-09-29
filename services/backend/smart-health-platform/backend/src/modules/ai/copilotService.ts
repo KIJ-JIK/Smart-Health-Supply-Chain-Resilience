@@ -334,7 +334,12 @@ Formatting & Structural Instructions:
   return {
     answer: finalAnswer,
     citations,
-    followUps: [
+    followUps: isHindiMode ? [
+      'अन्य राज्यों में डॉक्टरों और कर्मचारियों की उपलब्धता दिखाएं',
+      'इन केंद्रों में किन आवश्यक दवाओं की कमी है?',
+      'मॉनिटर किए गए जिलों में खाली बेड की स्थिति दिखाएं',
+      'सक्रिय क्लिनिकल एवं महामारी अलर्ट्स क्या हैं?',
+    ] : [
       'Show workforce & doctor availability in other states',
       'Which medicines are in short supply for these facilities?',
       'Show bed occupancy across monitored districts',
@@ -1056,25 +1061,47 @@ async function executeRagQuery(
       ).catch(() => ({ rows: [] as any[] }));
 
       if (medRes.rows.length > 0) {
-        let answer = `### 💊 **Pharmaceutical Inventory: ${matchedMed}**\n\n`;
-        answer += `Real-time ground truth stock levels retrieved across facilities for **${matchedMed}**:\n\n`;
-        for (const r of medRes.rows) {
-          const status = r.remaining_qty === 0 ? '🔴 **STOCKOUT**' : r.remaining_qty <= r.minimum_threshold ? '⚠️ **LOW STOCK**' : '🟢 **OPTIMAL**';
-          const exp = r.expiry_date ? new Date(r.expiry_date).toISOString().split('T')[0] : 'N/A';
-          answer += `* ${status}: **${r.remaining_qty} ${r.unit}** at **${r.phc_name}** (${r.district_name}, ${r.state_name})\n`;
-          answer += `   - Batch: \`${r.batch_no}\` • Threshold: ${r.minimum_threshold} ${r.unit} • Expiry: **${exp}**\n`;
+        if (isHindiMode || isHindiQuery) {
+          let answer = `### 💊 **दवा आपूर्ति एवं इन्वेंटरी स्थिति: ${matchedMed}**\n\n`;
+          answer += `लाइव PostgreSQL डेटाबेस से **${matchedMed}** के वास्तविक स्टॉक का विवरण:\n\n`;
+          for (const r of medRes.rows) {
+            const status = r.remaining_qty === 0 ? '🔴 **स्टॉकआउट (STOCKOUT)**' : r.remaining_qty <= r.minimum_threshold ? '⚠️ **कम स्टॉक (LOW STOCK)**' : '🟢 **पर्याप्त (OPTIMAL)**';
+            const exp = r.expiry_date ? new Date(r.expiry_date).toISOString().split('T')[0] : 'N/A';
+            answer += `* ${status}: **${r.remaining_qty} ${r.unit}** at **${r.phc_name}** (${r.district_name}, ${r.state_name})\n`;
+            answer += `   - बैच संख्या: \`${r.batch_no}\` • न्यूनतम सीमा: ${r.minimum_threshold} ${r.unit} • समाप्ति तिथि: **${exp}**\n`;
+          }
+          return {
+            answer,
+            citations: medRes.rows.slice(0, 5).map((r: any) => ({
+              sourceType: 'inventory_batch',
+              excerpt: `${r.medicine_name} at ${r.phc_name}: ${r.remaining_qty} ${r.unit}`,
+            })),
+            followUps: [
+              'आपातकालीन पुनर्वितरण (Redistribution) स्थानांतरण जनरेट करें',
+              'सभी गंभीर दवा स्टॉकआउट्स दिखाएं',
+            ],
+          };
+        } else {
+          let answer = `### 💊 **Pharmaceutical Inventory: ${matchedMed}**\n\n`;
+          answer += `Real-time ground truth stock levels retrieved across facilities for **${matchedMed}**:\n\n`;
+          for (const r of medRes.rows) {
+            const status = r.remaining_qty === 0 ? '🔴 **STOCKOUT**' : r.remaining_qty <= r.minimum_threshold ? '⚠️ **LOW STOCK**' : '🟢 **OPTIMAL**';
+            const exp = r.expiry_date ? new Date(r.expiry_date).toISOString().split('T')[0] : 'N/A';
+            answer += `* ${status}: **${r.remaining_qty} ${r.unit}** at **${r.phc_name}** (${r.district_name}, ${r.state_name})\n`;
+            answer += `   - Batch: \`${r.batch_no}\` • Threshold: ${r.minimum_threshold} ${r.unit} • Expiry: **${exp}**\n`;
+          }
+          return {
+            answer,
+            citations: medRes.rows.slice(0, 5).map((r: any) => ({
+              sourceType: 'inventory_batch',
+              excerpt: `${r.medicine_name} at ${r.phc_name}: ${r.remaining_qty} ${r.unit}`,
+            })),
+            followUps: [
+              'Generate emergency redistribution transfer recommendation',
+              'Show all critical stockouts across facilities',
+            ],
+          };
         }
-        return {
-          answer,
-          citations: medRes.rows.slice(0, 5).map((r: any) => ({
-            sourceType: 'inventory_batch',
-            excerpt: `${r.medicine_name} at ${r.phc_name}: ${r.remaining_qty} ${r.unit}`,
-          })),
-          followUps: [
-            'Generate emergency redistribution transfer recommendation',
-            'Show all critical stockouts across facilities',
-          ],
-        };
       }
     }
 
@@ -1102,26 +1129,49 @@ async function executeRagQuery(
     `).catch(() => ({ rows: [] as any[] }));
 
     if (res.rows.length > 0) {
-      let answer = `### 💊 **Critical Medicine Stockout & Low Inventory Report**\n\n`;
-      answer += `The following essential pharmaceuticals are at or below safety buffer thresholds:\n\n`;
-      for (const r of res.rows) {
-        const status = r.remaining_qty === 0 ? '🔴 **STOCKOUT**' : '⚠️ **LOW STOCK**';
-        const exp = r.expiry_date ? new Date(r.expiry_date).toISOString().split('T')[0] : 'N/A';
-        answer += `* ${status}: **${r.medicine_name}** (${r.category}) at **${r.phc_name}** (${r.district_name}, ${r.state_name})\n`;
-        answer += `   - Remaining: **${r.remaining_qty} ${r.unit}** (Min Threshold: ${r.minimum_threshold}) • Batch: \`${r.batch_no}\` • Exp: **${exp}**\n`;
+      if (isHindiMode || isHindiQuery) {
+        let answer = `### ⚠️ 💊 **गंभीर दवा स्टॉकआउट एवं न्यून इन्वेंटरी रिपोर्ट (Medicine Stockouts)**\n\n`;
+        answer += `निम्नलिखित आवश्यक औषधियां अपनी न्यूनतम सुरक्षा सीमा (Safety Threshold) से नीचे हैं अथवा समाप्त हो चुकी हैं:\n\n`;
+        for (const r of res.rows) {
+          const status = r.remaining_qty === 0 ? '🔴 **स्टॉक समाप्त (STOCKOUT)**' : '⚠️ **कम स्टॉक (LOW STOCK)**';
+          const exp = r.expiry_date ? new Date(r.expiry_date).toISOString().split('T')[0] : 'N/A';
+          answer += `* ${status}: **${r.medicine_name}** (${r.category}) at **${r.phc_name}** (${r.district_name}, ${r.state_name})\n`;
+          answer += `   - शेष मात्रा: **${r.remaining_qty} ${r.unit}** (न्यूनतम सीमा: ${r.minimum_threshold}) • बैच: \`${r.batch_no}\` • समाप्ति: **${exp}**\n`;
+        }
+        return {
+          answer,
+          citations: res.rows.slice(0, 5).map(r => ({
+            sourceType: 'inventory_batch',
+            excerpt: `${r.medicine_name} at ${r.phc_name}: ${r.remaining_qty} ${r.unit}`,
+          })),
+          followUps: [
+            'पुनर्वितरण (Redistribution) स्थानांतरण की सिफारिश करें',
+            'संबंधित PHC सुविधाओं की परिचालन स्थिति दिखाएं',
+            'इन सुविधाओं में कितने डॉक्टर तैनात हैं?',
+          ],
+        };
+      } else {
+        let answer = `### 💊 **Critical Medicine Stockout & Low Inventory Report**\n\n`;
+        answer += `The following essential pharmaceuticals are at or below safety buffer thresholds:\n\n`;
+        for (const r of res.rows) {
+          const status = r.remaining_qty === 0 ? '🔴 **STOCKOUT**' : '⚠️ **LOW STOCK**';
+          const exp = r.expiry_date ? new Date(r.expiry_date).toISOString().split('T')[0] : 'N/A';
+          answer += `* ${status}: **${r.medicine_name}** (${r.category}) at **${r.phc_name}** (${r.district_name}, ${r.state_name})\n`;
+          answer += `   - Remaining: **${r.remaining_qty} ${r.unit}** (Min Threshold: ${r.minimum_threshold}) • Batch: \`${r.batch_no}\` • Exp: **${exp}**\n`;
+        }
+        return {
+          answer,
+          citations: res.rows.slice(0, 5).map(r => ({
+            sourceType: 'inventory_batch',
+            excerpt: `${r.medicine_name} at ${r.phc_name}: ${r.remaining_qty} ${r.unit}`,
+          })),
+          followUps: [
+            'Generate redistribution transfer recommendation',
+            'Show facility operational status',
+            'How many doctors are in these facilities?',
+          ],
+        };
       }
-      return {
-        answer,
-        citations: res.rows.slice(0, 5).map(r => ({
-          sourceType: 'inventory_batch',
-          excerpt: `${r.medicine_name} at ${r.phc_name}: ${r.remaining_qty} ${r.unit}`,
-        })),
-        followUps: [
-          'Generate redistribution transfer recommendation',
-          'Show facility operational status',
-          'How many doctors are in these facilities?',
-        ],
-      };
     }
   }
 
@@ -1148,21 +1198,39 @@ async function executeRagQuery(
     `).catch(() => ({ rows: [] as any[] }));
 
     if (eqRes.rows.length > 0) {
-      let answer = `### 🔬 **PHC Medical Equipment & Biomedical Asset Telemetry**\n\n`;
-      answer += `Live status of biomedical infrastructure and diagnostic devices:\n\n`;
-      for (const e of eqRes.rows) {
-        const icon = e.working_qty === e.quantity ? '🟢' : e.working_qty === 0 ? '🔴' : '⚠️';
-        answer += `* ${icon} **${e.equipment_type}**: **${e.working_qty}/${e.quantity} Operational** at **${e.phc_name}** (${e.district_name}, ${e.state_name})\n`;
-        answer += `   - Status: \`${e.maintenance_status}\` • Last Serviced: **${e.last_serviced_at ? new Date(e.last_serviced_at).toISOString().split('T')[0] : 'N/A'}**\n`;
+      if (isHindiMode || isHindiQuery) {
+        let answer = `### 🔬 **PHC बायोमेडिकल उपकरण एवं मशीनरी टेलीमेट्री (Biomedical Assets)**\n\n`;
+        answer += `लाइव डेटाबेस से नैदानिक और चिकित्सीय उपकरणों की स्थिति:\n\n`;
+        for (const e of eqRes.rows) {
+          const icon = e.working_qty === e.quantity ? '🟢' : e.working_qty === 0 ? '🔴' : '⚠️';
+          answer += `* ${icon} **${e.equipment_type}**: **${e.working_qty}/${e.quantity} कार्यशील** at **${e.phc_name}** (${e.district_name}, ${e.state_name})\n`;
+          answer += `   - स्थिति: \`${e.maintenance_status}\` • अंतिम सर्विस: **${e.last_serviced_at ? new Date(e.last_serviced_at).toISOString().split('T')[0] : 'N/A'}**\n`;
+        }
+        return {
+          answer,
+          citations: eqRes.rows.slice(0, 5).map((e: any) => ({
+            sourceType: 'equipment',
+            excerpt: `${e.equipment_type} at ${e.phc_name}: ${e.working_qty}/${e.quantity} working`,
+          })),
+          followUps: ['अस्पतालों में खाली बेड्स दिखाएं', 'दवा स्टॉकआउट्स दिखाएं'],
+        };
+      } else {
+        let answer = `### 🔬 **PHC Medical Equipment & Biomedical Asset Telemetry**\n\n`;
+        answer += `Live status of biomedical infrastructure and diagnostic devices:\n\n`;
+        for (const e of eqRes.rows) {
+          const icon = e.working_qty === e.quantity ? '🟢' : e.working_qty === 0 ? '🔴' : '⚠️';
+          answer += `* ${icon} **${e.equipment_type}**: **${e.working_qty}/${e.quantity} Operational** at **${e.phc_name}** (${e.district_name}, ${e.state_name})\n`;
+          answer += `   - Status: \`${e.maintenance_status}\` • Last Serviced: **${e.last_serviced_at ? new Date(e.last_serviced_at).toISOString().split('T')[0] : 'N/A'}**\n`;
+        }
+        return {
+          answer,
+          citations: eqRes.rows.slice(0, 5).map((e: any) => ({
+            sourceType: 'equipment',
+            excerpt: `${e.equipment_type} at ${e.phc_name}: ${e.working_qty}/${e.quantity} working`,
+          })),
+          followUps: ['Show bed occupancy across facilities', 'Which medicines are low?'],
+        };
       }
-      return {
-        answer,
-        citations: eqRes.rows.slice(0, 5).map((e: any) => ({
-          sourceType: 'equipment',
-          excerpt: `${e.equipment_type} at ${e.phc_name}: ${e.working_qty}/${e.quantity} working`,
-        })),
-        followUps: ['Show bed occupancy across facilities', 'Which medicines are low?'],
-      };
     }
   }
 
@@ -1182,22 +1250,41 @@ async function executeRagQuery(
     `).catch(() => ({ rows: [] as any[] }));
 
     if (res.rows.length > 0) {
-      let answer = `### 🚨 **Active Operational & Clinical Alerts**\n\n`;
-      for (const a of res.rows) {
-        const icon = a.severity === 'critical' ? '🔴' : a.severity === 'high' ? '🟠' : '⚠️';
-        const msg = a.payload?.message || a.payload?.description || a.payload?.disease || a.alert_type;
-        answer += `* ${icon} **${a.severity.toUpperCase()}** — **${a.alert_type}** at **${a.phc_name || 'System-wide'}** (${a.district_name ? a.district_name + ', ' : ''}${a.state_name || ''})\n`;
-        answer += `   - Details: ${typeof msg === 'string' ? msg : JSON.stringify(msg)} (Logged: ${new Date(a.created_at).toISOString().split('T')[0]})\n`;
+      if (isHindiMode || isHindiQuery) {
+        let answer = `### 🚨 **सक्रिय आपातकालीन एवं क्लिनिकल अलर्ट्स (Active Alerts)**\n\n`;
+        for (const a of res.rows) {
+          const icon = a.severity === 'critical' ? '🔴' : a.severity === 'high' ? '🟠' : '⚠️';
+          const msg = a.payload?.message || a.payload?.description || a.payload?.disease || a.alert_type;
+          answer += `* ${icon} **${a.severity.toUpperCase()}** — **${a.alert_type}** at **${a.phc_name || 'समस्त प्रणाली'}** (${a.district_name ? a.district_name + ', ' : ''}${a.state_name || ''})\n`;
+          answer += `   - विवरण: ${typeof msg === 'string' ? msg : JSON.stringify(msg)} (दिनांक: ${new Date(a.created_at).toISOString().split('T')[0]})\n`;
+        }
+        return {
+          answer,
+          citations: res.rows.slice(0, 5).map(r => ({
+            sourceType: 'alert',
+            entityId: r.id,
+            excerpt: `${r.alert_type}: ${r.severity}`,
+          })),
+          followUps: ['खाली बेड्स की स्थिति दिखाएं', 'दवाओं की उपलब्धता दिखाएं', 'इंटर-PHC ट्रांसफर दिखाएं'],
+        };
+      } else {
+        let answer = `### 🚨 **Active Operational & Clinical Alerts**\n\n`;
+        for (const a of res.rows) {
+          const icon = a.severity === 'critical' ? '🔴' : a.severity === 'high' ? '🟠' : '⚠️';
+          const msg = a.payload?.message || a.payload?.description || a.payload?.disease || a.alert_type;
+          answer += `* ${icon} **${a.severity.toUpperCase()}** — **${a.alert_type}** at **${a.phc_name || 'System-wide'}** (${a.district_name ? a.district_name + ', ' : ''}${a.state_name || ''})\n`;
+          answer += `   - Details: ${typeof msg === 'string' ? msg : JSON.stringify(msg)} (Logged: ${new Date(a.created_at).toISOString().split('T')[0]})\n`;
+        }
+        return {
+          answer,
+          citations: res.rows.slice(0, 5).map(r => ({
+            sourceType: 'alert',
+            entityId: r.id,
+            excerpt: `${r.alert_type}: ${r.severity}`,
+          })),
+          followUps: ['Show bed occupancy', 'Which medicines are low?', 'Show inter-PHC transfers'],
+        };
       }
-      return {
-        answer,
-        citations: res.rows.slice(0, 5).map(r => ({
-          sourceType: 'alert',
-          entityId: r.id,
-          excerpt: `${r.alert_type}: ${r.severity}`,
-        })),
-        followUps: ['Show bed occupancy', 'Which medicines are low?', 'Show inter-PHC transfers'],
-      };
     }
   }
 

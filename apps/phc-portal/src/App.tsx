@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from './components/layout/AppShell';
+import { AutoTranslateProvider } from './components/common/AutoTranslateProvider';
 import { initializeDatabase } from './db/seedData';
 
 const queryClient = new QueryClient({
@@ -21,9 +22,12 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppShell />
+      <AutoTranslateProvider>
+        <AppShell />
+      </AutoTranslateProvider>
     </QueryClientProvider>
   );
 }
 
 export default App;
+
