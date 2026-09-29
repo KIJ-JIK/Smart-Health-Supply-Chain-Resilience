@@ -106,7 +106,7 @@ export const AppShell: React.FC = () => {
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         <Header />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-7 pb-20 lg:pb-7">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-7 pb-28 lg:pb-7">
           <div className="max-w-7xl mx-auto">
             {/* Keyed re-mount gives each tab its entrance animation */}
             <div

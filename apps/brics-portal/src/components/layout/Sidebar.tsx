@@ -1,9 +1,10 @@
 // ---------------------------------------------------------------------------
 // Left navigation sidebar for the BRICS Federated Intelligence & Governance Portal.
 // Styled in deep institutional navy blue (#0b1e36) matching the top heading banner.
+// Fully responsive on mobile (off-canvas drawer) and desktop (collapsible).
 // ---------------------------------------------------------------------------
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -15,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileCheck2,
+  X,
 } from 'lucide-react';
 import { useUIStore } from '@/store';
 import { useMemberPrivacyBudget } from '@/hooks';
@@ -63,17 +65,20 @@ export function Sidebar() {
   const { pathname } = useLocation();
   const collapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const mobileOpen = useUIStore((s) => s.mobileSidebarOpen);
+  const setMobileOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const { cumulativeEpsilon } = useMemberPrivacyBudget('ZA');
 
-  return (
-    <aside
-      className={`hidden lg:flex flex-col h-full bg-white dark:bg-[#0b1424] text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800 select-none z-30 transition-all duration-200 shrink-0 ${
-        collapsed ? 'w-16' : 'w-64'
-      }`}
-    >
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, setMobileOpen]);
+
+  const renderNavContent = (isMobileView: boolean) => (
+    <>
       {/* Sidebar Top Identity Header */}
       <div className="h-14 px-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        {!collapsed && (
+        {(!collapsed || isMobileView) && (
           <div className="flex items-center gap-2.5 min-w-0">
             <AuraLogo size={24} />
             <div className="flex flex-col min-w-0">
@@ -86,21 +91,31 @@ export function Sidebar() {
             </div>
           </div>
         )}
-        <button
-          onClick={toggleSidebar}
-          className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors mx-auto"
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
+        {isMobileView ? (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            aria-label="Close navigation"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            onClick={toggleSidebar}
+            className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors mx-auto"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        )}
       </div>
 
       {/* Navigation Groups List */}
       <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-4">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="space-y-0.5">
-            {!collapsed && (
+            {(!collapsed || isMobileView) && (
               <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 {group.label}
               </div>
@@ -120,12 +135,13 @@ export function Sidebar() {
                 <Link
                   key={item.key}
                   to={item.href}
+                  onClick={() => isMobileView && setMobileOpen(false)}
                   className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors relative ${
                     isActive
                       ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
-                  title={collapsed ? item.label : undefined}
+                  title={collapsed && !isMobileView ? item.label : undefined}
                 >
                   {/* Active left bar */}
                   {isActive && (
@@ -136,7 +152,7 @@ export function Sidebar() {
                       isActive ? 'text-slate-900 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
                     }`}
                   />
-                  {!collapsed && (
+                  {(!collapsed || isMobileView) && (
                     <div className="flex-1 flex items-center justify-between min-w-0">
                       <span className="truncate">{item.label}</span>
                       {(() => {
@@ -148,10 +164,10 @@ export function Sidebar() {
                           <span
                             className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border ${
                               item.badgeVariant === 'emerald'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : item.badgeVariant === 'amber'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                                : item.badgeVariant === 'blue'
+                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
                             }`}
                           >
                             {badgeText}
@@ -166,8 +182,37 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside
+        className={`hidden lg:flex flex-col h-full bg-white dark:bg-[#0b1424] text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800 select-none z-30 transition-all duration-200 shrink-0 ${
+          collapsed ? 'w-16' : 'w-64'
+        }`}
+      >
+        {renderNavContent(false)}
+      </aside>
+
+      {/* Mobile Off-Canvas Drawer Backdrop */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Off-Canvas Drawer */}
+      <aside
+        className={`lg:hidden fixed inset-y-0 left-0 z-50 flex flex-col w-72 max-w-[85vw] bg-white dark:bg-[#0b1424] text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800 shadow-2xl select-none transform transition-transform duration-250 ease-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {renderNavContent(true)}
+      </aside>
+    </>
   );
 }
-
-export default Sidebar;

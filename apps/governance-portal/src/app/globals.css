@@ -946,3 +946,92 @@ html[data-lang="hi"] {
   font-family: 'Noto Sans Devanagari', 'Mukta', 'Hind', sans-serif !important;
 }
 
+/* ── Responsive & Mobile Breakpoints (Masterplan §62) ────────────────────────── */
+@media (max-width: 1023px) {
+  .app-layout {
+    position: relative;
+    width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 280px !important;
+    max-width: 85vw;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.35);
+    background: var(--sidebar-bg);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 55;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .main-wrapper {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .main-content {
+    padding: 14px 12px;
+  }
+
+  .header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .header-breadcrumb {
+    display: none;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .card {
+    padding: 14px !important;
+  }
+
+  .page-title {
+    font-size: 18px !important;
+  }
+
+  .page-subtitle {
+    font-size: 12px !important;
+  }
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-actions {
+    gap: 6px;
+  }
+
+  .header-persona-name,
+  .header-role-badge {
+    display: none;
+  }
+}

@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
-import { useCrisisStore } from '@/store/crisisStore';
+import { useCrisisStore, EmergencyProtocol } from '@/store/crisisStore';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
+import { ConfigureDirectivesModal } from '@/components/crisis/ConfigureDirectivesModal';
 import { formatDateTime } from '@/lib/formatters';
 import {
   ShieldAlert,
@@ -18,38 +19,8 @@ import {
   Radio,
   FileText,
   Lock,
+  Sliders,
 } from 'lucide-react';
-
-const EMERGENCY_PROTOCOLS = [
-  {
-    id: 'ep-level3-national',
-    name: 'National Level-3 Public Health Surge & Strategic Reserve Mobilization',
-    level: 'national',
-    status: 'active',
-    description: 'Mandatory requisition of inter-state pharmaceutical buffers, armed forces logistics corridors, and immediate fast-track procurement.',
-  },
-  {
-    id: 'ep-flood',
-    name: 'Monsoon Flood & Waterborne Epidemic Containment',
-    level: 'state',
-    status: 'active',
-    description: 'Air-drop triage kits, mobile chlorine water testing, and emergency oral rehydration stockpiles for cut-off rural settlements.',
-  },
-  {
-    id: 'ep-stockout-fasttrack',
-    name: 'Emergency Procurement & Red-Tape Waiver Protocol',
-    level: 'national',
-    status: 'standby',
-    description: 'Bypasses 30-day tender waiting period; authorizes direct district medical store purchasing at state pre-negotiated ceiling rates.',
-  },
-  {
-    id: 'ep-mass-casualty',
-    name: 'Mass Casualty & Trauma Incident Response',
-    level: 'district',
-    status: 'standby',
-    description: 'Activates secondary and tertiary surgical bed conversion, blood bank cold-chain surge dispatch, and triage annex deployment.',
-  },
-];
 
 export default function EmergencyPage() {
   const { user } = useAuthStore();
@@ -59,13 +30,15 @@ export default function EmergencyPage() {
     activatedBy,
     crisisTitle,
     crisisLevel,
+    protocols,
     activateCrisisMode,
     deactivateCrisisMode,
   } = useCrisisStore();
 
   const [titleInput, setTitleInput] = useState(crisisTitle);
   const [levelInput, setLevelInput] = useState<any>(crisisLevel);
-  const [showConfig, setShowConfig] = useState(false);
+  const [selectedProtocol, setSelectedProtocol] = useState<EmergencyProtocol | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const canManage = user.role === 'national_admin';
 
@@ -76,6 +49,11 @@ export default function EmergencyPage() {
     } else {
       activateCrisisMode(user, titleInput, levelInput);
     }
+  };
+
+  const handleOpenDirectives = (proto: EmergencyProtocol) => {
+    setSelectedProtocol(proto);
+    setIsModalOpen(true);
   };
 
   return (
@@ -173,7 +151,7 @@ export default function EmergencyPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {isCrisisMode && (
               <Link
-                href="/"
+                href="/governance"
                 style={{
                   padding: '9px 18px',
                   borderRadius: 'var(--radius-sm)',
@@ -299,79 +277,103 @@ export default function EmergencyPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {EMERGENCY_PROTOCOLS.map((p) => (
-            <div
-              key={p.id}
-              style={{
-                background: '#F8FAFC',
-                border: '1px solid var(--color-border-light)',
-                borderRadius: 'var(--radius-md)',
-                padding: '14px 16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 12,
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 280 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {protocols.map((p) => {
+            const activeDirectives = p.directives.filter((d) => d.enabled).length;
+
+            return (
+              <div
+                key={p.id}
+                style={{
+                  background: '#F8FAFC',
+                  border: '1px solid var(--color-border-light)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 280 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: p.level === 'national' ? '#FEE2E2' : p.level === 'state' ? '#FFEDD5' : '#E0F2FE',
+                        color: p.level === 'national' ? '#991B1B' : p.level === 'state' ? '#9A3412' : '#0369A1',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {p.level}
+                    </span>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', margin: 0 }}>
+                      {p.name}
+                    </h3>
+                  </div>
+                  <p style={{ fontSize: 12, color: '#475569', margin: '4px 0 0', lineHeight: 1.4 }}>
+                    {p.description}
+                  </p>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
+                    Lead Agency: <strong>{p.leadAgency}</strong> • Active Directives:{' '}
+                    <strong style={{ color: activeDirectives > 0 ? '#15803D' : '#64748B' }}>
+                      {activeDirectives} of {p.directives.length}
+                    </strong>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span
                     style={{
-                      padding: '2px 6px',
-                      borderRadius: 4,
+                      padding: '3px 10px',
+                      borderRadius: 999,
                       fontSize: 11,
                       fontWeight: 700,
-                      background: p.level === 'national' ? '#FEE2E2' : p.level === 'state' ? '#FFEDD5' : '#E0F2FE',
-                      color: p.level === 'national' ? '#991B1B' : p.level === 'state' ? '#9A3412' : '#0369A1',
-                      textTransform: 'uppercase',
+                      background: p.status === 'active' ? '#DCFCE7' : '#F1F5F9',
+                      color: p.status === 'active' ? '#15803D' : '#64748B',
                     }}
                   >
-                    {p.level}
+                    {p.status === 'active' ? '● ACTIVE DEPLOYMENT' : '○ STANDBY'}
                   </span>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', margin: 0 }}>
-                    {p.name}
-                  </h3>
-                </div>
-                <p style={{ fontSize: 12, color: '#475569', margin: '4px 0 0', lineHeight: 1.4 }}>
-                  {p.description}
-                </p>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span
-                  style={{
-                    padding: '3px 10px',
-                    borderRadius: 999,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background: p.status === 'active' ? '#DCFCE7' : '#F1F5F9',
-                    color: p.status === 'active' ? '#15803D' : '#64748B',
-                  }}
-                >
-                  {p.status === 'active' ? '● ACTIVE DEPLOYMENT' : '○ STANDBY'}
-                </span>
-
-                {canManage && (
                   <button
+                    type="button"
+                    onClick={() => handleOpenDirectives(p)}
                     style={{
-                      padding: '5px 12px',
+                      padding: '6px 14px',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--color-border)',
                       background: 'white',
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 600,
+                      color: '#0F172A',
                       cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                     }}
                   >
-                    Configure Directives
+                    <Sliders size={13} style={{ color: 'var(--color-primary)' }} />
+                    {canManage ? 'Configure Directives' : 'View Directives'}
                   </button>
-                )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
+      {/* ── CONFIGURE DIRECTIVES MODAL ─────────────────────────────────────── */}
+      <ConfigureDirectivesModal
+        protocol={selectedProtocol}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        canManage={canManage}
+      />
     </div>
   );
 }

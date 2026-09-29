@@ -46,6 +46,13 @@ export const PHC_TRANSLATIONS: TranslationDictionary = {
   'nav.testing': { en: 'Resilience Testing', hi: 'सिस्टम परीक्षण' },
   'nav.settings': { en: 'Facility Settings', hi: 'सुविधा सेटिंग्स' },
 
+  // Mobile Bottom Nav Short Labels (Clean 1-word fit)
+  'nav.mobile.dashboard': { en: 'Home', hi: 'होम' },
+  'nav.mobile.inventory': { en: 'Stock', hi: 'स्टॉक' },
+  'nav.mobile.billing': { en: 'Dispense', hi: 'बिलिंग' },
+  'nav.mobile.footfall': { en: 'Footfall', hi: 'मरीज़' },
+  'nav.mobile.alerts': { en: 'Alerts', hi: 'अलर्ट' },
+
   // Navigation Categories
   'nav.catCore': { en: 'CORE OPERATIONS', hi: 'मुख्य संचालन' },
   'nav.catClinical': { en: 'CLINICAL CAPACITY', hi: 'चिकित्सा क्षमता' },
