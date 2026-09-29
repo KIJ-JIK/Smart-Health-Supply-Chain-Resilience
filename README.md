@@ -17,32 +17,32 @@
 
 ```mermaid
 flowchart TD
-    subgraph AURA_Point [AURA Point · Frontline PHC Node (Port 5173)]
-        P1[Offline-First IndexedDB / Dexie.js]
-        P2[FEFO Medicine Ledger & AI Rx Scanner]
-        P3[Bed & Oxygen Telemetry]
-        P4[Local Conflict-Free Delta Sync Engine]
+    subgraph AURA_Point["AURA Point · Frontline PHC Node (Port 5173)"]
+        P1["Offline-First IndexedDB / Dexie.js"]
+        P2["FEFO Medicine Ledger & AI Rx Scanner"]
+        P3["Bed & Oxygen Telemetry"]
+        P4["Local Conflict-Free Delta Sync Engine"]
     end
 
-    subgraph AURA_Vantage [AURA Vantage · Governance Command Center (Port 3000)]
-        G1[National, State & District Tier Command]
-        G2[14-Day Epidemiological Demand Forecasting]
-        G3[GIS Health Facility & Stockout Map]
-        G4[Bilingual Devanagari PDF/Excel Statutory Dossiers]
+    subgraph AURA_Vantage["AURA Vantage · Governance Command Center (Port 3000)"]
+        G1["National, State & District Tier Command"]
+        G2["14-Day Epidemiological Demand Forecasting"]
+        G3["GIS Health Facility & Stockout Map"]
+        G4["Bilingual Devanagari PDF/Excel Statutory Dossiers"]
     end
 
-    subgraph AURA_Sovereign [AURA Sovereign · BRICS Federated Grid (Port 3001)]
-        B1[5-Nation Consensus: IN, BR, RU, CN, ZA]
-        B2[Rényi Differential Privacy ε-Budget Ledger]
-        B3[Paillier SMPC & Cryptographic Proof DAG]
-        B4[Zero Raw Egress Data Residency Enclaves]
+    subgraph AURA_Sovereign["AURA Sovereign · BRICS Federated Grid (Port 3001)"]
+        B1["5-Nation Consensus: IN, BR, RU, CN, ZA"]
+        B2["Rényi Differential Privacy ε-Budget Ledger"]
+        B3["Paillier SMPC & Cryptographic Proof DAG"]
+        B4["Zero Raw Egress Data Residency Enclaves"]
     end
 
-    subgraph Central_Core [AURA Central Backend & AI Engine (Port 8000)]
-        C1[Express + PostgreSQL Relational Engine]
-        C2[Delta Sync /sync/push & /sync/pull]
-        C3[Autonomous AI Copilot: Text-to-SQL & Hindi NLP]
-        C4[Multi-Jurisdiction RBAC & Stale Telemetry Detector]
+    subgraph Central_Core["AURA Central Backend & AI Engine (Port 8000)"]
+        C1["Express + PostgreSQL Relational Engine"]
+        C2["Delta Sync /sync/push & /sync/pull"]
+        C3["Autonomous AI Copilot: Text-to-SQL & Hindi NLP"]
+        C4["Multi-Jurisdiction RBAC & Stale Telemetry Detector"]
     end
 
     AURA_Point <-->|Bidirectional Delta Sync| Central_Core
