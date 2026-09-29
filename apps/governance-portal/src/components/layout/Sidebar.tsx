@@ -212,9 +212,11 @@ const NAV_SECTIONS: NavSection[] = [
 interface SidebarProps {
   collapsed: boolean;
   onToggle?: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuthStore();
@@ -232,7 +234,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   };
 
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
       {/* Logo & Top Collapse Toggle */}
       <div className={`sidebar-logo flex items-center justify-between px-3.5 py-3 border-b border-slate-100 dark:border-slate-800 ${collapsed ? 'justify-center' : ''}`}>
         <div className="flex items-center gap-2.5 min-w-0">
@@ -244,11 +246,23 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </div>
           )}
         </div>
-        {onToggle && !collapsed && (
+        {/* Mobile close button (X) when mobile drawer is open */}
+        {mobileOpen && (
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="lg:hidden p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Close menu"
+            aria-label="Close menu"
+          >
+            <ChevronLeft size={18} />
+          </button>
+        )}
+        {onToggle && !collapsed && !mobileOpen && (
           <button
             type="button"
             onClick={onToggle}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="hidden lg:block p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Collapse sidebar menu"
             aria-label="Collapse sidebar menu"
           >
@@ -305,6 +319,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       key={item.href}
                       href={item.href}
                       prefetch={true}
+                      onClick={() => onCloseMobile?.()}
                       onMouseEnter={() => {
                         try {
                           router.prefetch(item.href);
