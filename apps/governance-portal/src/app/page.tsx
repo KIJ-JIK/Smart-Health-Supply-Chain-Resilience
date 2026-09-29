@@ -22,8 +22,10 @@ import {
 } from 'lucide-react';
 import { AuraLogo } from '@/components/brand/AuraLogo';
 import { SiteFooter } from '@/components/layout/SiteFooter';
+import { useLanguageStore } from '@/store/languageStore';
 
 export default function PlatformHomePage() {
+  const { language, toggleLanguage } = useLanguageStore();
   const [currentTime, setCurrentTime] = useState<string>('');
 
   useEffect(() => {
@@ -77,8 +79,20 @@ export default function PlatformHomePage() {
             </div>
           </div>
 
-          {/* Action */}
+          {/* Action & Language Toggle */}
           <div className="flex items-center gap-3">
+            {/* Language Switcher Toggle */}
+            <button
+              id="landing-lang-toggle-btn"
+              onClick={toggleLanguage}
+              title={language === 'en' ? 'Switch to हिन्दी' : 'Switch to English'}
+              aria-label={`Language: ${language === 'en' ? 'English' : 'Hindi'}. Click to switch.`}
+              className="px-3 py-1.5 rounded-lg border border-neutral-200 hover:border-neutral-300 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-2xs"
+            >
+              <Globe2 className="w-3.5 h-3.5 text-teal-600" />
+              <span>{language === 'en' ? 'हिन्दी' : 'English'}</span>
+            </button>
+
             <Link
               href="/login"
               className="px-4 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium transition-all flex items-center gap-1.5 active:scale-95"
