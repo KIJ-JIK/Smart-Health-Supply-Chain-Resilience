@@ -756,17 +756,46 @@ async function executeRagQuery(client: import('pg').PoolClient, question: string
     }
   }
 
-  // 6. Default helpful guide
+  // 6. National Overview / Count queries
+  const isCountOrList =
+    q.includes('how many') || q.includes('count') || q.includes('total') ||
+    q.includes('throughout india') || q.includes('across india') || q.includes('nationwide') ||
+    q.includes('india') || q.includes('national') || q.includes('list all');
+
+  if (isCountOrList) {
+    try {
+      const [cntRes, stRes, bdRes] = await Promise.all([
+        client.query('SELECT COUNT(*) AS total_phcs FROM phc_facilities').catch(() => ({ rows: [] })),
+        client.query('SELECT s.name AS state_name, COUNT(p.id) AS phc_count FROM phc_facilities p JOIN states s ON p.state_id = s.id GROUP BY s.name ORDER BY phc_count DESC LIMIT 10').catch(() => ({ rows: [] })),
+        client.query('SELECT SUM(total_beds) AS tb, SUM(occupied_beds) AS ob, SUM(oxygen_cylinders_available) AS oc FROM phc_facilities').catch(() => ({ rows: [] })),
+      ]);
+      const totalPhcs = cntRes.rows[0]?.total_phcs || 0;
+      const tb = Number(bdRes.rows[0]?.tb || 0);
+      const ob = Number(bdRes.rows[0]?.ob || 0);
+      const oc = Number(bdRes.rows[0]?.oc || 0);
+      const occPct = tb > 0 ? ((ob / tb) * 100).toFixed(1) : '0';
+      let ans = '### 🏥 National PHC Facilities Overview — India\n\n';
+      ans += 'Live data from the AURA Health Intelligence database across all 36 States & UTs:\n\n';
+      ans += '#### 📊 National Summary:\n';
+      ans += `* **Total Monitored PHC Facilities:** **${totalPhcs} centers**\n`;
+      ans += `* **Total Bed Capacity:** **${tb} beds** (${ob} occupied, **${occPct}% utilization**)\n`;
+      ans += `* **Available Beds:** **${Math.max(0, tb - ob)} beds free** nationwide\n`;
+      ans += `* **Total Oxygen Cylinders:** **${oc} cylinders** on standby\n\n`;
+      if (stRes.rows.length > 0) {
+        ans += '#### 📍 Top States by PHC Count:\n';
+        for (const r of stRes.rows) ans += `* **${r.state_name}:** ${r.phc_count} PHC facilities\n`;
+      }
+      return { answer: ans, citations: [], followUps: ['Tell me about PHCs in Bihar', 'Which medicines are out of stock?', 'Show bed occupancy'] };
+    } catch (e: any) { console.warn('[CopilotService] National count query error:', e.message); }
+  }
+
+  // 7. Default helpful guide
   return {
     answer: isHindiQuery
-      ? `Mainne **"${question}"** ke liye live database search kiya.\n\nAap mujhse kisi bhi rajya (e.g. Bihar, Maharashtra, UP, Rajasthan, Gujarat) ke PHC centers, patient attendance, medicine stockout, ya bed capacity ke baare mein pooch sakte hain.`
-      : `I searched the health database for **"${question}"**.\n\nYou can ask me about:\n• **State Intelligence:** *"Tell me about PHCs and patient footfall in Bihar"*\n• **Facility Profiles:** *"Can you tell me about PHC Andhra Pradesh Central 1?"*\n• **Medicine Shortages:** *"Which medicines are out of stock?"*\n• **Bed & Oxygen Capacity:** *"Show bed occupancy across PHCs"*`,
+      ? `Mainne **"${question}"** ke liye live database search kiya.\n\nAap mujhse kisi bhi rajya (e.g. Bihar, Maharashtra, UP) ke PHC centers, patient attendance, medicine stockout, ya bed capacity ke baare mein pooch sakte hain.`
+      : `I am not sure how to answer **"${question}"** specifically. Try asking:\n\n* **State Intel:** *"Tell me about PHCs in Bihar"*\n* **Facility:** *"About PHC Andhra Pradesh Central 1"*\n* **Medicines:** *"Which medicines are out of stock?"*\n* **National:** *"How many PHCs in India?"*`,
     citations: [],
-    followUps: [
-      'Tell me about PHCs and patient footfall in Bihar',
-      'Which medicines have critical stockouts across states?',
-      'Show bed occupancy across facilities',
-    ],
+    followUps: ['Tell me about PHCs and patient footfall in Bihar', 'Which medicines have critical stockouts?', 'Show bed occupancy', 'How many PHCs in India?'],
   };
 }
 
