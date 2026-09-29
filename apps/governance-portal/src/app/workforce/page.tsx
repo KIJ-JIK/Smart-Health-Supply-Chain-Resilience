@@ -116,7 +116,17 @@ export default function WorkforcePage() {
         };
       });
     }
-    return base;
+    return base.map(b => ({
+      ...b,
+      sanctioned: 0,
+      inPosition: 0,
+      present: 0,
+      absent: 0,
+      onLeave: 0,
+      vacancies: 0,
+      vacancyRate: 0,
+      trainingDue: 0
+    }));
   }, [scope.level, wfData]);
 
   const summary: WorkforceSummary = useMemo(() => {
@@ -140,7 +150,17 @@ export default function WorkforcePage() {
         shortageClassification: (vacRate > 20 ? 'CRITICAL' : vacRate > 10 ? 'HIGH' : 'LOW') as ShortageLevel,
       };
     }
-    return base;
+    return {
+      ...base,
+      totalSanctioned: 0,
+      inPosition: 0,
+      vacancies: 0,
+      leaveCount: 0,
+      presentCount: 0,
+      absentCount: 0,
+      vacancyRate: 0,
+      attendanceRate: 0
+    };
   }, [scope.level, roleBreakdown]);
 
   // Dynamically calculate demand metric from live active staff

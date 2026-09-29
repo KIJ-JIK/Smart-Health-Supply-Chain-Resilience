@@ -102,7 +102,14 @@ export default function PatientsPage() {
         avgWaitTimeMinutes: pi.avgWaitTimeMinutes || base.avgWaitTimeMinutes,
       };
     }
-    return base;
+    return {
+      ...base,
+      totalOpdToday: 0,
+      admissionsToday: 0,
+      emergencyCasesToday: 0,
+      referralsToday: 0,
+      referralRatePct: 0,
+    };
   }, [scope.level, ptData]);
 
   // Wire flow trends dynamically to PostgreSQL calculations

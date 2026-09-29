@@ -151,7 +151,15 @@ export default function ResourcesPage() {
       });
     }
 
-    return getBedDataByScope(scope.level);
+    return getBedDataByScope(scope.level).map(b => ({
+      ...b,
+      totalBeds: 0,
+      occupiedBeds: 0,
+      availableBeds: 0,
+      utilizationPct: 0,
+      shortageCount: 0,
+      trendSparkline: [0, 0, 0, 0, 0, 0, 0]
+    }));
   }, [scope.level, resData]);
 
   const oxygenData = useMemo(() => {
@@ -175,7 +183,16 @@ export default function ResourcesPage() {
         return o;
       });
     }
-    return base;
+    return {
+      ...base,
+      capacityCylinders: 0,
+      availableCylinders: 0,
+      requiredCylinders: 0,
+      utilizationPct: 0,
+      shortageCount: 0,
+      status: 'CRITICAL',
+      consumptionTrend: [0, 0, 0, 0, 0, 0, 0]
+    };
   }, [scope.level, resData]);
 
   const equipmentData = useMemo(() => {
