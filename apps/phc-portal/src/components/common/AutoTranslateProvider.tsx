@@ -2,9 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { useLanguageStore } from '../../stores/languageStore';
 import { translateStringToHindi } from '../../utils/translationDictionary';
 
-const originalTextMap = new WeakMap<Node, string>();
-const originalPlaceholderMap = new WeakMap<Element, string>();
-const originalTitleMap = new WeakMap<Element, string>();
+interface TextState {
+  original: string;
+  lastTranslated: string;
+}
+const textStateMap = new WeakMap<Node, TextState>();
+const placeholderStateMap = new WeakMap<Element, TextState>();
+const titleStateMap = new WeakMap<Element, TextState>();
 
 let isTranslating = false;
 
@@ -40,44 +44,54 @@ function translateDOMTree(root: Element | Document = document) {
     }
 
     for (const node of nodesToTranslate) {
-      let original = originalTextMap.get(node);
-      if (original === undefined) {
-        original = node.nodeValue || '';
-        originalTextMap.set(node, original);
+      let state = textStateMap.get(node);
+      
+      // If no state OR current text is NOT what we last translated it to, React updated it!
+      if (!state || node.nodeValue !== state.lastTranslated) {
+        state = {
+          original: node.nodeValue || '',
+          lastTranslated: ''
+        };
       }
 
-      // Always translate from pristine original English
-      const translated = translateStringToHindi(original);
+      const translated = translateStringToHindi(state.original);
       if (node.nodeValue !== translated) {
         node.nodeValue = translated;
       }
+      
+      state.lastTranslated = translated;
+      textStateMap.set(node, state);
     }
 
     // 2. Translate placeholders & titles
     const elements = root.querySelectorAll('input, textarea, button, [title], [placeholder]');
     elements.forEach((el) => {
       if (el.hasAttribute('placeholder')) {
-        let origPh = originalPlaceholderMap.get(el);
-        if (origPh === undefined) {
-          origPh = el.getAttribute('placeholder') || '';
-          originalPlaceholderMap.set(el, origPh);
+        const currentPh = el.getAttribute('placeholder') || '';
+        let state = placeholderStateMap.get(el);
+        if (!state || currentPh !== state.lastTranslated) {
+          state = { original: currentPh, lastTranslated: '' };
         }
-        const transPh = translateStringToHindi(origPh);
-        if (el.getAttribute('placeholder') !== transPh) {
+        const transPh = translateStringToHindi(state.original);
+        if (currentPh !== transPh) {
           el.setAttribute('placeholder', transPh);
         }
+        state.lastTranslated = transPh;
+        placeholderStateMap.set(el, state);
       }
 
       if (el.hasAttribute('title')) {
-        let origTitle = originalTitleMap.get(el);
-        if (origTitle === undefined) {
-          origTitle = el.getAttribute('title') || '';
-          originalTitleMap.set(el, origTitle);
+        const currentTitle = el.getAttribute('title') || '';
+        let state = titleStateMap.get(el);
+        if (!state || currentTitle !== state.lastTranslated) {
+          state = { original: currentTitle, lastTranslated: '' };
         }
-        const transTitle = translateStringToHindi(origTitle);
-        if (el.getAttribute('title') !== transTitle) {
+        const transTitle = translateStringToHindi(state.original);
+        if (currentTitle !== transTitle) {
           el.setAttribute('title', transTitle);
         }
+        state.lastTranslated = transTitle;
+        titleStateMap.set(el, state);
       }
     });
   } finally {
@@ -90,22 +104,28 @@ function restoreDOMTree(root: Element | Document = document) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
   while (walker.nextNode()) {
     const node = walker.currentNode;
-    if (originalTextMap.has(node)) {
-      const orig = originalTextMap.get(node) || '';
-      if (node.nodeValue !== orig) {
-        node.nodeValue = orig;
+    const state = textStateMap.get(node);
+    if (state && node.nodeValue === state.lastTranslated) {
+      if (node.nodeValue !== state.original) {
+        node.nodeValue = state.original;
       }
+      state.lastTranslated = state.original; // Reset
     }
   }
 
   // 2. Restore placeholders & titles
   const elements = root.querySelectorAll('input, textarea, button, [title], [placeholder]');
   elements.forEach((el) => {
-    if (originalPlaceholderMap.has(el)) {
-      el.setAttribute('placeholder', originalPlaceholderMap.get(el) || '');
+    const statePh = placeholderStateMap.get(el);
+    if (statePh && el.getAttribute('placeholder') === statePh.lastTranslated) {
+      el.setAttribute('placeholder', statePh.original);
+      statePh.lastTranslated = statePh.original;
     }
-    if (originalTitleMap.has(el)) {
-      el.setAttribute('title', originalTitleMap.get(el) || '');
+    
+    const stateTitle = titleStateMap.get(el);
+    if (stateTitle && el.getAttribute('title') === stateTitle.lastTranslated) {
+      el.setAttribute('title', stateTitle.original);
+      stateTitle.lastTranslated = stateTitle.original;
     }
   });
 }
