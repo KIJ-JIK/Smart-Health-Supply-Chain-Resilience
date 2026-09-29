@@ -294,7 +294,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Link
-              href="/"
+              href="/governance"
               style={{
                 color: 'white',
                 textDecoration: 'underline',

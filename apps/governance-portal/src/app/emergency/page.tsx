@@ -173,7 +173,7 @@ export default function EmergencyPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {isCrisisMode && (
               <Link
-                href="/"
+                href="/governance"
                 style={{
                   padding: '9px 18px',
                   borderRadius: 'var(--radius-sm)',
