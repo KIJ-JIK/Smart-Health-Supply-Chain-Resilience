@@ -69,6 +69,8 @@ export async function ensureM2SeedsAndIndexes(): Promise<void> {
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS notes TEXT;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS decided_at TIMESTAMPTZ;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS decided_by VARCHAR(255);
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS dispatched_at TIMESTAMPTZ;
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
 
       ALTER TABLE supply_chain_shipments ADD COLUMN IF NOT EXISTS transfer_id UUID;
       ALTER TABLE supply_chain_shipments ADD COLUMN IF NOT EXISTS request_id UUID;

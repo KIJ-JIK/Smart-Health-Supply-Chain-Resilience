@@ -976,6 +976,17 @@ export const rootResolvers = {
   resourceRequests: async (args?: { scope?: any; status?: string; limit?: number; offset?: number }) => {
     const client = await pool.connect();
     try {
+      // Ensure columns exist on older database instances
+      await client.query(`
+        ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS carrier VARCHAR(255);
+        ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(100);
+        ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS dispatched_at TIMESTAMPTZ;
+        ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
+        ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS decided_at TIMESTAMPTZ;
+        ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS decided_by VARCHAR(255);
+        ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS notes TEXT;
+      `).catch(() => {});
+
       const scope = args?.scope || {};
       const { stateId, districtId, phcId } = await resolveJurisdiction(client, scope);
 
