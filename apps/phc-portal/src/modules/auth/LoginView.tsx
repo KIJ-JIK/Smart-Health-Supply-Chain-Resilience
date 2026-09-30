@@ -20,6 +20,7 @@ import {
 import { usePhcAuthStore, PhcStaffPersona } from '../../stores/authStore';
 import { PhcBackendService, PhcFacilityBackendItem } from '../../services/phcBackendService';
 import { AuraLogo } from '../../components/brand/AuraLogo';
+import { getPortalUrls } from '../../utils/portalLinks';
 
 interface LoginViewProps {
   onLoginSuccess?: () => void;
@@ -246,7 +247,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       {/* Top Navbar */}
       <header className="px-6 py-4 border-b border-neutral-200 bg-white/80 backdrop-blur-md flex items-center justify-between">
         <a
-          href={(import.meta as any).env?.VITE_GOVERNANCE_URL ?? '/'}
+          href={getPortalUrls().govUrl}
           className="inline-flex items-center gap-2 text-xs font-mono text-neutral-600 hover:text-neutral-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

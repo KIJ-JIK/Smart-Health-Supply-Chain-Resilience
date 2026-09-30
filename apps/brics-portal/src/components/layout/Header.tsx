@@ -28,6 +28,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { useUIStore } from '@/store/ui-store';
 import { BricsAiBriefingModal } from '../intelligence/BricsAiBriefingModal';
+import { getPortalUrls } from '@/utils/portalLinks';
 import { AuraLogo } from '../brand/AuraLogo';
 
 export function Header() {
@@ -234,7 +235,7 @@ export function Header() {
                 </div>
                 <div className="space-y-1">
                   <a
-                    href={`${(import.meta as any).env?.VITE_GOVERNANCE_URL || 'https://smart-health-supply-chain-resilienc-six.vercel.app'}/`}
+                    href={`${getPortalUrls().govUrl}/`}
                     onClick={() => setPortalMenuOpen(false)}
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
@@ -249,7 +250,7 @@ export function Header() {
                   </a>
 
                   <a
-                    href={`${(import.meta as any).env?.VITE_PHC_URL || 'https://smart-health-supply-chain-resilienc-ruby.vercel.app'}/login`}
+                    href={`${getPortalUrls().phcUrl}/login`}
                     onClick={() => setPortalMenuOpen(false)}
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >
@@ -264,7 +265,7 @@ export function Header() {
                   </a>
 
                   <a
-                    href={`${(import.meta as any).env?.VITE_GOVERNANCE_URL || 'https://smart-health-supply-chain-resilienc-six.vercel.app'}/login`}
+                    href={`${getPortalUrls().govUrl}/login`}
                     onClick={() => setPortalMenuOpen(false)}
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors group"
                   >

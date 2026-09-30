@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useBricsAuthStore, BRICS_COUNTRIES, BRICS_PERSONAS } from '@/store/auth-store';
 import { AuraLogo } from '@/components/brand/AuraLogo';
+import { getPortalUrls } from '@/utils/portalLinks';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ export function LoginPage() {
       {/* Top Navbar */}
       <header className="px-6 py-4 border-b border-neutral-200 bg-white/80 backdrop-blur-md flex items-center justify-between">
         <a
-          href={import.meta.env?.VITE_GOVERNANCE_URL ?? '/'}
+          href={getPortalUrls().govUrl}
           className="inline-flex items-center gap-2 text-xs font-mono text-neutral-600 hover:text-neutral-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

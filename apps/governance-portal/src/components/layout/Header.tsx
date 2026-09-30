@@ -29,6 +29,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useLanguageStore, useT } from '@/store/languageStore';
 import { UserRole, Alert } from '@/types';
 import { useSseStream } from '@/hooks/useSseStream';
+import { getPortalUrls } from '@/lib/portalLinks';
 
 // ── Breadcrumb map ─────────────────────────────────────────────────────────────
 const ROUTE_KEYS: Record<string, string> = {
@@ -704,7 +705,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   </a>
 
                   <a
-                    href={`${process.env.NEXT_PUBLIC_PHC_URL || 'https://smart-health-supply-chain-resilienc-ruby.vercel.app'}/login`}
+                    href={`${getPortalUrls().phcUrl}/login`}
                     onClick={() => setPortalMenuOpen(false)}
                     style={{
                       display: 'flex',
@@ -758,7 +759,7 @@ export function Header({ sidebarCollapsed, onToggleSidebar }: HeaderProps) {
                   </Link>
 
                   <a
-                    href={`${process.env.NEXT_PUBLIC_BRICS_URL || 'https://smart-health-supply-chain-resilienc-nine.vercel.app'}/login`}
+                    href={`${getPortalUrls().bricsUrl}/login`}
                     onClick={() => setPortalMenuOpen(false)}
                     style={{
                       display: 'flex',
