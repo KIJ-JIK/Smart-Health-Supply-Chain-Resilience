@@ -95,10 +95,10 @@ export default function PlatformHomePage() {
             </button>
 
             <Link
-              href="/login"
+              href="/governance"
               className="px-4 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium transition-all flex items-center gap-1.5 active:scale-95"
             >
-              <span>Sign In</span>
+              <span>Command Center</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -216,7 +216,7 @@ export default function PlatformHomePage() {
 
               <div className="mt-6 pt-4 border-t border-neutral-100">
                 <a
-                  href={`${getPortalUrls().phcUrl}/login`}
+                  href={getPortalUrls().phcUrl}
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-all shadow-xs active:scale-[0.98]"
                 >
                   <span>Launch AURA Point</span>
@@ -276,7 +276,7 @@ export default function PlatformHomePage() {
 
               <div className="mt-6 pt-4 border-t border-neutral-100">
                 <Link
-                  href="/login"
+                  href="/governance"
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-all shadow-xs active:scale-[0.98]"
                 >
                   <span>Launch AURA Vantage</span>
@@ -330,7 +330,7 @@ export default function PlatformHomePage() {
 
               <div className="mt-6 pt-4 border-t border-neutral-100">
                 <a
-                  href={`${getPortalUrls().bricsUrl}/login`}
+                  href={getPortalUrls().bricsUrl}
                   className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs flex items-center justify-between transition-all shadow-xs active:scale-[0.98]"
                 >
                   <span>Launch AURA Sovereign</span>

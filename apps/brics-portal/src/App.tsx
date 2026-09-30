@@ -24,12 +24,14 @@ function ProtectedRoutes() {
 }
 
 export function App() {
+  const isAuthenticated = useBricsAuthStore((state) => state.isAuthenticated);
+
   return (
     <ApolloWrapper>
       <AutoTranslateProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<OverviewPage />} />
               <Route path="/nodes" element={<NodesPage />} />

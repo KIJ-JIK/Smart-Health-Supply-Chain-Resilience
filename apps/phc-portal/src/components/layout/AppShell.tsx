@@ -30,29 +30,15 @@ export const AppShell: React.FC = () => {
   const { activeTab, toasts, removeToast } = useUIStore();
   const { isDark } = useThemeStore();
   const { isAuthenticated, token } = usePhcAuthStore();
-  const [isLoginRoute, setIsLoginRoute] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !isAuthenticated || !token || window.location.pathname === '/login' || window.location.hash === '#login';
-    }
-    return !isAuthenticated || !token;
-  });
+  const [isLoginRoute, setIsLoginRoute] = useState(false);
 
   useEffect(() => {
-    const handleUrlChange = () => {
-      if (typeof window !== 'undefined') {
-        setIsLoginRoute(!isAuthenticated || !token || window.location.pathname === '/login' || window.location.hash === '#login');
-      }
-    };
-    window.addEventListener('popstate', handleUrlChange);
-    
-    // Auto-redirect to /login if unauthenticated and trying to access a protected route
-    if (typeof window !== 'undefined' && (!isAuthenticated || !token) && window.location.pathname !== '/login') {
-      window.history.replaceState({}, '', '/login');
-      setIsLoginRoute(true);
+    // If authenticated and on /login, clean URL to /
+    if (typeof window !== 'undefined' && isAuthenticated && (window.location.pathname === '/login' || window.location.hash === '#login')) {
+      window.history.replaceState({}, '', '/');
+      setIsLoginRoute(false);
     }
-    
-    return () => window.removeEventListener('popstate', handleUrlChange);
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated]);
 
   // Sync dark class to <html> on every render
   useEffect(() => {
@@ -63,7 +49,7 @@ export const AppShell: React.FC = () => {
     }
   }, [isDark]);
 
-  if (!isAuthenticated || !token || isLoginRoute) {
+  if (!isAuthenticated && isLoginRoute) {
     return (
       <LoginView
         onLoginSuccess={() => {
