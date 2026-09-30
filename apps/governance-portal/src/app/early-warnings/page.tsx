@@ -2,13 +2,19 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import { useAlertStore, MOCK_SEED_ALERTS } from '@/store/alertStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { useAuthStore } from '@/store/authStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
 import { useSseStream } from '@/hooks/useSseStream';
-import { ALERTS_HISTORY } from '@/graphql/queries';
+import {
+  ALERTS_HISTORY,
+  RESOURCE_REQUESTS,
+  APPROVE_RESOURCE_REQUEST,
+  REJECT_RESOURCE_REQUEST,
+  DISPATCH_RESOURCE_REQUEST,
+} from '@/graphql/queries';
 import { ScopeSelector } from '@/components/common/ScopeSelector';
 import type { Alert, AlertClass, AlertSeverity } from '@/types';
 import {
@@ -28,6 +34,13 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  SendHorizontal,
+  PackageCheck,
+  Truck,
+  Ban,
+  Building,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 
 import { useCopilotStore } from '@/store/copilotStore';
@@ -50,10 +63,90 @@ export default function EarlyWarningsPage() {
     return getEnforcedScope(user, { level, stateId, districtId, phcId });
   }, [user, level, stateId, districtId, phcId]);
 
-  const [activeTab, setActiveTab] = useState<'all' | 'deterministic' | 'statistical' | 'emergency' | 'acknowledged'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'deterministic' | 'statistical' | 'emergency' | 'acknowledged' | 'requisitions'>('all');
   const [severityFilter, setSeverityFilter] = useState<'all' | AlertSeverity>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
+
+  // ── Frontline Resource Requisitions Query & Mutations ──────────────────────
+  const {
+    data: reqsData,
+    loading: reqsLoading,
+    refetch: refetchReqs,
+  } = useQuery(RESOURCE_REQUESTS, {
+    variables: {
+      scope: {
+        level: (enforcedScope.level || 'national').toUpperCase(),
+        stateId: enforcedScope.stateId,
+        districtId: enforcedScope.districtId,
+        phcId: enforcedScope.phcId,
+      },
+    },
+    pollInterval: 3000,
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const [approveReq] = useMutation(APPROVE_RESOURCE_REQUEST);
+  const [rejectReq] = useMutation(REJECT_RESOURCE_REQUEST);
+  const [dispatchReq] = useMutation(DISPATCH_RESOURCE_REQUEST);
+
+  const rawRequests: any[] = reqsData?.resourceRequests || [];
+  const pendingReqsCount = rawRequests.filter((r) => r.status === 'pending').length;
+
+  const handleApprove = async (id: string) => {
+    setActionInProgressId(id);
+    try {
+      await approveReq({
+        variables: {
+          requestId: id,
+          notes: 'Approved via Governance Command Center',
+          decidedBy: user?.name || user?.email || 'Regional Director',
+        },
+      });
+      await refetchReqs();
+    } catch (e) {
+      console.error('Approval failed:', e);
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  const handleDispatch = async (id: string) => {
+    setActionInProgressId(id);
+    try {
+      await dispatchReq({
+        variables: {
+          requestId: id,
+          notes: 'Dispatched from central reserve warehouse',
+          decidedBy: user?.name || user?.email || 'Logistics Coordinator',
+        },
+      });
+      await refetchReqs();
+    } catch (e) {
+      console.error('Dispatch failed:', e);
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    setActionInProgressId(id);
+    try {
+      await rejectReq({
+        variables: {
+          requestId: id,
+          notes: 'Rejected - redirecting to district buffer stocks',
+          decidedBy: user?.name || user?.email || 'Medical Superintendent',
+        },
+      });
+      await refetchReqs();
+    } catch (e) {
+      console.error('Rejection failed:', e);
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
 
   // ── 1. Live SSE Stream Hook ───────────────────────────────────────────────
   const { status: sseStatus, reconnect } = useSseStream<Alert | Alert[]>(
@@ -357,24 +450,83 @@ export default function EarlyWarningsPage() {
           style={{
             padding: 16,
             background: 'white',
-            borderLeft: '4px solid #0EA5E9',
+            borderLeft: '4px solid #2563EB',
             display: 'flex',
             alignItems: 'center',
             gap: 14,
+            cursor: 'pointer',
           }}
+          onClick={() => { setActiveTab('requisitions'); setCurrentPage(1); }}
         >
-          <div style={{ padding: 10, borderRadius: 8, background: '#E0F2FE', color: '#0284C7' }}>
-            <Layers size={24} />
+          <div style={{ padding: 10, borderRadius: 8, background: '#EFF6FF', color: '#2563EB' }}>
+            <SendHorizontal size={24} />
           </div>
           <div>
             <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>
-              Total Pending Action
+              Frontline Requisitions
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#0F172A' }}>{stats.totalUnack}</div>
-            <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 500 }}>Across current scope</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: '#0F172A' }}>{rawRequests.length}</div>
+            <div style={{ fontSize: 11, color: pendingReqsCount > 0 ? '#DC2626' : '#2563EB', fontWeight: 600 }}>
+              {pendingReqsCount > 0 ? `${pendingReqsCount} pending approval` : 'All requests processed'}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Pending Frontline Requisition Notification Banner */}
+      {pendingReqsCount > 0 && activeTab !== 'requisitions' && (
+        <div
+          style={{
+            padding: '14px 20px',
+            borderRadius: 'var(--radius-md)',
+            background: '#EFF6FF',
+            border: '1px solid #BFDBFE',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 20,
+            flexWrap: 'wrap',
+            gap: 12,
+            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ padding: 8, borderRadius: 8, background: '#DBEAFE', color: '#1D4ED8' }}>
+              <SendHorizontal size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E3A8A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{pendingReqsCount} Frontline PHC Supply Requisition{pendingReqsCount > 1 ? 's' : ''} Awaiting Review</span>
+                <span style={{ padding: '2px 8px', borderRadius: 999, background: '#DC2626', color: 'white', fontSize: 11, fontWeight: 700 }}>
+                  ACTION REQUIRED
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: '#3B82F6', marginTop: 2 }}>
+                Subordinate health centers in your jurisdiction have submitted urgent equipment/medicine demands.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => { setActiveTab('requisitions'); setCurrentPage(1); }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-sm)',
+              background: '#2563EB',
+              color: 'white',
+              fontSize: 13,
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)',
+            }}
+          >
+            <SendHorizontal size={14} /> Review Requisitions ({pendingReqsCount})
+          </button>
+        </div>
+      )}
 
       {/* Filter Tabs & Search Bar */}
       <div
@@ -406,6 +558,41 @@ export default function EarlyWarningsPage() {
               }}
             >
               All Alerts ({alerts.filter((a) => !a.acknowledged).length})
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('requisitions'); setCurrentPage(1); }}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 13,
+                fontWeight: 600,
+                border: '1px solid',
+                borderColor: activeTab === 'requisitions' ? '#2563EB' : 'var(--color-border)',
+                background: activeTab === 'requisitions' ? '#2563EB' : 'white',
+                color: activeTab === 'requisitions' ? 'white' : '#1D4ED8',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <SendHorizontal size={14} />
+              Field Requisitions ({rawRequests.length})
+              {pendingReqsCount > 0 && (
+                <span
+                  style={{
+                    padding: '2px 7px',
+                    borderRadius: 999,
+                    background: '#DC2626',
+                    color: 'white',
+                    fontSize: 10,
+                    fontWeight: 700,
+                  }}
+                >
+                  {pendingReqsCount} PENDING
+                </span>
+              )}
             </button>
 
             <button
@@ -532,7 +719,7 @@ export default function EarlyWarningsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            placeholder="Search alerts by facility, medicine, reason, or condition..."
+            placeholder="Search alerts or requisitions by facility, item, reason, or condition..."
             style={{
               width: '100%',
               padding: '8px 12px 8px 36px',
@@ -547,9 +734,236 @@ export default function EarlyWarningsPage() {
         </div>
       </div>
 
-      {/* Alert Feed List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {paginatedAlerts.length === 0 ? (
+      {/* Requisitions View Block */}
+      {activeTab === 'requisitions' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {rawRequests.length === 0 ? (
+            <div
+              className="card"
+              style={{
+                padding: 48,
+                textAlign: 'center',
+                color: 'var(--color-text-muted)',
+                background: 'white',
+              }}
+            >
+              <SendHorizontal size={40} style={{ color: '#2563EB', margin: '0 auto 12px' }} />
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#1E293B', marginBottom: 4 }}>
+                No Frontline Requisitions Found
+              </div>
+              <div style={{ fontSize: 13 }}>
+                No active supply or equipment requisitions have been submitted by PHCs in this jurisdiction.
+              </div>
+            </div>
+          ) : (
+            rawRequests
+              .filter((req) => {
+                if (!searchQuery.trim()) return true;
+                const q = searchQuery.toLowerCase();
+                return (
+                  (req.itemName || '').toLowerCase().includes(q) ||
+                  (req.phcName || '').toLowerCase().includes(q) ||
+                  (req.districtName || '').toLowerCase().includes(q) ||
+                  (req.notes || '').toLowerCase().includes(q)
+                );
+              })
+              .map((req) => {
+                const isPending = req.status === 'pending';
+                const isApproved = req.status === 'approved';
+                const isDispatched = req.status === 'dispatched';
+                const isDelivered = req.status === 'delivered';
+                const isRejected = req.status === 'rejected';
+
+                let statusBadgeBg = '#FEF3C7';
+                let statusBadgeColor = '#92400E';
+                let statusLabel = 'PENDING REVIEW';
+
+                if (isApproved) {
+                  statusBadgeBg = '#E0F2FE';
+                  statusBadgeColor = '#0369A1';
+                  statusLabel = 'APPROVED';
+                } else if (isDispatched) {
+                  statusBadgeBg = '#EEF2FF';
+                  statusBadgeColor = '#4338CA';
+                  statusLabel = 'DISPATCHED';
+                } else if (isDelivered) {
+                  statusBadgeBg = '#DCFCE7';
+                  statusBadgeColor = '#15803D';
+                  statusLabel = 'DELIVERED';
+                } else if (isRejected) {
+                  statusBadgeBg = '#FEE2E2';
+                  statusBadgeColor = '#991B1B';
+                  statusLabel = 'REJECTED';
+                }
+
+                return (
+                  <div
+                    key={req.id}
+                    className="card"
+                    style={{
+                      border: isPending ? '2px solid #F59E0B' : '1px solid var(--color-border)',
+                      background: isPending ? '#FFFDF5' : 'white',
+                      padding: '20px 24px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 14,
+                      boxShadow: isPending ? '0 4px 16px rgba(245, 158, 11, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            background: '#EFF6FF',
+                            color: '#1D4ED8',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          {req.requestType || 'SUPPLY'}
+                        </span>
+                        <span
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            background: statusBadgeBg,
+                            color: statusBadgeColor,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          {statusLabel}
+                        </span>
+                        {req.priority === 'urgent' && (
+                          <span style={{ padding: '4px 8px', borderRadius: 4, background: '#FEE2E2', color: '#B91C1C', fontSize: 11, fontWeight: 700 }}>
+                            HIGH PRIORITY
+                          </span>
+                        )}
+                        <span style={{ fontSize: 12, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={12} /> {timeAgo(req.createdAt || new Date().toISOString())}
+                        </span>
+                      </div>
+
+                      {/* Action Controls */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {isPending && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(req.id)}
+                              disabled={actionInProgressId === req.id}
+                              style={{
+                                padding: '6px 14px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: '#10B981',
+                                color: 'white',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                              }}
+                            >
+                              <CheckCircle2 size={14} /> Approve
+                            </button>
+                            <button
+                              onClick={() => handleReject(req.id)}
+                              disabled={actionInProgressId === req.id}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: '#EF4444',
+                                color: 'white',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                              }}
+                            >
+                              <XCircle size={14} /> Reject
+                            </button>
+                          </>
+                        )}
+                        {isApproved && (
+                          <button
+                            onClick={() => handleDispatch(req.id)}
+                            disabled={actionInProgressId === req.id}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: '#2563EB',
+                              color: 'white',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            <Truck size={14} /> Dispatch Consignment
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>
+                          {req.itemName}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
+                          Quantity Demanded: <strong style={{ color: '#0F172A' }}>{req.quantity} Units</strong>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                          <Building size={14} /> {req.phcName || req.phcId}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748B' }}>
+                          {req.districtName ? `${req.districtName} District` : ''} {req.stateName ? `• ${req.stateName}` : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    {req.notes && (
+                      <div
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: 6,
+                          background: '#F8FAFC',
+                          border: '1px solid #E2E8F0',
+                          fontSize: 13,
+                          color: '#334155',
+                        }}
+                      >
+                        <strong>Clinical/Facility Notes:</strong> {req.notes}
+                      </div>
+                    )}
+
+                    {req.decidedBy && (
+                      <div style={{ fontSize: 12, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Info size={12} /> Decided by {req.decidedBy} on {new Date(req.decidedAt || req.createdAt).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {paginatedAlerts.length === 0 ? (
           <div
             className="card"
             style={{
@@ -867,7 +1281,8 @@ export default function EarlyWarningsPage() {
             );
           })
         )}
-      </div>
+        </div>
+      )}
 
       {/* Pagination Bar */}
       {totalPages > 1 && (

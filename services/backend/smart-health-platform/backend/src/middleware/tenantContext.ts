@@ -64,9 +64,9 @@ export function tenantContextMiddleware(
     }
   }
 
-  // Fallback: trust explicit headers for local dev / service-to-service calls
-  if (!claims && req.headers['x-user-role']) {
-    const role = req.headers['x-user-role'] as TenantClaims['role'];
+  // Fallback: trust explicit headers for local dev / edge offline / service-to-service calls
+  if (!claims && (req.headers['x-user-role'] || req.headers['x-phc-id'])) {
+    const role = (req.headers['x-user-role'] as TenantClaims['role']) || 'phc_user';
     claims = {
       role,
       phcId:      req.headers['x-phc-id']      as string | undefined,

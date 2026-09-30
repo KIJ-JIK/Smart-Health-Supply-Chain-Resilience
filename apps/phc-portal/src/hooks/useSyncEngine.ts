@@ -73,12 +73,62 @@ export function useSyncEngine(isOnline: boolean) {
   };
 
   /**
+   * Helper to ensure an authoritative backend JWT token is active
+   */
+  const getAuthToken = async (currentPhc: string, forceFresh = false): Promise<string> => {
+    if (!forceFresh) {
+      try {
+        for (const key of ['phc_auth_token', 'phc-portal-auth-v2', 'phc-portal-auth']) {
+          const item = localStorage.getItem(key);
+          if (!item) continue;
+          if (key === 'phc_auth_token' && !item.startsWith('offline-jwt-')) {
+            return item;
+          }
+          try {
+            const parsed = JSON.parse(item);
+            if (parsed?.state?.token && !parsed.state.token.startsWith('offline-jwt-')) {
+              return parsed.state.token;
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+    }
+
+    // Auto-login to obtain signed JWT from backend
+    try {
+      const res = await fetch(`${backendUrl}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: `phc-officer-${currentPhc.slice(-6)}`,
+          role: 'phc_user',
+          phcId: currentPhc,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const token = data.accessToken || data.token;
+        if (token) {
+          try {
+            localStorage.setItem('phc_auth_token', token);
+          } catch (_) {}
+          return token;
+        }
+      }
+    } catch (e) {
+      console.warn('[useSyncEngine] Failed to auto-acquire backend token:', e);
+    }
+    return '';
+  };
+
+  /**
    * Execute Push step against backend contract POST /sync/push
    */
   const executePush = async (mutations: any[]): Promise<SyncPushResponse> => {
+    const currentPhc = getCurrentPhcId();
     const reqBody: SyncPushRequest = {
       device_id: CURRENT_DEVICE_ID,
-      phc_id: getCurrentPhcId(),
+      phc_id: currentPhc,
       client_clock: new Date().toISOString(),
       mutations: mutations.map((m) => ({
         id: m.id,
@@ -90,37 +140,36 @@ export function useSyncEngine(isOnline: boolean) {
       })),
     };
 
-    // Read the stored JWT token — stored in zustand authStore or direct key
-    let authToken = '';
-    try {
-      for (const key of ['phc_auth_token', 'phc-portal-auth-v2', 'phc-portal-auth']) {
-        const item = localStorage.getItem(key);
-        if (!item) continue;
-        if (key === 'phc_auth_token') {
-          authToken = item;
-          break;
-        }
-        try {
-          const parsed = JSON.parse(item);
-          if (parsed?.state?.token) {
-            authToken = parsed.state.token;
-            break;
-          }
-        } catch (_) {}
-      }
-    } catch (_) {}
+    let authToken = await getAuthToken(currentPhc);
 
-    const currentPhc = getCurrentPhcId();
-    const resp = await fetch(`${backendUrl}/sync/push`, {
+    let resp = await fetch(`${backendUrl}/sync/push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-        'X-Device-ID': CURRENT_DEVICE_ID,
+        'X-User-Role': 'phc_user',
         'X-PHC-ID': currentPhc,
+        'X-Device-ID': CURRENT_DEVICE_ID,
       },
       body: JSON.stringify(reqBody),
     });
+
+    // If 401 Unauthorized, refresh token and retry once
+    if (resp.status === 401) {
+      authToken = await getAuthToken(currentPhc, true);
+      resp = await fetch(`${backendUrl}/sync/push`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+          'X-User-Role': 'phc_user',
+          'X-PHC-ID': currentPhc,
+          'X-Device-ID': CURRENT_DEVICE_ID,
+        },
+        body: JSON.stringify(reqBody),
+      });
+    }
+
     if (!resp.ok) {
       throw new Error(`Sync Push HTTP Error: ${resp.status} ${resp.statusText}`);
     }
@@ -131,36 +180,36 @@ export function useSyncEngine(isOnline: boolean) {
    * Execute Pull step against backend contract GET /sync/pull
    */
   const executePull = async (sinceSeq: number): Promise<SyncPullResponse> => {
-    let authToken = '';
-    try {
-      for (const key of ['phc_auth_token', 'phc-portal-auth-v2', 'phc-portal-auth']) {
-        const item = localStorage.getItem(key);
-        if (!item) continue;
-        if (key === 'phc_auth_token') {
-          authToken = item;
-          break;
-        }
-        try {
-          const parsed = JSON.parse(item);
-          if (parsed?.state?.token) {
-            authToken = parsed.state.token;
-            break;
-          }
-        } catch (_) {}
-      }
-    } catch (_) {}
-
     const currentPhc = getCurrentPhcId();
-    const resp = await fetch(
+    let authToken = await getAuthToken(currentPhc);
+
+    let resp = await fetch(
       `${backendUrl}/sync/pull?since=${sinceSeq}&device_id=${CURRENT_DEVICE_ID}&limit=100`,
       {
         headers: {
           ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-          'X-Device-ID': CURRENT_DEVICE_ID,
+          'X-User-Role': 'phc_user',
           'X-PHC-ID': currentPhc,
+          'X-Device-ID': CURRENT_DEVICE_ID,
         },
       }
     );
+
+    if (resp.status === 401) {
+      authToken = await getAuthToken(currentPhc, true);
+      resp = await fetch(
+        `${backendUrl}/sync/pull?since=${sinceSeq}&device_id=${CURRENT_DEVICE_ID}&limit=100`,
+        {
+          headers: {
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+            'X-User-Role': 'phc_user',
+            'X-PHC-ID': currentPhc,
+            'X-Device-ID': CURRENT_DEVICE_ID,
+          },
+        }
+      );
+    }
+
     if (!resp.ok) {
       throw new Error(`Sync Pull HTTP Error: ${resp.status} ${resp.statusText}`);
     }

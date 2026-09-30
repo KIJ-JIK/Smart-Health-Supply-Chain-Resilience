@@ -78,7 +78,7 @@ phcPortalRouter.post('/phc/auth/verify', async (req: Request, res: Response) => 
 
     // 1. Verify facility existence
     const facRes = await pool.query(
-      `SELECT p.id, p.name, d.name AS district, s.name AS state, p.operational_status 
+      `SELECT p.id, p.name, p.district_id, p.state_id, d.name AS district, s.name AS state, p.operational_status 
        FROM phc_facilities p
        LEFT JOIN districts d ON p.district_id = d.id
        LEFT JOIN states s ON p.state_id = s.id
@@ -120,8 +120,8 @@ phcPortalRouter.post('/phc/auth/verify', async (req: Request, res: Response) => 
       name: staffName,
       role: 'phc_user' as const,
       phcId: facility.id,
-      districtId: facility.district,
-      stateId: facility.state,
+      districtId: facility.district_id || facility.district,
+      stateId: facility.state_id || facility.state,
       email: `${staffId.includes('@') ? staffId : staffId + '@phc.gov.in'}`,
     };
 

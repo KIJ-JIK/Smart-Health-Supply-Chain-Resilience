@@ -56,6 +56,8 @@ export const RequestsView: React.FC = () => {
       await enqueue('resource_request', {
         id: generateUUID(),
         phc_id: currentPhcId,
+        district_id: selectedFacility?.district_id || selectedFacility?.district || currentStaff?.district,
+        state_id: selectedFacility?.state_id || selectedFacility?.state || currentStaff?.state,
         request_type: reqType,
         item_ref: selectedItemRef || undefined,
         item_name: itemName || `${reqType.toUpperCase()} Supply Request`,
