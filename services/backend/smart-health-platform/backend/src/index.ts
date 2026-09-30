@@ -137,7 +137,8 @@ const handleCreateResourceRequest = async (req: express.Request, res: express.Re
         }
       }
 
-      const reqId = body.id || randomUUID();
+      const isUuid = (str?: string) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+      const reqId = isUuid(body.id) ? body.id : randomUUID();
       const insertRes = await client.query(`
         INSERT INTO resource_requests (
           id, phc_id, district_id, state_id, request_type, item_ref, item_name, quantity, priority, reason, source, status, notes, created_at
