@@ -67,9 +67,9 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: DEV_PERSONAS.national_admin,
-      isAuthenticated: false,
+      isAuthenticated: true, // Direct access enabled
       isDevMode: process.env.NODE_ENV !== 'production',
-      _hasHydrated: false,
+      _hasHydrated: true,
 
       setHasHydrated: (v: boolean) => set({ _hasHydrated: v }),
 
@@ -102,9 +102,9 @@ export const useAuthStore = create<AuthState>()(
       // Do NOT persist _hasHydrated — it is a runtime-only flag
       partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
       onRehydrateStorage: () => (state) => {
-        // Only trust persisted session if it has a valid user id/role
-        if (state && state.isAuthenticated && !state.user?.id) {
-          state.isAuthenticated = false;
+        if (state) {
+          state.isAuthenticated = true;
+          if (!state.user?.id) state.user = DEV_PERSONAS.national_admin;
         }
         // Signal that localStorage has been read and the store is ready
         state?.setHasHydrated(true);

@@ -108,7 +108,7 @@ interface BricsAuthState {
 export const useBricsAuthStore = create<BricsAuthState>()(
   persist(
     (set, get) => ({
-      isAuthenticated: false, // Default to false so user must sign in via login page
+      isAuthenticated: true, // Direct access enabled for instant walkthrough
       selectedCountry: BRICS_COUNTRIES[0], // India
       currentUser: BRICS_PERSONAS['IN'],
 
@@ -142,15 +142,12 @@ export const useBricsAuthStore = create<BricsAuthState>()(
       },
     }),
     {
-      name: 'brics-portal-auth-v2',          // changed key busts old persisted sessions
+      name: 'brics-portal-auth-v2',
       onRehydrateStorage: () => (state) => {
-        // Always force login page on cold visit — only persisted explicit logins are accepted
-        if (state && !state.currentUser?.id) {
-          state.isAuthenticated = false;
-        }
-        // Safety: if somehow isAuthenticated slipped through without a real user ID, reset
-        if (state && state.isAuthenticated && !state.currentUser?.email) {
-          state.isAuthenticated = false;
+        if (state) {
+          state.isAuthenticated = true;
+          if (!state.currentUser?.id) state.currentUser = BRICS_PERSONAS['IN'];
+          if (!state.selectedCountry?.code) state.selectedCountry = BRICS_COUNTRIES[0];
         }
       },
     }

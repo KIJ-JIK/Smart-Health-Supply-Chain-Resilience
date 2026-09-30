@@ -50,15 +50,15 @@ interface PhcAuthState {
 export const usePhcAuthStore = create<PhcAuthState>()(
   persist(
     (set) => ({
-      isAuthenticated: false, // Default false so portal requires verification
-      token: null,
+      isAuthenticated: true, // Direct access enabled for instant walkthrough
+      token: 'demo-phc-bearer-token-2026',
       currentStaff: DEFAULT_STAFF,
       selectedFacility: DEFAULT_FACILITY,
 
       login: (staff, facility, token) => {
         set({
           isAuthenticated: true,
-          token: token || null,
+          token: token || 'demo-phc-bearer-token-2026',
           currentStaff: {
             ...staff,
             facilityId: facility.id,
@@ -95,14 +95,13 @@ export const usePhcAuthStore = create<PhcAuthState>()(
       },
     }),
     {
-      name: 'phc-portal-auth-v2',           // changed key busts old persisted sessions
+      name: 'phc-portal-auth-v2',
       onRehydrateStorage: () => (state) => {
-        // Force login page unless both token and facility are properly persisted
         if (state) {
-          if (!state.token || !state.selectedFacility?.id) {
-            state.isAuthenticated = false;
-            state.token = null;
-          }
+          state.isAuthenticated = true;
+          if (!state.token) state.token = 'demo-phc-bearer-token-2026';
+          if (!state.selectedFacility?.id) state.selectedFacility = DEFAULT_FACILITY;
+          if (!state.currentStaff?.id) state.currentStaff = DEFAULT_STAFF;
         }
       },
     }

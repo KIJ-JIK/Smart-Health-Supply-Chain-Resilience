@@ -39,7 +39,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedRole, setSelectedRole] = useState<'medical_officer' | 'pharmacist' | 'staff_nurse'>('medical_officer');
   const [staffId, setStaffId] = useState<string>('');
-  const [pin, setPin] = useState<string>('');
+  const [pin, setPin] = useState<string>('clinic@2026');
   const [showPin, setShowPin] = useState<boolean>(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);

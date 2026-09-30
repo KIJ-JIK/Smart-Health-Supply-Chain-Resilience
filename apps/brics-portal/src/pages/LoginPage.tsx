@@ -24,7 +24,7 @@ export function LoginPage() {
 
   const [selectedCountryCode, setSelectedCountryCode] = useState<string>('IN');
   const [delegateId, setDelegateId] = useState<string>('sumaiya.khan@smarthealth.gov.in');
-  const [passphrase, setPassphrase] = useState<string>('');
+  const [passphrase, setPassphrase] = useState<string>('brics-fedavg-2026');
   const [showPassphrase, setShowPassphrase] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');

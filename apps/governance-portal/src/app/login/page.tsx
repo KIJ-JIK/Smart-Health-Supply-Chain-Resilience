@@ -33,7 +33,7 @@ export default function GovernanceLoginPage() {
   const [selectedStateId, setSelectedStateId] = useState<string>('a0000001-0000-0000-0000-000000000001');
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>('b0000002-0000-0000-0000-000000000001');
   const [email, setEmail] = useState<string>('nat-admin@gov.in');
-  const [password, setPassword] = useState<string>('');
+  const [password, setPassword] = useState<string>('admin@2026');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);

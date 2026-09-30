@@ -1420,8 +1420,8 @@ export const rootResolvers = {
             COALESCE(s.carrier, 'State Health Logistics') AS supplier,
             COALESCE(s.notes, 'Central Logistics Depot') AS "sourceLocation",
             s.source_phc_id AS "sourcePhcId",
-            dst.id AS "destinationPhcId",
-            dst.name AS "destinationPhcName",
+            COALESCE(dst.id::text, s.dest_phc_id::text, '') AS "destinationPhcId",
+            COALESCE(dst.name, 'Destination Health Facility') AS "destinationPhcName",
             COALESCE(dst.district_id::text, '') AS "districtId",
             COALESCE(dst.state_id::text, '') AS "stateId",
             CASE 
@@ -1448,12 +1448,12 @@ export const rootResolvers = {
               )
             ) AS items
           FROM supply_chain_shipments s
-          JOIN phc_facilities dst ON s.dest_phc_id = dst.id
+          LEFT JOIN phc_facilities dst ON s.dest_phc_id = dst.id
           LEFT JOIN medicines m ON s.medicine_id = m.id
 
           UNION ALL
 
-          -- 2. Redistribution transfers (approved/dispatched/in_transit/delivered) not already in supply_chain_shipments
+          -- 2. Redistribution transfers (approved/dispatched/in_transit/delivered)
           SELECT 
             rt.id AS "shipmentId",
             rt.created_at AS "orderDate",
@@ -1468,8 +1468,8 @@ export const rootResolvers = {
             COALESCE(rt.carrier, 'District Medical Logistics') AS supplier,
             COALESCE(src.name, 'Source Health Depot') AS "sourceLocation",
             rt.source_phc_id AS "sourcePhcId",
-            dst.id AS "destinationPhcId",
-            dst.name AS "destinationPhcName",
+            COALESCE(dst.id::text, rt.dest_phc_id::text, '') AS "destinationPhcId",
+            COALESCE(dst.name, 'Destination Health Facility') AS "destinationPhcName",
             COALESCE(dst.district_id::text, '') AS "districtId",
             COALESCE(dst.state_id::text, '') AS "stateId",
             CASE 
@@ -1496,11 +1496,11 @@ export const rootResolvers = {
               )
             ) AS items
           FROM redistribution_transfers rt
-          JOIN phc_facilities src ON rt.source_phc_id = src.id
-          JOIN phc_facilities dst ON rt.dest_phc_id = dst.id
+          LEFT JOIN phc_facilities src ON rt.source_phc_id = src.id
+          LEFT JOIN phc_facilities dst ON rt.dest_phc_id = dst.id
           LEFT JOIN medicines m ON rt.item_ref::text = m.id::text
           WHERE rt.status IN ('approved', 'dispatched', 'in_transit', 'delivered')
-            AND rt.id NOT IN (SELECT COALESCE(transfer_id, '') FROM supply_chain_shipments WHERE transfer_id IS NOT NULL)
+            AND rt.id::text NOT IN (SELECT COALESCE(transfer_id::text, '') FROM supply_chain_shipments WHERE transfer_id IS NOT NULL)
 
           UNION ALL
 
@@ -1518,10 +1518,10 @@ export const rootResolvers = {
             COALESCE(rr.carrier, 'District Supply Carrier') AS supplier,
             'Central District Medical Warehouse' AS "sourceLocation",
             NULL AS "sourcePhcId",
-            dst.id AS "destinationPhcId",
-            dst.name AS "destinationPhcName",
-            COALESCE(dst.district_id::text, '') AS "districtId",
-            COALESCE(dst.state_id::text, '') AS "stateId",
+            COALESCE(dst.id::text, rr.phc_id::text, '') AS "destinationPhcId",
+            COALESCE(dst.name, 'Frontline PHC Facility') AS "destinationPhcName",
+            COALESCE(rr.district_id::text, dst.district_id::text, '') AS "districtId",
+            COALESCE(rr.state_id::text, dst.state_id::text, '') AS "stateId",
             CASE 
               WHEN rr.status = 'approved' THEN 'warehouse'
               WHEN rr.status = 'dispatched' THEN 'state'
@@ -1546,9 +1546,9 @@ export const rootResolvers = {
               )
             ) AS items
           FROM resource_requests rr
-          JOIN phc_facilities dst ON rr.phc_id = dst.id
+          LEFT JOIN phc_facilities dst ON rr.phc_id = dst.id
           WHERE rr.status IN ('approved', 'dispatched', 'in_transit', 'delivered')
-            AND rr.id NOT IN (SELECT COALESCE(request_id, '') FROM supply_chain_shipments WHERE request_id IS NOT NULL)
+            AND rr.id::text NOT IN (SELECT COALESCE(id::text, '') FROM supply_chain_shipments)
         )
         SELECT * FROM unified_shipments unified
         ${whereClause}
