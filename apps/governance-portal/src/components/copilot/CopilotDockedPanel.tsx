@@ -22,83 +22,71 @@ import {
   Square
 } from 'lucide-react';
 
-const TTS_API_KEYS = [
-  process.env.NEXT_PUBLIC_GOOGLE_TTS_API_KEY_1 || '',
-  process.env.NEXT_PUBLIC_GOOGLE_TTS_API_KEY_2 || '',
-  process.env.NEXT_PUBLIC_GOOGLE_TTS_API_KEY_3 || '',
-].filter(Boolean);
-
-let currentKeyIndex = 0;
-
-function getNextApiKey() {
-  if (TTS_API_KEYS.length === 0) return '';
-  const key = TTS_API_KEYS[currentKeyIndex];
-  currentKeyIndex = (currentKeyIndex + 1) % TTS_API_KEYS.length;
-  return key;
-}
-
+/**
+ * TTSButton — uses the browser's built-in Web Speech API (SpeechSynthesis).
+ * Supports Hindi (hi-IN) and English (en-US) with zero API keys.
+ * Language is read from the portal's localStorage setting ('aura-portal-language').
+ */
 const TTSButton = ({ text }: { text: string }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const stopAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setIsPlaying(false);
-  };
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
-  const handlePlay = async () => {
+  const handlePlay = () => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
     if (isPlaying) {
-      stopAudio();
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
       return;
     }
 
-    try {
-      setIsPlaying(true);
-      const apiKey = getNextApiKey();
-      if (!apiKey) {
-        console.error("No Google TTS API keys found");
-        setIsPlaying(false);
-        return;
-      }
+    // Strip markdown symbols for clean speech output
+    const plainText = text
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/[*_>`]/g, '')
+      .replace(/\n{2,}/g, '. ')
+      .replace(/\n/g, ' ')
+      .trim();
 
-      // Simple markdown stripping for better speech
-      const plainText = text.replace(/[#*_>]/g, '').trim();
+    if (!plainText) return;
 
-      const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input: { text: plainText },
-          voice: { languageCode: 'hi-IN', name: 'hi-IN-Neural2-A' },
-          audioConfig: { audioEncoding: 'MP3' }
-        }),
-      });
+    const lang = localStorage.getItem('aura-portal-language') || 'en';
+    const langCode = lang === 'hi' ? 'hi-IN' : 'en-US';
 
-      if (!response.ok) throw new Error('TTS API failed');
+    const utterance = new SpeechSynthesisUtterance(plainText);
+    utterance.lang = langCode;
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
 
-      const data = await response.json();
-      const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
-      
-      const audio = new Audio(audioSrc);
-      audioRef.current = audio;
-      
-      audio.onended = () => setIsPlaying(false);
-      audio.onerror = () => setIsPlaying(false);
-      
-      await audio.play();
-    } catch (error) {
-      console.error('Error playing TTS:', error);
-      setIsPlaying(false);
-    }
+    // Prefer a matching voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(
+      (v) => v.lang.startsWith(lang === 'hi' ? 'hi' : 'en') && !v.localService === false
+    ) || voices.find((v) => v.lang.startsWith(lang === 'hi' ? 'hi' : 'en'));
+    if (preferred) utterance.voice = preferred;
+
+    utterance.onstart = () => setIsPlaying(true);
+    utterance.onend = () => setIsPlaying(false);
+    utterance.onerror = () => setIsPlaying(false);
+    utteranceRef.current = utterance;
+
+    setIsPlaying(true);
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
     <button
       onClick={handlePlay}
-      title={isPlaying ? 'Stop' : 'Play text-to-speech'}
+      title={isPlaying ? 'Stop speaking' : 'Read aloud (Hindi / English)'}
       style={{
         background: 'none',
         border: 'none',
@@ -109,12 +97,14 @@ const TTSButton = ({ text }: { text: string }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        flexShrink: 0,
       }}
     >
       {isPlaying ? <Square size={16} fill="currentColor" /> : <Volume2 size={16} />}
     </button>
   );
 };
+
 
 const QUICK_PROMPTS = [
   {
