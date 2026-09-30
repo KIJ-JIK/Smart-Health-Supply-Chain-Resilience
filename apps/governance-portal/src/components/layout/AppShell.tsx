@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { CopilotDockedPanel } from '@/components/copilot/CopilotDockedPanel';
 import { SiteFooter } from './SiteFooter';
+import { useAuthStore } from '@/store/authStore';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -15,6 +16,16 @@ export function AppShell({ children }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  // Redirect to login if not authenticated on a protected route
+  useEffect(() => {
+    const publicPaths = ['/', '/login', '/terms', '/privacy'];
+    if (!isAuthenticated && !publicPaths.includes(pathname)) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, pathname, router]);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -34,8 +45,15 @@ export function AppShell({ children }: AppShellProps) {
   }, [mobileSidebarOpen]);
 
   // On Homepage Hub, Login, Terms, and Privacy pages, render clean full-screen view without internal portal sidebar/header
-  if (pathname === '/' || pathname === '/login' || pathname === '/terms' || pathname === '/privacy') {
+  const isPublicPath = ['/', '/login', '/terms', '/privacy'].includes(pathname);
+  
+  if (isPublicPath) {
     return <>{children}</>;
+  }
+
+  // Prevent flash of protected content before redirect
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

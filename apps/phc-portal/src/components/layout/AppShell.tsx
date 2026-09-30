@@ -44,6 +44,13 @@ export const AppShell: React.FC = () => {
       }
     };
     window.addEventListener('popstate', handleUrlChange);
+    
+    // Auto-redirect to /login if unauthenticated and trying to access a protected route
+    if (typeof window !== 'undefined' && (!isAuthenticated || !token) && window.location.pathname !== '/login') {
+      window.history.replaceState({}, '', '/login');
+      setIsLoginRoute(true);
+    }
+    
     return () => window.removeEventListener('popstate', handleUrlChange);
   }, [isAuthenticated, token]);
 
