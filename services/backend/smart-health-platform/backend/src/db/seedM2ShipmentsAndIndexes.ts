@@ -18,6 +18,8 @@ export async function ensureM2SeedsAndIndexes(): Promise<void> {
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS item_ref VARCHAR(100);
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS item_type VARCHAR(30) DEFAULT 'medicine';
 
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS item_ref VARCHAR(100);
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS medicine_id UUID;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS district_id UUID;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS state_id UUID;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS item_name VARCHAR(255);

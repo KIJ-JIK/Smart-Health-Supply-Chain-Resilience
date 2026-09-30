@@ -967,14 +967,14 @@ export const rootResolvers = {
           COALESCE(d.name, 'District Command') AS "districtName",
           COALESCE(r.state_id, f.state_id) AS "stateId",
           COALESCE(s.name, 'State Health Dept') AS "stateName",
-          r.request_type AS "requestType",
-          r.item_ref AS "itemRef",
-          COALESCE(r.item_name, m.name, r.request_type || ' Supply') AS "itemName",
+          COALESCE(r.request_type, 'medicine') AS "requestType",
+          COALESCE(r.item_ref, '') AS "itemRef",
+          COALESCE(r.item_name, r.request_type, 'Medical Requisition') AS "itemName",
           COALESCE(r.quantity, 1)::int AS quantity,
-          r.priority,
-          r.reason,
-          r.source,
-          r.status,
+          COALESCE(r.priority, 'routine') AS priority,
+          COALESCE(r.reason, 'manual') AS reason,
+          COALESCE(r.source, 'manual') AS source,
+          COALESCE(r.status, 'pending') AS status,
           r.notes,
           r.created_at AS "createdAt",
           r.decided_at AS "decidedAt",
@@ -983,7 +983,6 @@ export const rootResolvers = {
         LEFT JOIN phc_facilities f ON r.phc_id = f.id
         LEFT JOIN districts d ON COALESCE(r.district_id, f.district_id) = d.id
         LEFT JOIN states s ON COALESCE(r.state_id, f.state_id) = s.id
-        LEFT JOIN medicines m ON r.item_ref::text = m.id::text
         WHERE 1=1
       `;
       const params: any[] = [];
