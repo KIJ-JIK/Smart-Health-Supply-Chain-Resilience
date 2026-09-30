@@ -38,6 +38,12 @@ export async function ensureM2SeedsAndIndexes(): Promise<void> {
         decided_by VARCHAR(255)
       );
 
+      ALTER TABLE resource_requests DROP CONSTRAINT IF EXISTS resource_requests_priority_check;
+      ALTER TABLE resource_requests DROP CONSTRAINT IF EXISTS resource_requests_reason_check;
+      ALTER TABLE resource_requests DROP CONSTRAINT IF EXISTS resource_requests_status_check;
+      ALTER TABLE resource_requests DROP CONSTRAINT IF EXISTS resource_requests_request_type_check;
+      ALTER TABLE resource_requests DROP CONSTRAINT IF EXISTS resource_requests_source_check;
+
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS quantity INT DEFAULT 1;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS item_ref VARCHAR(100);
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS medicine_id UUID;
