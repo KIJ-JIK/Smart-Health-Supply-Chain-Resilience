@@ -18,7 +18,103 @@ import {
   Database,
   ShieldAlert,
   ChevronRight,
+  Volume2,
+  Square
 } from 'lucide-react';
+
+const TTS_API_KEYS = [
+  process.env.NEXT_PUBLIC_GOOGLE_TTS_API_KEY_1 || '',
+  process.env.NEXT_PUBLIC_GOOGLE_TTS_API_KEY_2 || '',
+  process.env.NEXT_PUBLIC_GOOGLE_TTS_API_KEY_3 || '',
+].filter(Boolean);
+
+let currentKeyIndex = 0;
+
+function getNextApiKey() {
+  if (TTS_API_KEYS.length === 0) return '';
+  const key = TTS_API_KEYS[currentKeyIndex];
+  currentKeyIndex = (currentKeyIndex + 1) % TTS_API_KEYS.length;
+  return key;
+}
+
+const TTSButton = ({ text }: { text: string }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlaying(false);
+  };
+
+  const handlePlay = async () => {
+    if (isPlaying) {
+      stopAudio();
+      return;
+    }
+
+    try {
+      setIsPlaying(true);
+      const apiKey = getNextApiKey();
+      if (!apiKey) {
+        console.error("No Google TTS API keys found");
+        setIsPlaying(false);
+        return;
+      }
+
+      // Simple markdown stripping for better speech
+      const plainText = text.replace(/[#*_>]/g, '').trim();
+
+      const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { text: plainText },
+          voice: { languageCode: 'hi-IN', name: 'hi-IN-Neural2-A' },
+          audioConfig: { audioEncoding: 'MP3' }
+        }),
+      });
+
+      if (!response.ok) throw new Error('TTS API failed');
+
+      const data = await response.json();
+      const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
+      
+      const audio = new Audio(audioSrc);
+      audioRef.current = audio;
+      
+      audio.onended = () => setIsPlaying(false);
+      audio.onerror = () => setIsPlaying(false);
+      
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing TTS:', error);
+      setIsPlaying(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handlePlay}
+      title={isPlaying ? 'Stop' : 'Play text-to-speech'}
+      style={{
+        background: 'none',
+        border: 'none',
+        color: isPlaying ? '#2563EB' : '#94A3B8',
+        cursor: 'pointer',
+        padding: 4,
+        borderRadius: 4,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {isPlaying ? <Square size={16} fill="currentColor" /> : <Volume2 size={16} />}
+    </button>
+  );
+};
 
 const QUICK_PROMPTS = [
   {
@@ -382,7 +478,12 @@ export function CopilotDockedPanel() {
                 }}
               >
                 {/* 1. Answer Text */}
-                <CopilotMessageRenderer content={msg.content} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <CopilotMessageRenderer content={msg.content} />
+                  </div>
+                  <TTSButton text={msg.content} />
+                </div>
 
                 {/* 2. Mandatory Supporting Data Attribution (NEVER a bare chat bubble!) */}
                 {msg.supportingData && msg.supportingData.length > 0 && (
