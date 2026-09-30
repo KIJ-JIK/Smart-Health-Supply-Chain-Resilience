@@ -7,13 +7,10 @@ interface TextState {
   lastTranslated: string;
 }
 
-// Keep a regular array alongside the WeakMap so we can iterate all tracked nodes
+// WeakMaps to track original text per node/element
 const textStateMap = new WeakMap<Node, TextState>();
-const trackedTextNodes: Node[] = [];
 const placeholderStateMap = new WeakMap<Element, TextState>();
-const trackedPlaceholderEls: Element[] = [];
 const titleStateMap = new WeakMap<Element, TextState>();
-const trackedTitleEls: Element[] = [];
 
 let isTranslating = false;
 
@@ -50,24 +47,20 @@ function translateDOMTree(root: Element | Document = document) {
 
     for (const node of nodesToTranslate) {
       let state = textStateMap.get(node);
-      
-      // If no state OR current text is NOT what we last translated it to, React updated it!
+
+      // If no state OR current text is NOT what we last translated to, React updated it
       if (!state || node.nodeValue !== state.lastTranslated) {
         state = {
           original: node.nodeValue || '',
-          lastTranslated: ''
+          lastTranslated: '',
         };
-        // Track new nodes so we can restore them later
-        if (!textStateMap.has(node)) {
-          trackedTextNodes.push(node);
-        }
       }
 
       const translated = translateStringToHindi(state.original);
       if (node.nodeValue !== translated) {
         node.nodeValue = translated;
       }
-      
+
       state.lastTranslated = translated;
       textStateMap.set(node, state);
     }
@@ -80,7 +73,6 @@ function translateDOMTree(root: Element | Document = document) {
         let state = placeholderStateMap.get(el);
         if (!state || currentPh !== state.lastTranslated) {
           state = { original: currentPh, lastTranslated: '' };
-          if (!placeholderStateMap.has(el)) trackedPlaceholderEls.push(el);
         }
         const transPh = translateStringToHindi(state.original);
         if (currentPh !== transPh) {
@@ -95,7 +87,6 @@ function translateDOMTree(root: Element | Document = document) {
         let state = titleStateMap.get(el);
         if (!state || currentTitle !== state.lastTranslated) {
           state = { original: currentTitle, lastTranslated: '' };
-          if (!titleStateMap.has(el)) trackedTitleEls.push(el);
         }
         const transTitle = translateStringToHindi(state.original);
         if (currentTitle !== transTitle) {
@@ -110,33 +101,35 @@ function translateDOMTree(root: Element | Document = document) {
   }
 }
 
-function restoreDOMTree() {
-  // 1. Restore ALL tracked text nodes unconditionally
-  for (const node of trackedTextNodes) {
+function restoreDOMTree(root: Element | Document = document) {
+  // 1. Walk the live DOM to find and restore all translated text nodes
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
     const state = textStateMap.get(node);
-    if (state && node.nodeValue !== state.original) {
-      node.nodeValue = state.original;
+    if (state && node.nodeValue === state.lastTranslated) {
+      if (node.nodeValue !== state.original) {
+        node.nodeValue = state.original;
+      }
+      state.lastTranslated = state.original; // Reset so next Hindi pass records fresh
     }
   }
-  // Clear tracking arrays so the next Hindi pass starts completely fresh
-  trackedTextNodes.length = 0;
 
-  // 2. Restore ALL tracked placeholder & title elements
-  for (const el of trackedPlaceholderEls) {
-    const state = placeholderStateMap.get(el);
-    if (state) {
-      el.setAttribute('placeholder', state.original);
+  // 2. Restore placeholders & titles via live DOM query
+  const elements = root.querySelectorAll('input, textarea, button, [title], [placeholder]');
+  elements.forEach((el) => {
+    const statePh = placeholderStateMap.get(el);
+    if (statePh && el.getAttribute('placeholder') === statePh.lastTranslated) {
+      el.setAttribute('placeholder', statePh.original);
+      statePh.lastTranslated = statePh.original;
     }
-  }
-  trackedPlaceholderEls.length = 0;
 
-  for (const el of trackedTitleEls) {
-    const state = titleStateMap.get(el);
-    if (state) {
-      el.setAttribute('title', state.original);
+    const stateTitle = titleStateMap.get(el);
+    if (stateTitle && el.getAttribute('title') === stateTitle.lastTranslated) {
+      el.setAttribute('title', stateTitle.original);
+      stateTitle.lastTranslated = stateTitle.original;
     }
-  }
-  trackedTitleEls.length = 0;
+  });
 }
 
 export function AutoTranslateProvider({ children }: { children: React.ReactNode }) {
@@ -187,11 +180,12 @@ export function AutoTranslateProvider({ children }: { children: React.ReactNode 
         clearTimeout(timeoutId);
       };
     } else {
+      // Disconnect observer first, then restore
       if (observerRef.current) {
         observerRef.current.disconnect();
         observerRef.current = null;
       }
-      restoreDOMTree();
+      restoreDOMTree(document.body);
     }
   }, [language]);
 
