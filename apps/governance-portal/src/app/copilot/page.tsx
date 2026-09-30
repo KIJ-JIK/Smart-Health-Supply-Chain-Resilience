@@ -15,6 +15,8 @@ import {
   Plus,
   Trash2,
   RefreshCw,
+  Volume2,
+  Square,
 } from 'lucide-react';
 import { CopilotMessageRenderer } from '@/components/copilot/CopilotMessageRenderer';
 import { CopilotSessionDrawer } from '@/components/copilot/CopilotSessionDrawer';
@@ -46,6 +48,57 @@ const SUGGESTED_HI = [
   'वर्तमान में सक्रिय डेंगू और मलेरिया के क्या अलर्ट हैं?',
   'पूरे भारत में कुल कितने PHC केंद्र पंजीकृत हैं?',
 ];
+
+/**
+ * TTSButton — browser Web Speech API, supports Hindi and English.
+ * No API key required.
+ */
+const TTSButton = ({ text }: { text: string }) => {
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const utteranceRef = React.useRef<SpeechSynthesisUtterance | null>(null);
+
+  React.useEffect(() => {
+    return () => { if (typeof window !== 'undefined') window.speechSynthesis?.cancel(); };
+  }, []);
+
+  const handlePlay = () => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (isPlaying) { window.speechSynthesis.cancel(); setIsPlaying(false); return; }
+
+    const plainText = text
+      .replace(/#{1,6}\s*/g, '').replace(/[*_>`]/g, '')
+      .replace(/\n{2,}/g, '. ').replace(/\n/g, ' ').trim();
+    if (!plainText) return;
+
+    const lang = localStorage.getItem('aura-portal-language') || 'en';
+    const utterance = new SpeechSynthesisUtterance(plainText);
+    utterance.lang = lang === 'hi' ? 'hi-IN' : 'en-US';
+    utterance.rate = 0.95;
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find((v) => v.lang.startsWith(lang === 'hi' ? 'hi' : 'en'));
+    if (preferred) utterance.voice = preferred;
+    utterance.onstart = () => setIsPlaying(true);
+    utterance.onend = () => setIsPlaying(false);
+    utterance.onerror = () => setIsPlaying(false);
+    utteranceRef.current = utterance;
+    setIsPlaying(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  return (
+    <button
+      onClick={handlePlay}
+      title={isPlaying ? 'Stop speaking' : 'Read aloud (Hindi / English)'}
+      style={{
+        background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+        borderRadius: 4, color: isPlaying ? '#2563EB' : '#94A3B8',
+        display: 'flex', alignItems: 'center', flexShrink: 0,
+      }}
+    >
+      {isPlaying ? <Square size={15} fill="currentColor" /> : <Volume2 size={15} />}
+    </button>
+  );
+};
 
 function CopilotChatContent() {
   const searchParams = useSearchParams();
@@ -158,7 +211,7 @@ function CopilotChatContent() {
           sessionId: currentSession,
           userId: user?.id || 'dev-nat-001',
         }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(60000),
       });
 
       let replyText: string;
@@ -443,7 +496,12 @@ function CopilotChatContent() {
                   </div>
                 ) : (
                   <div>
-                    <CopilotMessageRenderer content={msg.content} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <CopilotMessageRenderer content={msg.content} />
+                      </div>
+                      {msg.content !== '…' && <TTSButton text={msg.content} />}
+                    </div>
                     {msg.mcpToolsUsed && msg.mcpToolsUsed.length > 0 && (
                       <div
                         style={{
