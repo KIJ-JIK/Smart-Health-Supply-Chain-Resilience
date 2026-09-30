@@ -46,6 +46,13 @@ interface AuthState {
   user: User;
   isAuthenticated: boolean;
   isDevMode: boolean;
+  /**
+   * Runtime-only flag — true once Zustand's persist middleware has finished
+   * reading from localStorage. Components should gate auth-guard logic on this
+   * so they don't redirect before the session is restored.
+   */
+  _hasHydrated: boolean;
+  setHasHydrated: (v: boolean) => void;
   setUser: (user: User) => void;
   login: (user: User) => void;
   logout: () => void;
@@ -62,6 +69,9 @@ export const useAuthStore = create<AuthState>()(
       user: DEV_PERSONAS.national_admin,
       isAuthenticated: false,
       isDevMode: process.env.NODE_ENV !== 'production',
+      _hasHydrated: false,
+
+      setHasHydrated: (v: boolean) => set({ _hasHydrated: v }),
 
       setUser: (user) => set({ user }),
 
@@ -88,13 +98,16 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'governance-portal-auth-v2',      // changed key busts stale dev sessions
+      name: 'governance-portal-auth-v2',
+      // Do NOT persist _hasHydrated — it is a runtime-only flag
       partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
       onRehydrateStorage: () => (state) => {
         // Only trust persisted session if it has a valid user id/role
         if (state && state.isAuthenticated && !state.user?.id) {
           state.isAuthenticated = false;
         }
+        // Signal that localStorage has been read and the store is ready
+        state?.setHasHydrated(true);
       },
     },
   ),

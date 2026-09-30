@@ -17,22 +17,22 @@ export function AppShell({ children }: AppShellProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Read both auth state and the hydration flag from the store together.
+  // _hasHydrated is set to true inside onRehydrateStorage, which fires once
+  // Zustand's persist middleware has finished reading from localStorage.
+  // This guarantees we never redirect before the persisted session is restored.
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+  const storeHydrated = useAuthStore((state) => state._hasHydrated);
 
   // Redirect to login if not authenticated on a protected route
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!storeHydrated) return;
     const publicPaths = ['/', '/login', '/terms', '/privacy'];
     if (!isAuthenticated && !publicPaths.includes(pathname)) {
       router.replace('/login');
     }
-  }, [isHydrated, isAuthenticated, pathname, router]);
+  }, [storeHydrated, isAuthenticated, pathname, router]);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -53,13 +53,14 @@ export function AppShell({ children }: AppShellProps) {
 
   // On Homepage Hub, Login, Terms, and Privacy pages, render clean full-screen view without internal portal sidebar/header
   const isPublicPath = ['/', '/login', '/terms', '/privacy'].includes(pathname);
-  
+
   if (isPublicPath) {
     return <>{children}</>;
   }
 
-  // Prevent flash of protected content before redirect
-  if (!isHydrated || !isAuthenticated) {
+  // Show nothing until we know whether the user is logged in.
+  // This prevents both a flash of protected content and a premature redirect.
+  if (!storeHydrated || !isAuthenticated) {
     return null;
   }
 
