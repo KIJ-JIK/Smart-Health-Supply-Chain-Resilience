@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
+import { PhcBackendService } from '../../services/phcBackendService';
 
 interface ExtractedMedicine {
   name: string;
