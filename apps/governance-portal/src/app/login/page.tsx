@@ -111,7 +111,7 @@ export default function GovernanceLoginPage() {
       });
 
       setIsLoading(false);
-      window.location.assign('/governance');
+      router.push('/governance');
     }, 200);
   };
 

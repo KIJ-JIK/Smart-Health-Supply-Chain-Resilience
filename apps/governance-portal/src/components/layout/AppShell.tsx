@@ -19,13 +19,20 @@ export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   // Redirect to login if not authenticated on a protected route
   useEffect(() => {
+    if (!isHydrated) return;
     const publicPaths = ['/', '/login', '/terms', '/privacy'];
     if (!isAuthenticated && !publicPaths.includes(pathname)) {
       router.replace('/login');
     }
-  }, [isAuthenticated, pathname, router]);
+  }, [isHydrated, isAuthenticated, pathname, router]);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -52,7 +59,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   // Prevent flash of protected content before redirect
-  if (!isAuthenticated) {
+  if (!isHydrated || !isAuthenticated) {
     return null;
   }
 
