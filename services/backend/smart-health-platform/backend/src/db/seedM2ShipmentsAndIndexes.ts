@@ -18,12 +18,40 @@ export async function ensureM2SeedsAndIndexes(): Promise<void> {
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS item_ref VARCHAR(100);
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS item_type VARCHAR(30) DEFAULT 'medicine';
 
+      CREATE TABLE IF NOT EXISTS resource_requests (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        phc_id UUID NOT NULL,
+        district_id UUID,
+        state_id UUID,
+        request_type VARCHAR(20) DEFAULT 'medicine',
+        item_ref VARCHAR(100),
+        medicine_id UUID,
+        item_name VARCHAR(255),
+        quantity INT DEFAULT 1,
+        priority VARCHAR(20) DEFAULT 'routine',
+        reason VARCHAR(50) DEFAULT 'manual',
+        source VARCHAR(20) DEFAULT 'manual',
+        status VARCHAR(20) DEFAULT 'pending',
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT now(),
+        decided_at TIMESTAMPTZ,
+        decided_by VARCHAR(255)
+      );
+
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS quantity INT DEFAULT 1;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS item_ref VARCHAR(100);
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS medicine_id UUID;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS district_id UUID;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS state_id UUID;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS item_name VARCHAR(255);
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS priority VARCHAR(20) DEFAULT 'routine';
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS reason VARCHAR(50) DEFAULT 'manual';
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'manual';
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending';
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS request_type VARCHAR(20) DEFAULT 'medicine';
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS notes TEXT;
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS decided_at TIMESTAMPTZ;
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS decided_by VARCHAR(255);
 
       UPDATE resource_requests r
       SET district_id = f.district_id, state_id = f.state_id
