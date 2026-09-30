@@ -12,7 +12,7 @@ export function getPortalUrls() {
     if (isLocalhost) {
       phcUrl = 'http://localhost:5173';
     } else {
-      phcUrl = 'https://smart-health-phc-portal.pages.dev';
+      phcUrl = 'https://smart-health-supply-chain-resilience.pages.dev';
     }
   }
 
@@ -27,8 +27,6 @@ export function getPortalUrls() {
   if (!govUrl) {
     if (isLocalhost) {
       govUrl = 'http://localhost:3000';
-    } else if (isPagesDev && hostname.startsWith('smart-health-supply-chain-resilience')) {
-      govUrl = 'https://smart-health-supply-chain-resilience.pages.dev';
     } else {
       govUrl = 'https://smart-health-governance-portal.pages.dev';
     }
