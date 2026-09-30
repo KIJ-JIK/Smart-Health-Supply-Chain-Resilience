@@ -58,13 +58,20 @@ export function useSyncEngine(isOnline: boolean) {
           description: payload.description || '',
           updated_at: new Date().toISOString(),
         });
-      } else if (entity_type === 'resource_requests') {
-        if (operation === 'update' || operation === 'create') {
-          await db.resource_requests.put(payload);
-        }
-      } else if (entity_type === 'alerts') {
-        if (operation === 'create' || operation === 'update') {
-          await db.alerts.put(payload);
+      } else if (entity_type === 'resource_requests' || entity_type === 'request_status_change') {
+        const existing = await db.resource_requests.get(payload.id || entity_id);
+        await db.resource_requests.put({
+          ...(existing || {}),
+          ...payload,
+          id: payload.id || entity_id,
+        });
+      } else if (entity_type === 'alerts' || entity_type === 'alert') {
+        if (operation !== 'delete') {
+          const alertId = payload.id || entity_id;
+          await db.alerts.put({
+            id: alertId,
+            ...payload,
+          });
         }
       } else if (entity_type === 'phc_facilities') {
         await db.phc_facilities.update(entity_id, payload);
@@ -344,12 +351,12 @@ export function useSyncEngine(isOnline: boolean) {
       window.addEventListener('phc:mutation-enqueued', handleMutationEnqueued);
     }
 
-    // Periodic heartbeat sync every 15s when online
+    // Periodic heartbeat sync every 3s when online for real-time responsiveness
     const heartbeat = setInterval(() => {
       if (isOnline) {
         triggerSync();
       }
-    }, 15000);
+    }, 3000);
 
     return () => {
       if (typeof window !== 'undefined') {

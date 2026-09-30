@@ -29,6 +29,7 @@ export type EntityType =
   | 'inventory_batch_update'
   | 'inventory_batch_create'
   | 'resource_request'
+  | 'request_delivered'
   | 'footfall_entry'
   | 'facility_update'
   | 'staff_attendance'
@@ -100,14 +101,19 @@ export interface Medicine {
 
 export interface InventoryBatch {
   id: string;
-  phc_id: string;
+  phc_id?: string;
   medicine_id: string;
   batch_no: string;
+  batch_number?: string;
   received_qty: number;
+  initial_qty?: number;
   remaining_qty: number;
-  minimum_threshold: number;
+  minimum_threshold?: number;
   expiry_date: string;
-  received_at: string;
+  received_at?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
   source?: string;
 }
 
@@ -214,6 +220,10 @@ export interface ResourceRequest {
   reason: RequestReason;
   source: RequestSource;
   status: RequestStatus;
+  carrier?: string;
+  tracking_number?: string;
+  dispatched_at?: string;
+  delivered_at?: string;
   notes?: string;
   created_at: string;
   decided_at?: string;

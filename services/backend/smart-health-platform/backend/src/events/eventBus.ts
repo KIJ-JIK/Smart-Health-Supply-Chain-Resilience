@@ -246,6 +246,7 @@ export const OPERATIONAL_EVENTS = [
   'stock.received',
   'stock.adjusted',
   'request.status_changed',
+  'redistribution.status_changed',
   'alert.raised',
 ] as const;
 
@@ -273,6 +274,7 @@ export const EVENT_SCHEMAS: Record<string, z.ZodType<any>> = {
   'stock.received':                StockReceivedSchema,
   'stock.adjusted':                StockAdjustedSchema,
   'request.status_changed':        RequestStatusChangedSchema,
+  'redistribution.status_changed': z.any(),
   'alert.raised':                  AlertCreatedSchema,
 };
 
@@ -320,6 +322,7 @@ export interface EventPayloadMap {
   'stock.received':                StockReceivedPayload;
   'stock.adjusted':                StockAdjustedPayload;
   'request.status_changed':        RequestStatusChangedPayload;
+  'redistribution.status_changed': any;
   'alert.raised':                  AlertCreatedPayload;
 }
 

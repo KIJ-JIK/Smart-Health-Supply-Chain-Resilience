@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@apollo/client';
-import { SUPPLY_CHAIN_SHIPMENTS } from '@/graphql/queries';
+import { useQuery, useMutation } from '@apollo/client';
+import { SUPPLY_CHAIN_SHIPMENTS, UPDATE_SHIPMENT_STATUS } from '@/graphql/queries';
 import { useScopeStore } from '@/store/scopeStore';
 import { useAuthStore } from '@/store/authStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
@@ -20,6 +20,7 @@ import type { Shipment, ChainStage, ShipmentStatus } from '@/types';
 import {
   Truck,
   Package,
+  PackageCheck,
   Clock,
   MapPin,
   AlertTriangle,
@@ -38,6 +39,8 @@ import {
   TrendingDown,
   Layers,
   Sparkles,
+  Navigation,
+  Send,
 } from 'lucide-react';
 import {
   BarChart,
@@ -60,6 +63,7 @@ const STAGE_ICONS: Record<ChainStage, any> = {
 
 const STATUS_BADGE: Record<ShipmentStatus, { bg: string; text: string; label: string }> = {
   ordered: { bg: '#F1F5F9', text: '#475569', label: 'ORDERED' },
+  approved: { bg: '#FEF3C7', text: '#D97706', label: 'APPROVED' },
   dispatched: { bg: '#E0F2FE', text: '#0369A1', label: 'DISPATCHED' },
   in_transit: { bg: '#EDE9FE', text: '#6D28D9', label: 'IN TRANSIT' },
   delivered: { bg: '#DCFCE7', text: '#15803D', label: 'DELIVERED' },
@@ -80,9 +84,12 @@ export default function SupplyChainPage() {
   const [selectedStage, setSelectedStage] = useState<ChainStage | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [updatingShipmentId, setUpdatingShipmentId] = useState<string | null>(null);
 
-  // GraphQL query fallback with strictly enforced variables
-  const { data: gqlData, loading: gqlLoading } = useQuery(SUPPLY_CHAIN_SHIPMENTS, {
+  const [updateShipmentMutation] = useMutation(UPDATE_SHIPMENT_STATUS);
+
+  // GraphQL query fallback with strictly enforced variables & 3s live polling
+  const { data: gqlData, loading: gqlLoading, refetch } = useQuery(SUPPLY_CHAIN_SHIPMENTS, {
     variables: {
       filter: {
         districtId: enforcedScope.districtId ?? undefined,
@@ -90,7 +97,28 @@ export default function SupplyChainPage() {
       },
     },
     fetchPolicy: 'cache-and-network',
+    pollInterval: 3000,
   });
+
+  const handleAdvanceShipment = async (shipment: Shipment, nextStatus: string) => {
+    setUpdatingShipmentId(shipment.shipmentId);
+    try {
+      await updateShipmentMutation({
+        variables: {
+          shipmentId: shipment.shipmentId,
+          status: nextStatus,
+          carrier: shipment.carrier || 'District Medical Logistics Van #12',
+          trackingNumber: shipment.trackingNumber || `LOG-${shipment.shipmentId.substring(0, 8).toUpperCase()}`,
+          notes: `Advanced to ${nextStatus} via Supply Chain Operations Command`,
+        },
+      });
+      refetch();
+    } catch (err) {
+      console.error('Failed to advance shipment status:', err);
+    } finally {
+      setUpdatingShipmentId(null);
+    }
+  };
 
   const shipments: Shipment[] = useMemo(() => {
     const rawShipments = gqlData?.supplyChainShipments || [];
@@ -664,6 +692,119 @@ export default function SupplyChainPage() {
                         </Link>
                       </div>
                     )}
+
+                    {/* Interactive Shipment Lifecycle Controls */}
+                    <div
+                      style={{
+                        paddingTop: 12,
+                        borderTop: '1px dashed #CBD5E1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748B' }}>
+                        <Truck size={14} style={{ color: 'var(--color-primary)' }} />
+                        <span>Carrier: <strong>{shipment.carrier || 'State Medical Logistics'}</strong></span>
+                        {shipment.trackingNumber && (
+                          <span style={{ fontFamily: 'monospace', background: '#F1F5F9', padding: '1px 6px', borderRadius: 3 }}>
+                            {shipment.trackingNumber}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {(shipment.status === 'ordered' || shipment.status === 'approved') && (
+                          <button
+                            onClick={() => handleAdvanceShipment(shipment, 'dispatched')}
+                            disabled={updatingShipmentId === shipment.shipmentId}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: 4,
+                              border: 'none',
+                              background: '#0284C7',
+                              color: 'white',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            <Send size={13} />
+                            <span>{updatingShipmentId === shipment.shipmentId ? 'Dispatching...' : 'Dispatch Consignment'}</span>
+                          </button>
+                        )}
+
+                        {shipment.status === 'dispatched' && (
+                          <button
+                            onClick={() => handleAdvanceShipment(shipment, 'in_transit')}
+                            disabled={updatingShipmentId === shipment.shipmentId}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: 4,
+                              border: 'none',
+                              background: '#6D28D9',
+                              color: 'white',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            <Navigation size={13} />
+                            <span>{updatingShipmentId === shipment.shipmentId ? 'Starting...' : 'Start Transit (Activate Telemetry)'}</span>
+                          </button>
+                        )}
+
+                        {shipment.status === 'in_transit' && (
+                          <button
+                            onClick={() => handleAdvanceShipment(shipment, 'delivered')}
+                            disabled={updatingShipmentId === shipment.shipmentId}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: 4,
+                              border: 'none',
+                              background: '#15803D',
+                              color: 'white',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            <PackageCheck size={13} />
+                            <span>{updatingShipmentId === shipment.shipmentId ? 'Confirming...' : 'Confirm Delivered & Handover'}</span>
+                          </button>
+                        )}
+
+                        {shipment.status === 'delivered' && (
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: '#15803D',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              background: '#F0FDF4',
+                              padding: '4px 10px',
+                              borderRadius: 4,
+                              border: '1px solid #BBF7D0',
+                            }}
+                          >
+                            <CheckCircle size={14} /> Delivered & Verified
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 );
               })

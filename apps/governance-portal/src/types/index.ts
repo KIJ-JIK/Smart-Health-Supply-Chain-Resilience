@@ -224,7 +224,9 @@ export type RecommendationStatus =
   | 'approved'
   | 'rejected'
   | 'modified'
+  | 'dispatched'
   | 'in_transit'
+  | 'delivered'
   | 'completed';
 
 export type TransferLifecycleStatus =
@@ -253,6 +255,8 @@ export interface RedistributionRecommendation {
   sourceSurplus?: number;
   destinationDeficit?: number;
   transferStatus?: TransferLifecycleStatus;
+  carrier?: string;
+  trackingNumber?: string;
   aiConfidence: number;
   status: RecommendationStatus;
   createdAt: string;
@@ -272,6 +276,7 @@ export interface RedistributionDecisionPayload {
 
 export type ShipmentStatus =
   | 'ordered'
+  | 'approved'
   | 'dispatched'
   | 'in_transit'
   | 'delivered'
@@ -288,6 +293,8 @@ export interface Shipment {
   actualDelivery?: string;
   status: ShipmentStatus;
   supplier: string;
+  carrier?: string;
+  trackingNumber?: string;
   sourceLocation?: string;
   destinationPhcId: string;
   destinationPhcName: string;

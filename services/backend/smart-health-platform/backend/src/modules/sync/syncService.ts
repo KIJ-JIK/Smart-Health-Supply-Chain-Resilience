@@ -593,13 +593,14 @@ export class SyncService {
     // 2. Query deltas from the database since watermark
     const deltas: DeltaOutput[] = [];
 
-    // Redistribution approvals
+    // Redistribution transfers (approved, dispatched, in_transit, delivered)
     const redistRes = await adminPool.query(
-      `SELECT id, source_phc_id, dest_phc_id, item_ref, item_type, quantity, status, decided_at
+      `SELECT id, source_phc_id, dest_phc_id, item_ref, quantity, status, carrier, tracking_number,
+              decided_at, decided_by, dispatched_at, delivered_at, notes, created_at
        FROM redistribution_transfers
        WHERE (source_phc_id = $1 OR dest_phc_id = $1)
-         AND status = 'approved'
-       ORDER BY decided_at DESC NULLS LAST LIMIT $2`,
+         AND status != 'recommended'
+       ORDER BY COALESCE(decided_at, created_at) DESC LIMIT $2`,
       [phcId, limit],
     );
     for (const r of redistRes.rows) {
@@ -613,11 +614,13 @@ export class SyncService {
       });
     }
 
-    // Resource request status updates
+    // Resource request status updates (approved, dispatched, in_transit, delivered, rejected)
     const reqRes = await adminPool.query(
-      `SELECT id, request_type, priority, status, decided_at, created_at
+      `SELECT id, phc_id, district_id, state_id, request_type, item_ref, item_name,
+              quantity, priority, reason, source, status, notes, carrier, tracking_number,
+              decided_at, decided_by, dispatched_at, delivered_at, created_at
        FROM resource_requests
-       WHERE phc_id = $1 AND status != 'pending'
+       WHERE phc_id = $1
        ORDER BY created_at DESC LIMIT $2`,
       [phcId, limit],
     );

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@apollo/client';
-import { REDISTRIBUTION_RECOMMENDATIONS } from '@/graphql/queries';
+import { useQuery, useMutation } from '@apollo/client';
+import { REDISTRIBUTION_RECOMMENDATIONS, UPDATE_REDISTRIBUTION_LIFECYCLE } from '@/graphql/queries';
 import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
 import { getEnforcedScope } from '@/lib/scopeEnforcer';
@@ -29,6 +29,7 @@ import {
   MapPin,
   Truck,
   Package,
+  PackageCheck,
   TrendingUp,
   Search,
   Sparkles,
@@ -37,6 +38,8 @@ import {
   Ban,
   Activity,
   History,
+  Send,
+  Navigation,
 } from 'lucide-react';
 
 const URGENCY_STYLE: Record<string, { bg: string; text: string; border: string }> = {
@@ -96,8 +99,17 @@ export default function RedistributionPage() {
   const [rejectNotes, setRejectNotes] = useState<string>('');
   const [rejectError, setRejectError] = useState<string | null>(null);
 
+  // Dispatch Logistics state
+  const [dispatchingRecId, setDispatchingRecId] = useState<string | null>(null);
+  const [dispatchCarrier, setDispatchCarrier] = useState<string>('District Medical Logistics Van #12 (MH-12-TX-4402)');
+  const [dispatchTracking, setDispatchTracking] = useState<string>('');
+  const [dispatchNotes, setDispatchNotes] = useState<string>('Temperature-controlled medical transport active');
+
   // Approve state
   const [approveNotes, setApproveNotes] = useState<Record<string, string>>({});
+
+  // GraphQL Mutation
+  const [updateLifecycleMutation] = useMutation(UPDATE_REDISTRIBUTION_LIFECYCLE);
 
   // Build query variables based on active scope
   const queryVariables = useMemo(() => {
@@ -112,10 +124,11 @@ export default function RedistributionPage() {
     return vars;
   }, [currentDistrict, currentState]);
 
-  // GraphQL query against real backend
+  // GraphQL query against real backend with 3s live polling
   const { data: gqlData, refetch } = useQuery(REDISTRIBUTION_RECOMMENDATIONS, {
     variables: queryVariables,
     fetchPolicy: 'cache-and-network',
+    pollInterval: 3000,
   });
 
   // Synchronize when real database records return
@@ -272,6 +285,64 @@ export default function RedistributionPage() {
     setRejectingRecId(null);
     setDecidingId(null);
     refetch();
+  };
+
+  // Handle Transition Lifecycle (Dispatched -> In Transit -> Delivered)
+  const handleTransitionLifecycle = async (
+    rec: RedistributionRecommendation,
+    nextStatus: 'dispatched' | 'in_transit' | 'delivered',
+    customCarrier?: string,
+    customTracking?: string,
+    customNotes?: string,
+  ) => {
+    setDecidingId(rec.recommendationId);
+    try {
+      await updateLifecycleMutation({
+        variables: {
+          transferId: rec.recommendationId,
+          status: nextStatus,
+          carrier: customCarrier || dispatchCarrier,
+          trackingNumber: customTracking || dispatchTracking || `LOG-${rec.recommendationId.substring(0, 8).toUpperCase()}`,
+          notes: customNotes || dispatchNotes,
+          decidedBy: user.name || 'District Health Officer',
+        },
+      });
+
+      // Also call REST endpoint fallback
+      try {
+        await fetch(`/api/v1/governance/redistribution/${rec.recommendationId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: nextStatus,
+            carrier: customCarrier || dispatchCarrier,
+            trackingNumber: customTracking || dispatchTracking,
+            notes: customNotes || dispatchNotes,
+          }),
+        });
+      } catch (_) {}
+
+      setRecommendations((prev) =>
+        prev.map((item) =>
+          item.recommendationId === rec.recommendationId
+            ? {
+                ...item,
+                status: nextStatus,
+                transferStatus: nextStatus,
+                carrier: customCarrier || dispatchCarrier,
+                trackingNumber: customTracking || dispatchTracking,
+              }
+            : item,
+        ),
+      );
+
+      setDispatchingRecId(null);
+      refetch();
+    } catch (err) {
+      console.error('Failed to update transfer status:', err);
+    } finally {
+      setDecidingId(null);
+    }
   };
 
   // Filtered recommendations
@@ -784,12 +855,211 @@ export default function RedistributionPage() {
                           <div>
                             <strong>Decided By:</strong> {rec.decisionBy || 'Dr. S. Patil'} ({formatDateTime(rec.decisionAt ?? rec.createdAt)})
                           </div>
-                          {rec.notes && <div><strong>Notes:</strong> {rec.notes}</div>}
+                          {rec.carrier && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0369A1', fontWeight: 600 }}>
+                              <Truck size={13} />
+                              <span>Carrier: {rec.carrier}</span>
+                              {rec.trackingNumber && <span style={{ fontFamily: 'monospace' }}>({rec.trackingNumber})</span>}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+
+                        {/* Interactive Logistics Transition Controls for Active Transfers */}
+                        <div
+                          style={{
+                            marginTop: 12,
+                              paddingTop: 12,
+                              borderTop: '1px dashed #CBD5E1',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 10,
+                            }}
+                          >
+                            {/* Step 1: Status = 'approved' -> Dispatching Form or Button */}
+                            {rec.status === 'approved' && (
+                              <div>
+                                {dispatchingRecId === rec.recommendationId ? (
+                                  <div
+                                    style={{
+                                      background: '#F0F9FF',
+                                      border: '1px solid #BAE6FD',
+                                      borderRadius: 6,
+                                      padding: 12,
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 10,
+                                    }}
+                                  >
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>
+                                      Assign Logistics Carrier & Dispatch Consignment:
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                      <div>
+                                        <label style={{ fontSize: 11, fontWeight: 600, color: '#0369A1', display: 'block', marginBottom: 2 }}>
+                                          Carrier / Vehicle Unit
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={dispatchCarrier}
+                                          onChange={(e) => setDispatchCarrier(e.target.value)}
+                                          placeholder="e.g. District Logistics Van #12 (MH-12-TX-4402)"
+                                          style={{ width: '100%', padding: '6px 8px', fontSize: 12, borderRadius: 4, border: '1px solid #93C5FD' }}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label style={{ fontSize: 11, fontWeight: 600, color: '#0369A1', display: 'block', marginBottom: 2 }}>
+                                          Tracking Number
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={dispatchTracking}
+                                          onChange={(e) => setDispatchTracking(e.target.value)}
+                                          placeholder={`LOG-${rec.recommendationId.substring(0, 8).toUpperCase()}`}
+                                          style={{ width: '100%', padding: '6px 8px', fontSize: 12, borderRadius: 4, border: '1px solid #93C5FD' }}
+                                        />
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                      <button
+                                        onClick={() => setDispatchingRecId(null)}
+                                        style={{ padding: '5px 12px', fontSize: 11, borderRadius: 4, border: '1px solid #CBD5E1', background: 'white', cursor: 'pointer' }}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        onClick={() => handleTransitionLifecycle(rec, 'dispatched', dispatchCarrier, dispatchTracking)}
+                                        disabled={decidingId === rec.recommendationId}
+                                        style={{
+                                          padding: '5px 14px',
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          borderRadius: 4,
+                                          border: 'none',
+                                          background: '#0284C7',
+                                          color: 'white',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 6,
+                                        }}
+                                      >
+                                        <Send size={13} /> Confirm & Dispatch Consignment
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                                    <span style={{ fontSize: 12, color: '#64748B' }}>
+                                      Transfer approved by CMO. Ready for depot vehicle assignment.
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        setDispatchingRecId(rec.recommendationId);
+                                        setDispatchTracking(`LOG-${rec.recommendationId.substring(0, 8).toUpperCase()}`);
+                                      }}
+                                      style={{
+                                        padding: '6px 14px',
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        borderRadius: 4,
+                                        border: '1px solid #0284C7',
+                                        background: '#0284C7',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                      }}
+                                    >
+                                      <Truck size={14} /> Dispatch Vehicle & Assign Logistics
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Step 2: Status = 'dispatched' -> Mark In-Transit */}
+                            {rec.status === 'dispatched' && (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                                <div style={{ fontSize: 12, color: '#0369A1' }}>
+                                  📦 Consignment dispatched with carrier <strong>{rec.carrier || 'District Medical Van'}</strong>.
+                                </div>
+                                <button
+                                  onClick={() => handleTransitionLifecycle(rec, 'in_transit')}
+                                  disabled={decidingId === rec.recommendationId}
+                                  style={{
+                                    padding: '6px 14px',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    borderRadius: 4,
+                                    border: 'none',
+                                    background: '#6D28D9',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                  }}
+                                >
+                                  <Navigation size={14} /> Mark In-Transit (Activate Telemetry)
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Step 3: Status = 'in_transit' -> Confirm Delivered */}
+                            {rec.status === 'in_transit' && (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                                <div style={{ fontSize: 12, color: '#6D28D9' }}>
+                                  🚚 Vehicle is currently on route to destination facility <strong>{rec.toPhcName}</strong>.
+                                </div>
+                                <button
+                                  onClick={() => handleTransitionLifecycle(rec, 'delivered')}
+                                  disabled={decidingId === rec.recommendationId}
+                                  style={{
+                                    padding: '6px 14px',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    borderRadius: 4,
+                                    border: 'none',
+                                    background: '#15803D',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                  }}
+                                >
+                                  <PackageCheck size={14} /> Confirm Handover (Mark Delivered)
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Step 4: Status = 'delivered' -> Completed confirmation */}
+                            {rec.status === 'delivered' && (
+                              <div
+                                style={{
+                                  background: '#F0FDF4',
+                                  border: '1px solid #BBF7D0',
+                                  borderRadius: 6,
+                                  padding: '8px 12px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                  fontSize: 12,
+                                  color: '#15803D',
+                                }}
+                              >
+                                <CheckCircle size={16} />
+                                <span>
+                                  <strong>Consignment Delivered & Handover Verified:</strong> Medicine stock has been integrated into recipient facility buffer.
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                 {/* ── INLINE MODIFY FORM ────────────────────────────────────────── */}
                 {isEditing && (

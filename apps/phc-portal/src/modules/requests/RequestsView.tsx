@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SendHorizontal,
   Plus,
   CheckCircle2,
   XCircle,
+  Truck,
+  PackageCheck,
+  Clock,
+  ShieldCheck,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
@@ -21,6 +25,7 @@ import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { usePhcAuthStore } from '../../stores/authStore';
 import { getCurrentPhcId } from '../../db/seedData';
+import { PhcBackendService } from '../../services/phcBackendService';
 
 export const RequestsView: React.FC = () => {
   const { currentStaff, selectedFacility } = usePhcAuthStore();
@@ -40,8 +45,144 @@ export const RequestsView: React.FC = () => {
   const [priority, setPriority] = useState<RequestPriority>('routine');
   const [reason, setReason] = useState<RequestReason>('manual');
   const [notes, setNotes] = useState('');
+  const [isReceivingId, setIsReceivingId] = useState<string | null>(null);
 
   const [filterType, setFilterType] = useState<string>('all');
+
+  // Real-time live background polling from Railway backend to sync request status changes immediately
+  useEffect(() => {
+    let isMounted = true;
+    const pollBackendRequests = async () => {
+      try {
+        const backendUrl = PhcBackendService.getBaseUrl();
+        const res = await fetch(`${backendUrl}/graphql`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `
+              query GetPhcRequests($scope: ScopeInput) {
+                resourceRequests(scope: $scope) {
+                  id
+                  phcId
+                  requestType
+                  itemRef
+                  itemName
+                  quantity
+                  priority
+                  reason
+                  source
+                  status
+                  notes
+                  carrier
+                  trackingNumber
+                  createdAt
+                  decidedAt
+                  decidedBy
+                  dispatchedAt
+                  deliveredAt
+                }
+              }
+            `,
+            variables: { scope: { level: 'PHC', phcId: currentPhcId } },
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const serverReqs = json.data?.resourceRequests || [];
+          if (serverReqs.length > 0 && isMounted) {
+            for (const sr of serverReqs) {
+              const existing = await db.resource_requests.get(sr.id);
+              await db.resource_requests.put({
+                ...(existing || {}),
+                id: sr.id,
+                phc_id: sr.phcId || currentPhcId,
+                request_type: sr.requestType || 'medicine',
+                item_ref: sr.itemRef,
+                item_name: sr.itemName,
+                quantity: sr.quantity,
+                priority: sr.priority,
+                reason: sr.reason,
+                source: sr.source,
+                status: sr.status,
+                notes: sr.notes,
+                carrier: sr.carrier,
+                tracking_number: sr.trackingNumber,
+                created_at: sr.createdAt,
+                decided_at: sr.decidedAt,
+                decided_by: sr.decidedBy,
+                dispatched_at: sr.dispatchedAt,
+                delivered_at: sr.deliveredAt,
+              });
+            }
+          }
+        }
+      } catch (_) {}
+    };
+
+    pollBackendRequests();
+    const interval = setInterval(pollBackendRequests, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [currentPhcId]);
+
+  const handleConfirmReceipt = async (req: ResourceRequest) => {
+    setIsReceivingId(req.id);
+    try {
+      const now = new Date().toISOString();
+
+      // 1. Update local Dexie status
+      await db.resource_requests.update(req.id, {
+        status: 'delivered',
+        delivered_at: now,
+      });
+
+      // 2. Add stock to inventory_batches if medicine
+      if (req.request_type === 'medicine' && req.item_ref) {
+        await db.inventory_batches.add({
+          id: generateUUID(),
+          phc_id: currentPhcId,
+          medicine_id: req.item_ref,
+          batch_no: `BATCH-TRANSFER-${Date.now().toString().slice(-4)}`,
+          received_qty: Number(req.quantity),
+          remaining_qty: Number(req.quantity),
+          expiry_date: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
+          received_at: now,
+          status: 'active',
+          created_at: now,
+          updated_at: now,
+        });
+      }
+
+      // 3. Enqueue mutation
+      await enqueue('request_delivered', {
+        requestId: req.id,
+        phcId: currentPhcId,
+        deliveredAt: now,
+        notes: 'Delivery received and verified by facility pharmacist',
+      });
+
+      // 4. Directly notify backend GraphQL
+      try {
+        const backendUrl = PhcBackendService.getBaseUrl();
+        await fetch(`${backendUrl}/graphql`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `mutation DeliverReq($id: ID!) { deliverResourceRequest(requestId: $id, notes: "Goods verified & received at PHC") { id status } }`,
+            variables: { id: req.id },
+          }),
+        });
+      } catch (_) {}
+
+      addToast(`Goods receipt verified! ${req.quantity} units added to inventory.`, 'success');
+    } catch (err) {
+      addToast('Failed to confirm receipt', 'error');
+    } finally {
+      setIsReceivingId(null);
+    }
+  };
 
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +266,7 @@ export const RequestsView: React.FC = () => {
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 bg-white dark:bg-[#111827] p-2.5 rounded-xl border border-slate-200 dark:border-[#1e2d3d] shadow-sm overflow-x-auto">
-        {['all', 'pending', 'approved', 'in_transit', 'delivered', 'rejected'].map((f) => (
+        {['all', 'pending', 'approved', 'dispatched', 'in_transit', 'delivered', 'rejected'].map((f) => (
           <button
             key={f}
             onClick={() => setFilterType(f)}
@@ -212,6 +353,43 @@ export const RequestsView: React.FC = () => {
                         );
                       })}
                     </div>
+                  </div>
+                )}
+
+                {/* Logistics Metadata strip */}
+                {(req.carrier || req.tracking_number || (req as any).carrier || (req as any).trackingNumber) && (
+                  <div className="p-3 bg-blue-50 dark:bg-[#0e2238] border border-blue-200 dark:border-blue-900/50 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 font-semibold">
+                      <Truck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span>Carrier: {req.carrier || (req as any).carrier}</span>
+                      <span className="text-blue-400 dark:text-blue-600">•</span>
+                      <span>Waybill / Plate: {req.tracking_number || (req as any).trackingNumber}</span>
+                    </div>
+                    {req.dispatched_at && (
+                      <div className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Dispatched: {formatDateTime(req.dispatched_at)}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Actions: Confirm Delivery for PHC */}
+                {(req.status === 'dispatched' || req.status === 'in_transit') && (
+                  <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl">
+                    <div className="text-xs text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Consignment en-route. Confirm physical goods receipt upon unloading.</span>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleConfirmReceipt(req)}
+                      disabled={isReceivingId === req.id}
+                      leftIcon={<PackageCheck className="w-3.5 h-3.5" />}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {isReceivingId === req.id ? 'Updating Stock...' : 'Confirm Goods Receipt'}
+                    </Button>
                   </div>
                 )}
 

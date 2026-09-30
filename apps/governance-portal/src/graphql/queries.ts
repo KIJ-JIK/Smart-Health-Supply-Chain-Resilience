@@ -271,15 +271,23 @@ export const SUPPLY_CHAIN_SHIPMENTS = gql`
     supplyChainShipments(filter: $filter) {
       shipmentId
       orderDate
+      dispatchTime
       expectedDelivery
       actualDelivery
       status
       stage
       supplier
+      sourceLocation
       destinationPhcId
       destinationPhcName
       districtId
       stateId
+      carrier
+      trackingNumber
+      redistributionId
+      isDelayed
+      delayHours
+      delayReason
       totalValue
       currency
       items {
@@ -513,12 +521,97 @@ export const REJECT_RESOURCE_REQUEST = gql`
 `;
 
 export const DISPATCH_RESOURCE_REQUEST = gql`
-  mutation DispatchResourceRequest($requestId: ID!, $notes: String, $decidedBy: String) {
-    dispatchResourceRequest(requestId: $requestId, notes: $notes, decidedBy: $decidedBy) {
+  mutation DispatchResourceRequest($requestId: ID!, $carrier: String, $trackingNumber: String, $notes: String, $decidedBy: String) {
+    dispatchResourceRequest(requestId: $requestId, carrier: $carrier, trackingNumber: $trackingNumber, notes: $notes, decidedBy: $decidedBy) {
       id
       status
+      carrier
+      trackingNumber
       decidedAt
       decidedBy
+      dispatchedAt
+    }
+  }
+`;
+
+export const TRANSIT_RESOURCE_REQUEST = gql`
+  mutation TransitResourceRequest($requestId: ID!, $carrier: String, $trackingNumber: String, $notes: String, $decidedBy: String) {
+    transitResourceRequest(requestId: $requestId, carrier: $carrier, trackingNumber: $trackingNumber, notes: $notes, decidedBy: $decidedBy) {
+      id
+      status
+      carrier
+      trackingNumber
+      decidedAt
+      decidedBy
+    }
+  }
+`;
+
+export const DELIVER_RESOURCE_REQUEST = gql`
+  mutation DeliverResourceRequest($requestId: ID!, $notes: String, $decidedBy: String) {
+    deliverResourceRequest(requestId: $requestId, notes: $notes, decidedBy: $decidedBy) {
+      id
+      status
+      deliveredAt
+      decidedBy
+    }
+  }
+`;
+
+export const UPDATE_REDISTRIBUTION_LIFECYCLE = gql`
+  mutation UpdateRedistributionLifecycle(
+    $transferId: ID!
+    $status: String!
+    $carrier: String
+    $trackingNumber: String
+    $notes: String
+    $decidedBy: String
+  ) {
+    updateRedistributionLifecycle(
+      transferId: $transferId
+      status: $status
+      carrier: $carrier
+      trackingNumber: $trackingNumber
+      notes: $notes
+      decidedBy: $decidedBy
+    ) {
+      recommendationId
+      transferId
+      status
+      transferStatus
+      carrier
+      trackingNumber
+      dispatchedAt
+      deliveredAt
+      decisionAt
+      decisionBy
+      notes
+    }
+  }
+`;
+
+export const UPDATE_SHIPMENT_STATUS = gql`
+  mutation UpdateShipmentStatus(
+    $shipmentId: ID!
+    $status: String!
+    $carrier: String
+    $trackingNumber: String
+    $notes: String
+  ) {
+    updateShipmentStatus(
+      shipmentId: $shipmentId
+      status: $status
+      carrier: $carrier
+      trackingNumber: $trackingNumber
+      notes: $notes
+    ) {
+      shipmentId
+      status
+      stage
+      carrier
+      trackingNumber
+      dispatchTime
+      actualDelivery
     }
   }
 `;

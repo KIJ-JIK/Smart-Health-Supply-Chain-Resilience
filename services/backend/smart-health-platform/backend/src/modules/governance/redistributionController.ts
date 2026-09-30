@@ -142,4 +142,48 @@ redistributionRouter.post('/:id/decision', async (req: Request, res: Response) =
   }
 });
 
+/**
+ * POST /api/v1/governance/redistribution/:id/status
+ * Updates transfer lifecycle status ('dispatched', 'in_transit', 'delivered').
+ */
+redistributionRouter.post('/:id/status', async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const transferId = req.params.id;
+    const { status, carrier, trackingNumber, notes } = req.body;
+    const targetStatus = (status || 'dispatched').toLowerCase();
+
+    let extraSets = '';
+    if (targetStatus === 'dispatched') {
+      extraSets = `, dispatched_at = NOW(), carrier = COALESCE($3, carrier), tracking_number = COALESCE($4, tracking_number)`;
+    } else if (targetStatus === 'delivered') {
+      extraSets = `, delivered_at = NOW()`;
+    }
+
+    const upd = await client.query(`
+      UPDATE redistribution_transfers
+      SET status = $2, transfer_status = $2, notes = COALESCE($5, notes) ${extraSets}
+      WHERE id::text = $1
+      RETURNING *
+    `, [transferId, targetStatus, carrier || null, trackingNumber || null, notes || null]);
+
+    if (upd.rows.length === 0) {
+      return res.status(404).json({ error: `Transfer ${transferId} not found` });
+    }
+
+    eventBus.publish('redistribution.status_changed', { ...upd.rows[0], status: targetStatus }, 'redistribution-controller').catch(() => {});
+
+    return res.status(200).json({
+      success: true,
+      message: `Transfer ${transferId} transitioned to ${targetStatus}`,
+      transfer: upd.rows[0],
+    });
+  } catch (err: any) {
+    console.error(`[redistributionRouter] POST /:id/status error:`, err);
+    return res.status(500).json({ error: 'Failed to update transfer status', message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 export default redistributionRouter;

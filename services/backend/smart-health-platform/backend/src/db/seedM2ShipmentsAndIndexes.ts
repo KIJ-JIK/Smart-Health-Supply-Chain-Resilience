@@ -11,12 +11,19 @@ export async function ensureM2SeedsAndIndexes(): Promise<void> {
       console.warn('[M2 Seed] Warning in seedGapPhcs:', e?.message || e);
     }
 
-    // 0. Ensure columns exist on redistribution_transfers
+    // 0. Ensure columns exist on redistribution_transfers and resource_requests
     await client.query(`
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS notes TEXT;
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS recommended_by VARCHAR(20) DEFAULT 'ai';
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS item_ref VARCHAR(100);
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS item_type VARCHAR(30) DEFAULT 'medicine';
+      ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS transfer_status VARCHAR(50) DEFAULT 'recommended';
+      ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS carrier VARCHAR(255);
+      ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(100);
+      ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS decided_at TIMESTAMPTZ;
+      ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS decided_by VARCHAR(255);
+      ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS dispatched_at TIMESTAMPTZ;
+      ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
 
       CREATE TABLE IF NOT EXISTS resource_requests (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -32,6 +39,8 @@ export async function ensureM2SeedsAndIndexes(): Promise<void> {
         reason VARCHAR(50) DEFAULT 'manual',
         source VARCHAR(20) DEFAULT 'manual',
         status VARCHAR(20) DEFAULT 'pending',
+        carrier VARCHAR(255),
+        tracking_number VARCHAR(100),
         notes TEXT,
         created_at TIMESTAMPTZ DEFAULT now(),
         decided_at TIMESTAMPTZ,
@@ -55,9 +64,14 @@ export async function ensureM2SeedsAndIndexes(): Promise<void> {
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'manual';
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending';
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS request_type VARCHAR(20) DEFAULT 'medicine';
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS carrier VARCHAR(255);
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(100);
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS notes TEXT;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS decided_at TIMESTAMPTZ;
       ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS decided_by VARCHAR(255);
+
+      ALTER TABLE supply_chain_shipments ADD COLUMN IF NOT EXISTS transfer_id UUID;
+      ALTER TABLE supply_chain_shipments ADD COLUMN IF NOT EXISTS request_id UUID;
 
       UPDATE resource_requests r
       SET district_id = f.district_id, state_id = f.state_id
