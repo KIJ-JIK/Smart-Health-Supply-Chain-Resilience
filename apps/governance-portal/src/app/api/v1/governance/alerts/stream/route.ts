@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'https://smart-health-supply-chain-resilience-production.up.railway.app';

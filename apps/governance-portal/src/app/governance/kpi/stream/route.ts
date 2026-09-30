@@ -4,6 +4,7 @@
 // Falls back to a static tick if the backend is unavailable.
 // ─────────────────────────────────────────────────────────────────────────────
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/graphql', '') || 'https://smart-health-supply-chain-resilience-production.up.railway.app';
 
