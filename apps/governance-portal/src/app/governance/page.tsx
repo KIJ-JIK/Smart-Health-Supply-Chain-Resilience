@@ -1274,7 +1274,14 @@ export default function CommandCenterPage() {
                 </div>
 
                 {frontlineRequests.length > 0 ? (
-                  frontlineRequests.slice(0, 3).map((req: any) => {
+                  [...frontlineRequests]
+                    .sort((a: any, b: any) => {
+                      if (a.status === 'pending' && b.status !== 'pending') return -1;
+                      if (a.status !== 'pending' && b.status === 'pending') return 1;
+                      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+                    })
+                    .slice(0, 8)
+                    .map((req: any) => {
                     const isPending = req.status === 'pending';
                     const isApproved = req.status === 'approved';
                     const isDispatched = req.status === 'dispatched';

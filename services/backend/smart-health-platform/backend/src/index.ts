@@ -1,5 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
+import { randomUUID } from 'crypto';
+import { pool } from './db/pool';
+import { eventBus } from './events/eventBus';
 import { tenantContextMiddleware, requireAuth } from './middleware/tenantContext';
 
 const app = express();
@@ -92,7 +95,7 @@ app.get('/api/v1/phc/:phcId/requests', requireAuth, async (req, res) => {
     const { phcId } = req.params;
     const rows = await req.withTenantContext(async (client) => {
       const r = await client.query(
-        `SELECT id, request_type, priority, status, created_at, decided_at
+        `SELECT id, request_type, item_name, quantity, priority, status, carrier, tracking_number, created_at, decided_at, dispatched_at, delivered_at
          FROM resource_requests
          WHERE phc_id = $1
          ORDER BY created_at DESC`,
@@ -106,6 +109,72 @@ app.get('/api/v1/phc/:phcId/requests', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/phc/requests & POST /api/v1/phc/:phcId/requests — create/upsert request
+// ---------------------------------------------------------------------------
+const handleCreateResourceRequest = async (req: express.Request, res: express.Response) => {
+  try {
+    const body = req.body || {};
+    const phcId = req.params.phcId || body.phc_id || body.phcId;
+    if (!phcId) {
+      res.status(400).json({ error: 'phc_id is required' });
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      // Lookup district & state for this PHC if not provided
+      let districtId = body.district_id || body.districtId;
+      let stateId = body.state_id || body.stateId;
+      if (!districtId || !stateId) {
+        const facRes = await client.query('SELECT district_id, state_id FROM phc_facilities WHERE id = $1', [phcId]);
+        if (facRes.rows[0]) {
+          districtId = districtId || facRes.rows[0].district_id;
+          stateId = stateId || facRes.rows[0].state_id;
+        }
+      }
+
+      const reqId = body.id || randomUUID();
+      const insertRes = await client.query(`
+        INSERT INTO resource_requests (
+          id, phc_id, district_id, state_id, request_type, item_ref, item_name, quantity, priority, reason, source, status, notes, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+        ON CONFLICT (id) DO UPDATE
+          SET quantity = EXCLUDED.quantity, priority = EXCLUDED.priority, status = EXCLUDED.status, notes = EXCLUDED.notes
+        RETURNING *
+      `, [
+        reqId,
+        phcId,
+        districtId || null,
+        stateId || null,
+        body.request_type || body.requestType || 'medicine',
+        body.item_ref || body.itemRef || null,
+        body.item_name || body.itemName || `${(body.request_type || 'SUPPLY').toUpperCase()} Requisition`,
+        Number(body.quantity || 100),
+        body.priority || 'routine',
+        body.reason || 'manual',
+        body.source || 'manual',
+        body.status || 'pending',
+        body.notes || null,
+      ]);
+
+      const saved = insertRes.rows[0];
+      eventBus.publish('request.created', saved, 'phc-portal').catch(() => {});
+      eventBus.publish('request.status_changed', { ...saved, previous_status: 'none' }, 'phc-portal').catch(() => {});
+
+      res.status(201).json({ success: true, data: saved });
+    } finally {
+      client.release();
+    }
+  } catch (err: any) {
+    console.error('Create resource request error:', err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+};
+
+app.post('/api/v1/phc/requests', handleCreateResourceRequest);
+app.post('/api/v1/phc/:phcId/requests', handleCreateResourceRequest);
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/alerts — returns alerts visible to the authenticated role

@@ -193,24 +193,48 @@ export const RequestsView: React.FC = () => {
       if (med) itemName = med.name;
     }
 
-    try {
-      await enqueue('resource_request', {
-        id: generateUUID(),
-        phc_id: currentPhcId,
-        district_id: selectedFacility?.district_id || selectedFacility?.district || currentStaff?.district,
-        state_id: selectedFacility?.state_id || selectedFacility?.state || currentStaff?.state,
-        request_type: reqType,
-        item_ref: selectedItemRef || undefined,
-        item_name: itemName || `${reqType.toUpperCase()} Supply Request`,
-        quantity: Number(quantity),
-        priority,
-        reason,
-        source: 'manual',
-        status: 'pending',
-        notes: notes.trim(),
-      });
+    const reqId = generateUUID();
+    const payload = {
+      id: reqId,
+      phc_id: currentPhcId,
+      district_id: selectedFacility?.district_id || selectedFacility?.district || currentStaff?.district,
+      state_id: selectedFacility?.state_id || selectedFacility?.state || currentStaff?.state,
+      request_type: reqType,
+      item_ref: selectedItemRef || undefined,
+      item_name: itemName || `${reqType.toUpperCase()} Supply Request`,
+      quantity: Number(quantity),
+      priority,
+      reason,
+      source: 'manual',
+      status: 'pending',
+      notes: notes.trim(),
+    };
 
-      addToast('Supply request enqueued and routed to District CMO!', 'success');
+    try {
+      // 1. Enqueue to local Dexie IndexedDB
+      const entry = await enqueue('resource_request', payload, reqId);
+
+      // 2. Immediate direct submission to Railway Backend
+      try {
+        const backendUrl = PhcBackendService.getBaseUrl();
+        const res = await fetch(`${backendUrl}/api/v1/phc/requests`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          // Mark mutation as SYNCED in Dexie queue
+          await db.mutation_queue.update(entry.id, {
+            sync_status: 'synced',
+            last_error: null,
+          });
+        }
+      } catch (networkErr) {
+        console.warn('Direct backend push offline, queued for background sync engine:', networkErr);
+      }
+
+      addToast('Supply request broadcast to National & District Command Center!', 'success');
       setNewRequestModalOpen(false);
       setCustomItemName('');
       setNotes('');
