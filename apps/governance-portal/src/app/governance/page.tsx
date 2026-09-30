@@ -16,6 +16,8 @@ import {
   APPROVE_RESOURCE_REQUEST,
   REJECT_RESOURCE_REQUEST,
   DISPATCH_RESOURCE_REQUEST,
+  TRANSIT_RESOURCE_REQUEST,
+  DELIVER_RESOURCE_REQUEST,
 } from '@/graphql/queries';
 import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
@@ -185,6 +187,8 @@ export default function CommandCenterPage() {
   const [approveRequestMutation] = useMutation(APPROVE_RESOURCE_REQUEST);
   const [rejectRequestMutation] = useMutation(REJECT_RESOURCE_REQUEST);
   const [dispatchRequestMutation] = useMutation(DISPATCH_RESOURCE_REQUEST);
+  const [transitRequestMutation] = useMutation(TRANSIT_RESOURCE_REQUEST);
+  const [deliverRequestMutation] = useMutation(DELIVER_RESOURCE_REQUEST);
   const [requestActionLoading, setRequestActionLoading] = useState<string | null>(null);
 
   const frontlineRequests = useMemo(() => {
@@ -219,6 +223,8 @@ export default function CommandCenterPage() {
       await dispatchRequestMutation({
         variables: {
           requestId: id,
+          carrier: 'District Medical Logistics Van #12 (MH-12-TX-4402)',
+          trackingNumber: `LOG-${id.substring(0, 8).toUpperCase()}`,
           notes: 'Dispatched from medical logistics hub',
           decidedBy: user.name || 'District CMO',
         },
@@ -226,6 +232,42 @@ export default function CommandCenterPage() {
       await refetchRequests();
     } catch (e: any) {
       console.error('Failed to dispatch request:', e);
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
+
+  const handleTransitRequest = async (id: string) => {
+    try {
+      setRequestActionLoading(id);
+      await transitRequestMutation({
+        variables: {
+          requestId: id,
+          notes: 'Vehicle en route via GPS active route',
+          decidedBy: user.name || 'District CMO',
+        },
+      });
+      await refetchRequests();
+    } catch (e: any) {
+      console.error('Failed to mark request in transit:', e);
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
+
+  const handleDeliverRequest = async (id: string) => {
+    try {
+      setRequestActionLoading(id);
+      await deliverRequestMutation({
+        variables: {
+          requestId: id,
+          notes: 'Delivery completed & confirmed at PHC',
+          decidedBy: user.name || 'District CMO',
+        },
+      });
+      await refetchRequests();
+    } catch (e: any) {
+      console.error('Failed to deliver request:', e);
     } finally {
       setRequestActionLoading(null);
     }
@@ -1319,14 +1361,21 @@ export default function CommandCenterPage() {
                           <RiskBadge level={req.priority === 'critical' ? 'CRITICAL' : req.priority === 'urgent' ? 'HIGH' : 'LOW'} size="sm" pulse={isCrit && isPending} />
                         </div>
 
+                        {(req.carrier || req.trackingNumber) && (
+                          <div style={{ fontSize: 10, color: '#0369a1', backgroundColor: '#e0f2fe', padding: '4px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Truck size={11} />
+                            <span><strong>{req.carrier || 'Logistics Van'}</strong> • {req.trackingNumber}</span>
+                          </div>
+                        )}
+
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid #f1f5f9', fontSize: 11 }}>
                           <span style={{
                             fontWeight: 700,
                             textTransform: 'uppercase',
                             fontSize: 10,
-                            color: isPending ? '#d97706' : isApproved ? '#2563eb' : isDispatched ? '#059669' : '#64748b',
+                            color: isPending ? '#d97706' : isApproved ? '#2563eb' : isDispatched ? '#0369a1' : req.status === 'in_transit' ? '#7c3aed' : req.status === 'delivered' ? '#15803d' : '#64748b',
                           }}>
-                            ● {req.status}
+                            ● {req.status?.replace('_', ' ')}
                           </span>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1397,7 +1446,55 @@ export default function CommandCenterPage() {
                               </button>
                             )}
 
-                            {!isPending && !isApproved && (
+                            {isDispatched && (
+                              <button
+                                type="button"
+                                disabled={isLoadingThis}
+                                onClick={() => handleTransitRequest(req.id)}
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: 4,
+                                  backgroundColor: '#7c3aed',
+                                  color: '#ffffff',
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                }}
+                              >
+                                {isLoadingThis ? <RefreshCw size={10} className="animate-spin" /> : <Truck size={11} />}
+                                In Transit
+                              </button>
+                            )}
+
+                            {req.status === 'in_transit' && (
+                              <button
+                                type="button"
+                                disabled={isLoadingThis}
+                                onClick={() => handleDeliverRequest(req.id)}
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: 4,
+                                  backgroundColor: '#16a34a',
+                                  color: '#ffffff',
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                }}
+                              >
+                                {isLoadingThis ? <RefreshCw size={10} className="animate-spin" /> : <CheckCircle2 size={11} />}
+                                Deliver
+                              </button>
+                            )}
+
+                            {!isPending && !isApproved && !isDispatched && req.status !== 'in_transit' && (
                               <span style={{ fontSize: 10, color: '#64748b' }}>
                                 {req.decidedAt ? new Date(req.decidedAt).toLocaleDateString() : 'Updated'}
                               </span>

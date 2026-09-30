@@ -156,9 +156,19 @@ export default function RedistributionPage() {
     };
 
     try {
-      await postDecision(rec.recommendationId, payload);
-    } catch {
-      // Optimistic update fallback
+      await updateLifecycleMutation({
+        variables: {
+          transferId: rec.recommendationId,
+          status: 'approved',
+          carrier: rec.carrier || 'District Medical Logistics',
+          trackingNumber: rec.trackingNumber || `LOG-${rec.recommendationId.substring(0, 8).toUpperCase()}`,
+          notes,
+          decidedBy: user.name || user.id || 'District Health Officer',
+        },
+      });
+      await postDecision(rec.recommendationId, payload).catch(() => {});
+    } catch (err) {
+      console.error('Failed to approve redistribution via GraphQL:', err);
     }
 
     setRecommendations((prev) =>
@@ -263,9 +273,17 @@ export default function RedistributionPage() {
     };
 
     try {
-      await postDecision(rec.recommendationId, payload);
-    } catch {
-      // Optimistic update fallback
+      await updateLifecycleMutation({
+        variables: {
+          transferId: rec.recommendationId,
+          status: 'rejected',
+          notes: rejectNotes,
+          decidedBy: user.name || user.id || 'District Health Officer',
+        },
+      });
+      await postDecision(rec.recommendationId, payload).catch(() => {});
+    } catch (err) {
+      console.error('Failed to reject redistribution via GraphQL:', err);
     }
 
     setRecommendations((prev) =>
