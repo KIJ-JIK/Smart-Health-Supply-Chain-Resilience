@@ -386,7 +386,7 @@ export class SyncService {
       `INSERT INTO resource_requests (
          id, phc_id, district_id, state_id, request_type, item_ref, item_name, quantity,
          priority, reason, source, status, notes, created_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'manual', 'pending', $10, NOW())
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'manual', 'pending', $11, NOW())
        ON CONFLICT (id) DO UPDATE
        SET quantity = EXCLUDED.quantity,
            priority = EXCLUDED.priority,
