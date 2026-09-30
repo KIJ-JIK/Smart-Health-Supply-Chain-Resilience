@@ -9,13 +9,15 @@ import {
   SyncPullDelta,
 } from '../types';
 
+import { PhcBackendService } from '../services/phcBackendService';
+
 export function useSyncEngine(isOnline: boolean) {
   const { markStatus } = useMutationQueue();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [lastSuccessfulSync, setLastSuccessfulSync] = useState<string | null>(null);
-  const [backendUrl, setBackendUrl] = useState((import.meta as any).env?.VITE_BACKEND_URL || 'http://localhost:8000');
+  const [backendUrl, setBackendUrl] = useState(PhcBackendService.getBaseUrl());
 
   const backoffDelayRef = useRef(1000); // Start at 1s
   const retryTimerRef = useRef<number | null>(null);

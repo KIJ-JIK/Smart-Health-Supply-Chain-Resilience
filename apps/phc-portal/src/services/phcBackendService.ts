@@ -36,7 +36,12 @@ export interface PhcFacilityBackendItem {
   operational_status: string;
 }
 
-const BACKEND_BASE = (import.meta as any).env?.VITE_BACKEND_URL || 'http://localhost:8000';
+const DEFAULT_PROD_BACKEND = 'https://smart-health-supply-chain-resilience-production.up.railway.app';
+const BACKEND_BASE =
+  (import.meta as any).env?.VITE_BACKEND_URL ||
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    ? DEFAULT_PROD_BACKEND
+    : 'http://localhost:8000');
 
 export class PhcBackendService {
   static getBaseUrl(): string {
