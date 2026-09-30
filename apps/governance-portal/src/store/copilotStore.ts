@@ -166,16 +166,52 @@ export const useCopilotStore = create<CopilotState>((set, get) => ({
         messages: state.messages.map((m) => (m.id === loadingId ? assistantMessage : m)),
         isLoading: false,
       }));
-    } catch (err) {
+    } catch (err: unknown) {
+      // One automatic retry for transient network errors (e.g. backend cold-start on Railway)
+      const isTimeout = err instanceof Error && (err.name === 'TimeoutError' || err.message.includes('timeout'));
+      const isNetwork = err instanceof Error && (err.name === 'TypeError' || err.message.includes('fetch'));
+
+      if (isTimeout || isNetwork) {
+        try {
+          const phcId = 'phc-001';
+          const activeLang = typeof window !== 'undefined' ? (localStorage.getItem('aura-portal-language') || 'en') : 'en';
+          const res = await fetch(`${BACKEND}/governance/copilot/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phcId, message: trimmed, language: activeLang }),
+            signal: AbortSignal.timeout(60000),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const retryMessage: CopilotMessage = {
+              id: `ai-${Date.now()}`,
+              role: 'assistant',
+              content: data.message,
+              timestamp: new Date().toISOString(),
+              modelVersion: data.model_version ?? 'copilot-v1.2',
+              confidenceScore: data.confidence ?? 0.90,
+              limitationsNote: data.limitations ?? undefined,
+            };
+            set((state) => ({
+              messages: state.messages.map((m) => (m.id === loadingId ? retryMessage : m)),
+              isLoading: false,
+            }));
+            return;
+          }
+        } catch (_retryErr) {
+          // fall through to error message below
+        }
+      }
+
       const errMessage: CopilotMessage = {
         id: `ai-${Date.now()}`,
         role: 'assistant',
         content:
-          'Unable to reach the health intelligence backend. Please check that the backend server is running (`npm run dev:backend`) and try again.',
+          'Unable to reach the backend. Ensure the Smart Health backend service is active. If it just started (cold boot), please wait a moment and try again.',
         timestamp: new Date().toISOString(),
         modelVersion: 'offline',
         confidenceScore: 0,
-        limitationsNote: String(err),
+        limitationsNote: err instanceof Error ? err.message : String(err),
       };
       set((state) => ({
         messages: state.messages.map((m) => (m.id === loadingId ? errMessage : m)),
