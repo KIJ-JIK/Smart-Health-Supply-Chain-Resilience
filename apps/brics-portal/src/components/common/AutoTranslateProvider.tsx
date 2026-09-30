@@ -6,9 +6,14 @@ interface TextState {
   original: string;
   lastTranslated: string;
 }
+
+// Keep a regular array alongside the WeakMap so we can iterate all tracked nodes
 const textStateMap = new WeakMap<Node, TextState>();
+const trackedTextNodes: Node[] = [];
 const placeholderStateMap = new WeakMap<Element, TextState>();
+const trackedPlaceholderEls: Element[] = [];
 const titleStateMap = new WeakMap<Element, TextState>();
+const trackedTitleEls: Element[] = [];
 
 let isTranslating = false;
 
@@ -52,6 +57,10 @@ function translateDOMTree(root: Element | Document = document) {
           original: node.nodeValue || '',
           lastTranslated: ''
         };
+        // Track new nodes so we can restore them later
+        if (!textStateMap.has(node)) {
+          trackedTextNodes.push(node);
+        }
       }
 
       const translated = translateStringToHindi(state.original);
@@ -71,6 +80,7 @@ function translateDOMTree(root: Element | Document = document) {
         let state = placeholderStateMap.get(el);
         if (!state || currentPh !== state.lastTranslated) {
           state = { original: currentPh, lastTranslated: '' };
+          if (!placeholderStateMap.has(el)) trackedPlaceholderEls.push(el);
         }
         const transPh = translateStringToHindi(state.original);
         if (currentPh !== transPh) {
@@ -85,6 +95,7 @@ function translateDOMTree(root: Element | Document = document) {
         let state = titleStateMap.get(el);
         if (!state || currentTitle !== state.lastTranslated) {
           state = { original: currentTitle, lastTranslated: '' };
+          if (!titleStateMap.has(el)) trackedTitleEls.push(el);
         }
         const transTitle = translateStringToHindi(state.original);
         if (currentTitle !== transTitle) {
@@ -99,35 +110,33 @@ function translateDOMTree(root: Element | Document = document) {
   }
 }
 
-function restoreDOMTree(root: Element | Document = document) {
-  // 1. Restore text nodes
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-  while (walker.nextNode()) {
-    const node = walker.currentNode;
+function restoreDOMTree() {
+  // 1. Restore ALL tracked text nodes unconditionally
+  for (const node of trackedTextNodes) {
     const state = textStateMap.get(node);
-    if (state && node.nodeValue === state.lastTranslated) {
-      if (node.nodeValue !== state.original) {
-        node.nodeValue = state.original;
-      }
-      state.lastTranslated = state.original; // Reset
+    if (state && node.nodeValue !== state.original) {
+      node.nodeValue = state.original;
     }
   }
+  // Clear tracking arrays so the next Hindi pass starts completely fresh
+  trackedTextNodes.length = 0;
 
-  // 2. Restore placeholders & titles
-  const elements = root.querySelectorAll('input, textarea, button, [title], [placeholder]');
-  elements.forEach((el) => {
-    const statePh = placeholderStateMap.get(el);
-    if (statePh && el.getAttribute('placeholder') === statePh.lastTranslated) {
-      el.setAttribute('placeholder', statePh.original);
-      statePh.lastTranslated = statePh.original;
+  // 2. Restore ALL tracked placeholder & title elements
+  for (const el of trackedPlaceholderEls) {
+    const state = placeholderStateMap.get(el);
+    if (state) {
+      el.setAttribute('placeholder', state.original);
     }
-    
-    const stateTitle = titleStateMap.get(el);
-    if (stateTitle && el.getAttribute('title') === stateTitle.lastTranslated) {
-      el.setAttribute('title', stateTitle.original);
-      stateTitle.lastTranslated = stateTitle.original;
+  }
+  trackedPlaceholderEls.length = 0;
+
+  for (const el of trackedTitleEls) {
+    const state = titleStateMap.get(el);
+    if (state) {
+      el.setAttribute('title', state.original);
     }
-  });
+  }
+  trackedTitleEls.length = 0;
 }
 
 export function AutoTranslateProvider({ children }: { children: React.ReactNode }) {
@@ -182,7 +191,7 @@ export function AutoTranslateProvider({ children }: { children: React.ReactNode 
         observerRef.current.disconnect();
         observerRef.current = null;
       }
-      restoreDOMTree(document.body);
+      restoreDOMTree();
     }
   }, [language]);
 
