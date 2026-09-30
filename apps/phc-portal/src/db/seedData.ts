@@ -3,14 +3,19 @@ import { SystemConfig } from '../types';
 
 export function getCurrentPhcId(): string {
   if (typeof window !== 'undefined') {
-    const auth = localStorage.getItem('phc-portal-auth');
-    if (auth) {
-      try {
-        const parsed = JSON.parse(auth);
-        if (parsed?.state?.selectedFacility?.id) {
-          return parsed.state.selectedFacility.id;
-        }
-      } catch (e) {}
+    for (const key of ['phc-portal-auth-v2', 'phc-portal-auth']) {
+      const auth = localStorage.getItem(key);
+      if (auth) {
+        try {
+          const parsed = JSON.parse(auth);
+          if (parsed?.state?.selectedFacility?.id) {
+            return parsed.state.selectedFacility.id;
+          }
+          if (parsed?.state?.currentStaff?.facilityId) {
+            return parsed.state.currentStaff.facilityId;
+          }
+        } catch (e) {}
+      }
     }
     const stored = localStorage.getItem('current_phc_id');
     if (stored) return stored;

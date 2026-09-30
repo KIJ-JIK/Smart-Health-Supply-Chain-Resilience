@@ -129,6 +129,28 @@ const schemaText = `
     createdAt: DateTime!
   }
 
+  type ResourceRequestItem {
+    id: ID!
+    phcId: ID!
+    phcName: String
+    districtId: ID
+    districtName: String
+    stateId: ID
+    stateName: String
+    requestType: String!
+    itemRef: String
+    itemName: String
+    quantity: Int!
+    priority: String!
+    reason: String
+    source: String
+    status: String!
+    notes: String
+    createdAt: DateTime!
+    decidedAt: DateTime
+    decidedBy: String
+  }
+
   type AlertSummary {
     id: ID!
     alertType: String!
@@ -398,6 +420,7 @@ const schemaText = `
     stateOverview(stateId: ID!): StateOverview!
     districtOverview(districtId: ID!): DistrictOverview!
     phcDetail(phcId: ID!): PhcDetail!
+    resourceRequests(scope: ScopeInput, status: String, limit: Int, offset: Int): [ResourceRequestItem!]!
     medicineIntelligence(scope: ScopeInput): [MedicineStock!]!
     resourceIntelligence(scope: ScopeInput): [ResourceItem!]!
     workforceIntelligence(scope: ScopeInput): [WorkforceRecord!]!
@@ -417,6 +440,9 @@ const schemaText = `
 
   type Mutation {
     decideRedistribution(transferId: ID!, decision: String!, modifiedQuantity: Int, notes: String): RedistributionRecommendation!
+    approveResourceRequest(requestId: ID!, notes: String, decidedBy: String): ResourceRequestItem!
+    rejectResourceRequest(requestId: ID!, notes: String, decidedBy: String): ResourceRequestItem!
+    dispatchResourceRequest(requestId: ID!, notes: String, decidedBy: String): ResourceRequestItem!
     startFederatedRound(modelId: String, targetEpsilon: Float, config: StartRoundInput): FederatedRound!
     approveAggregatedModel(roundId: ID!, targetVersion: String): FederatedRound!
     rejectAggregatedModel(roundId: ID!, reason: String): FederatedRound!
@@ -924,6 +950,70 @@ export const rootResolvers = {
         client.release();
       }
     });
+  },
+
+  resourceRequests: async (args?: { scope?: any; status?: string; limit?: number; offset?: number }) => {
+    const client = await pool.connect();
+    try {
+      const scope = args?.scope || {};
+      const { stateId, districtId, phcId } = await resolveJurisdiction(client, scope);
+
+      let query = `
+        SELECT 
+          r.id,
+          r.phc_id AS "phcId",
+          COALESCE(f.name, 'PHC Facility') AS "phcName",
+          COALESCE(r.district_id, f.district_id) AS "districtId",
+          COALESCE(d.name, 'District Command') AS "districtName",
+          COALESCE(r.state_id, f.state_id) AS "stateId",
+          COALESCE(s.name, 'State Health Dept') AS "stateName",
+          r.request_type AS "requestType",
+          r.item_ref AS "itemRef",
+          COALESCE(r.item_name, m.name, r.request_type || ' Supply') AS "itemName",
+          COALESCE(r.quantity, 1)::int AS quantity,
+          r.priority,
+          r.reason,
+          r.source,
+          r.status,
+          r.notes,
+          r.created_at AS "createdAt",
+          r.decided_at AS "decidedAt",
+          r.decided_by AS "decidedBy"
+        FROM resource_requests r
+        LEFT JOIN phc_facilities f ON r.phc_id = f.id
+        LEFT JOIN districts d ON COALESCE(r.district_id, f.district_id) = d.id
+        LEFT JOIN states s ON COALESCE(r.state_id, f.state_id) = s.id
+        LEFT JOIN medicines m ON r.item_ref::text = m.id::text
+        WHERE 1=1
+      `;
+      const params: any[] = [];
+
+      if (phcId) {
+        params.push(phcId);
+        query += ` AND (r.phc_id = $${params.length} OR f.id = $${params.length})`;
+      } else if (districtId) {
+        params.push(districtId);
+        query += ` AND (r.district_id = $${params.length} OR f.district_id = $${params.length})`;
+      } else if (stateId) {
+        params.push(stateId);
+        query += ` AND (r.state_id = $${params.length} OR f.state_id = $${params.length})`;
+      }
+
+      if (args?.status && args.status !== 'all') {
+        params.push(args.status);
+        query += ` AND r.status = $${params.length}`;
+      }
+
+      const limit = Math.min(100, Math.max(1, args?.limit || 50));
+      const offset = Math.max(0, args?.offset || 0);
+      params.push(limit, offset);
+      query += ` ORDER BY r.created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
+
+      const res = await client.query(query, params);
+      return res.rows;
+    } finally {
+      client.release();
+    }
   },
 
   medicineIntelligence: async (args?: { scope?: { level?: string; stateId?: string; districtId?: string; phcId?: string } }) => {
@@ -1788,6 +1878,76 @@ export const rootResolvers = {
       status: args.decision.toLowerCase(),
       createdAt: new Date().toISOString(),
     };
+  },
+
+  approveResourceRequest: async (args: { requestId: string; notes?: string; decidedBy?: string }) => {
+    const client = await pool.connect();
+    try {
+      const res = await client.query(`
+        UPDATE resource_requests
+        SET status = 'approved', decided_at = NOW(), decided_by = COALESCE($2, 'District CMO'), notes = COALESCE($3, notes)
+        WHERE id::text = $1
+        RETURNING id, phc_id AS "phcId", district_id AS "districtId", state_id AS "stateId",
+                  request_type AS "requestType", item_name AS "itemName", quantity, priority,
+                  status, created_at AS "createdAt", decided_at AS "decidedAt", decided_by AS "decidedBy", notes
+      `, [args.requestId, args.decidedBy || 'District CMO', args.notes || null]);
+
+      invalidateCache('resourceRequests');
+      if (res.rows[0]) {
+        eventBus.publish('request.approved', res.rows[0], 'graphql-governance').catch(() => {});
+        eventBus.publish('request.status_changed', { ...res.rows[0], previous_status: 'pending' }, 'graphql-governance').catch(() => {});
+        return res.rows[0];
+      }
+      throw new Error(`Resource request ${args.requestId} not found`);
+    } finally {
+      client.release();
+    }
+  },
+
+  rejectResourceRequest: async (args: { requestId: string; notes?: string; decidedBy?: string }) => {
+    const client = await pool.connect();
+    try {
+      const res = await client.query(`
+        UPDATE resource_requests
+        SET status = 'rejected', decided_at = NOW(), decided_by = COALESCE($2, 'District CMO'), notes = COALESCE($3, notes)
+        WHERE id::text = $1
+        RETURNING id, phc_id AS "phcId", district_id AS "districtId", state_id AS "stateId",
+                  request_type AS "requestType", item_name AS "itemName", quantity, priority,
+                  status, created_at AS "createdAt", decided_at AS "decidedAt", decided_by AS "decidedBy", notes
+      `, [args.requestId, args.decidedBy || 'District CMO', args.notes || null]);
+
+      invalidateCache('resourceRequests');
+      if (res.rows[0]) {
+        eventBus.publish('request.status_changed', { ...res.rows[0], previous_status: 'pending' }, 'graphql-governance').catch(() => {});
+        return res.rows[0];
+      }
+      throw new Error(`Resource request ${args.requestId} not found`);
+    } finally {
+      client.release();
+    }
+  },
+
+  dispatchResourceRequest: async (args: { requestId: string; notes?: string; decidedBy?: string }) => {
+    const client = await pool.connect();
+    try {
+      const res = await client.query(`
+        UPDATE resource_requests
+        SET status = 'dispatched', decided_at = NOW(), decided_by = COALESCE($2, 'District CMO'), notes = COALESCE($3, notes)
+        WHERE id::text = $1
+        RETURNING id, phc_id AS "phcId", district_id AS "districtId", state_id AS "stateId",
+                  request_type AS "requestType", item_name AS "itemName", quantity, priority,
+                  status, created_at AS "createdAt", decided_at AS "decidedAt", decided_by AS "decidedBy", notes
+      `, [args.requestId, args.decidedBy || 'District CMO', args.notes || null]);
+
+      invalidateCache('resourceRequests');
+      if (res.rows[0]) {
+        eventBus.publish('request.status_changed', { ...res.rows[0], previous_status: 'approved' }, 'graphql-governance').catch(() => {});
+        return res.rows[0];
+      }
+      throw new Error(`Resource request ${args.requestId} not found`);
+    } finally {
+      client.release();
+    }
   },
 
   startFederatedRound: async (

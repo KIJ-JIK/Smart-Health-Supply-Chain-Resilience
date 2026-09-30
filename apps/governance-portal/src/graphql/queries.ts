@@ -462,3 +462,64 @@ export const UPDATE_NATION = gql`
     }
   }
 `;
+
+// ── Resource Requests (Frontline PHC Requisitions) ───────────────────────────
+export const RESOURCE_REQUESTS = gql`
+  query ResourceRequests($scope: ScopeInput, $status: String, $limit: Int, $offset: Int) {
+    resourceRequests(scope: $scope, status: $status, limit: $limit, offset: $offset) {
+      id
+      phcId
+      phcName
+      districtId
+      districtName
+      stateId
+      stateName
+      requestType
+      itemRef
+      itemName
+      quantity
+      priority
+      reason
+      source
+      status
+      notes
+      createdAt
+      decidedAt
+      decidedBy
+    }
+  }
+`;
+
+export const APPROVE_RESOURCE_REQUEST = gql`
+  mutation ApproveResourceRequest($requestId: ID!, $notes: String, $decidedBy: String) {
+    approveResourceRequest(requestId: $requestId, notes: $notes, decidedBy: $decidedBy) {
+      id
+      status
+      decidedAt
+      decidedBy
+    }
+  }
+`;
+
+export const REJECT_RESOURCE_REQUEST = gql`
+  mutation RejectResourceRequest($requestId: ID!, $notes: String, $decidedBy: String) {
+    rejectResourceRequest(requestId: $requestId, notes: $notes, decidedBy: $decidedBy) {
+      id
+      status
+      decidedAt
+      decidedBy
+    }
+  }
+`;
+
+export const DISPATCH_RESOURCE_REQUEST = gql`
+  mutation DispatchResourceRequest($requestId: ID!, $notes: String, $decidedBy: String) {
+    dispatchResourceRequest(requestId: $requestId, notes: $notes, decidedBy: $decidedBy) {
+      id
+      status
+      decidedAt
+      decidedBy
+    }
+  }
+`;
+

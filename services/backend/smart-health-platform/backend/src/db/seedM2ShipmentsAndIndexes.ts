@@ -17,6 +17,16 @@ export async function ensureM2SeedsAndIndexes(): Promise<void> {
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS recommended_by VARCHAR(20) DEFAULT 'ai';
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS item_ref VARCHAR(100);
       ALTER TABLE redistribution_transfers ADD COLUMN IF NOT EXISTS item_type VARCHAR(30) DEFAULT 'medicine';
+
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS district_id UUID;
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS state_id UUID;
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS item_name VARCHAR(255);
+      ALTER TABLE resource_requests ADD COLUMN IF NOT EXISTS notes TEXT;
+
+      UPDATE resource_requests r
+      SET district_id = f.district_id, state_id = f.state_id
+      FROM phc_facilities f
+      WHERE r.phc_id = f.id AND (r.district_id IS NULL OR r.state_id IS NULL);
     `);
 
     // 1. Performance Indexes
@@ -26,6 +36,8 @@ export async function ensureM2SeedsAndIndexes(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_phc_dist_status ON phc_facilities(district_id, operational_status);
       CREATE INDEX IF NOT EXISTS idx_sc_shipments_dest_status ON supply_chain_shipments(dest_phc_id, status);
       CREATE INDEX IF NOT EXISTS idx_redist_transfers_status ON redistribution_transfers(status);
+      CREATE INDEX IF NOT EXISTS idx_resource_requests_dist_status ON resource_requests(district_id, status);
+      CREATE INDEX IF NOT EXISTS idx_resource_requests_state_status ON resource_requests(state_id, status);
     `);
 
     // 2. Check supply_chain_shipments count

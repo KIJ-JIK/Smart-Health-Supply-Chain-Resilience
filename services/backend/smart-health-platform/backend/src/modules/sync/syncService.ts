@@ -3,6 +3,8 @@ import { BillingService } from '../billing/billingService';
 import { ConfigService } from '../config/configService';
 import { PoolClient } from 'pg';
 import { adminPool, TenantClaims } from '../../db/pool';
+import { eventBus } from '../../events/eventBus';
+import { invalidateCache } from '../../utils/apiCache';
 
 export interface MutationInput<T = Record<string, any>> {
   id:               string; // Client UUID idempotency key
@@ -353,6 +355,7 @@ export class SyncService {
     mutation: MutationInput,
   ): Promise<MutationResultOutput> {
     const p = mutation.payload;
+    const effectivePhcId = p.phc_id || phcId;
     const validTypes = ['medicine', 'oxygen', 'bed', 'staff', 'equipment'];
     let reqType = (p.request_type || 'medicine').toLowerCase();
     if (reqType === 'replenishment') reqType = 'medicine';
@@ -369,24 +372,54 @@ export class SyncService {
     const itemName = p.item_name || p.medicine_name || null;
     const notes = p.notes || null;
     const reason = p.reason || 'manual';
+    const reqId = p.id || mutation.id || crypto.randomUUID();
 
-    // Lookup district_id and state_id so request is visible to district/state/national portals
+    // Lookup district_id and state_id so request is strictly routed to its district, state, and nation
     const facRes = await client.query(
       `SELECT district_id, state_id FROM phc_facilities WHERE id = $1 LIMIT 1`,
-      [phcId],
+      [effectivePhcId],
     );
     const districtId = facRes.rows[0]?.district_id || null;
     const stateId = facRes.rows[0]?.state_id || null;
 
     const res = await client.query(
       `INSERT INTO resource_requests (
-         phc_id, district_id, state_id, request_type, item_ref, item_name, quantity,
-         priority, reason, source, status, notes
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'manual', 'pending', $10)
+         id, phc_id, district_id, state_id, request_type, item_ref, item_name, quantity,
+         priority, reason, source, status, notes, created_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'manual', 'pending', $10, NOW())
+       ON CONFLICT (id) DO UPDATE
+       SET quantity = EXCLUDED.quantity,
+           priority = EXCLUDED.priority,
+           notes = EXCLUDED.notes,
+           district_id = EXCLUDED.district_id,
+           state_id = EXCLUDED.state_id
        RETURNING id`,
-      [phcId, districtId, stateId, reqType, itemRef, itemName, qty, prio, reason, notes],
+      [reqId, effectivePhcId, districtId, stateId, reqType, itemRef, itemName, qty, prio, reason, notes],
     );
-    return { mutation_id: mutation.id, status: 'accepted', server_entity_id: res.rows[0].id };
+
+    // Invalidate caches so district and state overview queries get fresh counts immediately
+    if (districtId) invalidateCache(`districtOverview:${districtId}`);
+    if (stateId) invalidateCache(`stateOverview:${stateId}`);
+    invalidateCache('nationalOverview');
+    invalidateCache('resourceRequests');
+
+    // Real-time domain event dispatch
+    setImmediate(() => {
+      eventBus.publish('request.created', {
+        id: reqId,
+        phc_id: effectivePhcId,
+        district_id: districtId,
+        state_id: stateId,
+        request_type: reqType,
+        item_name: itemName,
+        quantity: qty,
+        priority: prio,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      }, 'sync-service').catch(() => {});
+    });
+
+    return { mutation_id: mutation.id, status: 'accepted', server_entity_id: res.rows[0]?.id || reqId };
   }
 
   private static async handleFootfallMutation(

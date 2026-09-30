@@ -90,23 +90,34 @@ export function useSyncEngine(isOnline: boolean) {
       })),
     };
 
-    // Read the stored JWT token — stored in zustand authStore under key 'phc-portal-auth'
+    // Read the stored JWT token — stored in zustand authStore or direct key
     let authToken = '';
     try {
-      const authRaw = localStorage.getItem('phc-portal-auth');
-      if (authRaw) {
-        const parsed = JSON.parse(authRaw);
-        authToken = parsed?.state?.token || '';
+      for (const key of ['phc_auth_token', 'phc-portal-auth-v2', 'phc-portal-auth']) {
+        const item = localStorage.getItem(key);
+        if (!item) continue;
+        if (key === 'phc_auth_token') {
+          authToken = item;
+          break;
+        }
+        try {
+          const parsed = JSON.parse(item);
+          if (parsed?.state?.token) {
+            authToken = parsed.state.token;
+            break;
+          }
+        } catch (_) {}
       }
     } catch (_) {}
 
+    const currentPhc = getCurrentPhcId();
     const resp = await fetch(`${backendUrl}/sync/push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
         'X-Device-ID': CURRENT_DEVICE_ID,
-        'X-PHC-ID': getCurrentPhcId(),
+        'X-PHC-ID': currentPhc,
       },
       body: JSON.stringify(reqBody),
     });
@@ -122,20 +133,31 @@ export function useSyncEngine(isOnline: boolean) {
   const executePull = async (sinceSeq: number): Promise<SyncPullResponse> => {
     let authToken = '';
     try {
-      const authRaw = localStorage.getItem('phc-portal-auth');
-      if (authRaw) {
-        const parsed = JSON.parse(authRaw);
-        authToken = parsed?.state?.token || '';
+      for (const key of ['phc_auth_token', 'phc-portal-auth-v2', 'phc-portal-auth']) {
+        const item = localStorage.getItem(key);
+        if (!item) continue;
+        if (key === 'phc_auth_token') {
+          authToken = item;
+          break;
+        }
+        try {
+          const parsed = JSON.parse(item);
+          if (parsed?.state?.token) {
+            authToken = parsed.state.token;
+            break;
+          }
+        } catch (_) {}
       }
     } catch (_) {}
 
+    const currentPhc = getCurrentPhcId();
     const resp = await fetch(
       `${backendUrl}/sync/pull?since=${sinceSeq}&device_id=${CURRENT_DEVICE_ID}&limit=100`,
       {
         headers: {
           ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
           'X-Device-ID': CURRENT_DEVICE_ID,
-          'X-PHC-ID': getCurrentPhcId(),
+          'X-PHC-ID': currentPhc,
         },
       }
     );
@@ -255,12 +277,38 @@ export function useSyncEngine(isOnline: boolean) {
     }
   }, [isOnline, isSyncing, backendUrl, markStatus]);
 
-  // Auto-sync when connectivity is regained
+  // Auto-sync when connectivity is regained or when any mutation is enqueued
   useEffect(() => {
     if (isOnline) {
       triggerSync();
     }
-  }, [isOnline]);
+
+    const handleMutationEnqueued = () => {
+      if (isOnline) {
+        setTimeout(() => {
+          triggerSync();
+        }, 50);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('phc:mutation-enqueued', handleMutationEnqueued);
+    }
+
+    // Periodic heartbeat sync every 15s when online
+    const heartbeat = setInterval(() => {
+      if (isOnline) {
+        triggerSync();
+      }
+    }, 15000);
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('phc:mutation-enqueued', handleMutationEnqueued);
+      }
+      clearInterval(heartbeat);
+    };
+  }, [isOnline, triggerSync]);
 
   return {
     isSyncing,

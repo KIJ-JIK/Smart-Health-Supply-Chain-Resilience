@@ -20,10 +20,11 @@ import { formatDateTime } from '../../utils/date';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { usePhcAuthStore } from '../../stores/authStore';
+import { getCurrentPhcId } from '../../db/seedData';
 
 export const RequestsView: React.FC = () => {
   const { currentStaff, selectedFacility } = usePhcAuthStore();
-  const currentPhcId = selectedFacility?.id || currentStaff?.facilityId;
+  const currentPhcId = selectedFacility?.id || currentStaff?.facilityId || getCurrentPhcId();
   const requests = useLiveQuery(
     () => db.resource_requests.filter((r) => !currentPhcId || r.phc_id === currentPhcId).reverse().sortBy('created_at'),
     [currentPhcId]

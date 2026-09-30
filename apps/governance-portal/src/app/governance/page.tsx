@@ -1,10 +1,9 @@
 'use client';
 import { formatNumber } from '@/lib/formatters';
 
-
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import {
   NATIONAL_OVERVIEW,
   STATE_OVERVIEW,
@@ -13,6 +12,10 @@ import {
   ALERTS_HISTORY,
   REDISTRIBUTION_RECOMMENDATIONS,
   FORECASTS,
+  RESOURCE_REQUESTS,
+  APPROVE_RESOURCE_REQUEST,
+  REJECT_RESOURCE_REQUEST,
+  DISPATCH_RESOURCE_REQUEST,
 } from '@/graphql/queries';
 import { useAuthStore } from '@/store/authStore';
 import { useScopeStore } from '@/store/scopeStore';
@@ -48,6 +51,11 @@ import {
   BarChart3,
   Stethoscope,
   Info,
+  SendHorizontal,
+  PackageCheck,
+  PackageX,
+  Check,
+  RefreshCw,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -155,6 +163,92 @@ export default function CommandCenterPage() {
     },
   });
 
+  // Live Frontline PHC Resource Requests with 3s polling for real-time sync
+  const requestVariables = useMemo(() => {
+    return {
+      scope: {
+        level: (level || 'NATIONAL').toUpperCase(),
+        stateId: stateId || undefined,
+        districtId: districtId || undefined,
+        phcId: phcId || undefined,
+      },
+      limit: 50,
+    };
+  }, [level, stateId, districtId, phcId]);
+
+  const { data: requestsData, refetch: refetchRequests } = useQuery(RESOURCE_REQUESTS, {
+    variables: requestVariables,
+    pollInterval: 3000,
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const [approveRequestMutation] = useMutation(APPROVE_RESOURCE_REQUEST);
+  const [rejectRequestMutation] = useMutation(REJECT_RESOURCE_REQUEST);
+  const [dispatchRequestMutation] = useMutation(DISPATCH_RESOURCE_REQUEST);
+  const [requestActionLoading, setRequestActionLoading] = useState<string | null>(null);
+
+  const frontlineRequests = useMemo(() => {
+    return requestsData?.resourceRequests || [];
+  }, [requestsData]);
+
+  const pendingFrontlineRequests = useMemo(() => {
+    return frontlineRequests.filter((r: any) => r.status === 'pending');
+  }, [frontlineRequests]);
+
+  const handleApproveRequest = async (id: string) => {
+    try {
+      setRequestActionLoading(id);
+      await approveRequestMutation({
+        variables: {
+          requestId: id,
+          notes: 'Authorized by Governance Command Center',
+          decidedBy: user.name || 'District CMO',
+        },
+      });
+      await refetchRequests();
+    } catch (e: any) {
+      console.error('Failed to approve request:', e);
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
+
+  const handleDispatchRequest = async (id: string) => {
+    try {
+      setRequestActionLoading(id);
+      await dispatchRequestMutation({
+        variables: {
+          requestId: id,
+          notes: 'Dispatched from medical logistics hub',
+          decidedBy: user.name || 'District CMO',
+        },
+      });
+      await refetchRequests();
+    } catch (e: any) {
+      console.error('Failed to dispatch request:', e);
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
+
+  const handleRejectRequest = async (id: string) => {
+    try {
+      setRequestActionLoading(id);
+      await rejectRequestMutation({
+        variables: {
+          requestId: id,
+          notes: 'Declined by Governance Command Center',
+          decidedBy: user.name || 'District CMO',
+        },
+      });
+      await refetchRequests();
+    } catch (e: any) {
+      console.error('Failed to reject request:', e);
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
+
   const loading = isNationalScope
     ? nationalLoading
     : isStateScope
@@ -208,7 +302,7 @@ export default function CommandCenterPage() {
       const staffAvailability = totalPhcs > 0 ? Math.max(0, 100 - parseFloat(((nationalOverview?.staffShortagePhcCount || 0) / totalPhcs * 100).toFixed(1))) : 100;
       const patientLoad = occupiedBeds;
       const openEmergencies = nationalOverview?.outbreakAlerts ?? nationalOverview?.criticalAlertsCount ?? 0;
-      const pendingRequests = nationalOverview?.pendingRedistributionsCount ?? nationalOverview?.pendingRedistributions ?? 0;
+      const pendingRequests = pendingFrontlineRequests.length > 0 ? pendingFrontlineRequests.length : (nationalOverview?.pendingRedistributionsCount ?? nationalOverview?.pendingRedistributions ?? 0);
 
       return {
         totalPhcs,
@@ -236,7 +330,7 @@ export default function CommandCenterPage() {
       const staffAvailability = totalPhcs > 0 ? Math.round((activePhcs / totalPhcs) * 100) : 100;
       const patientLoad = occupiedBeds;
       const openEmergencies = (stateOverview as any)?.openAlertsCount ?? stateOverview?.criticalAlertsCount ?? 0;
-      const pendingRequests = stateOverview?.criticalShortages ?? 0;
+      const pendingRequests = pendingFrontlineRequests.length > 0 ? pendingFrontlineRequests.length : (stateOverview?.criticalShortages ?? 0);
 
       return {
         totalPhcs,
@@ -261,7 +355,7 @@ export default function CommandCenterPage() {
       const oxygenStatus = targetPhc?.oxygenCylinders ?? 0;
       const activeStaff = targetPhc?.activeStaff ?? 1;
       const activeAlertsCount = targetPhc?.activeAlerts?.length ?? (targetPhc as any)?.openAlerts ?? 0;
-      const openRequestsCount = targetPhc?.openRequests?.length ?? 0;
+      const openRequestsCount = pendingFrontlineRequests.length > 0 ? pendingFrontlineRequests.length : (targetPhc?.openRequests?.length ?? 0);
 
       return {
         totalPhcs: 1,
@@ -288,7 +382,7 @@ export default function CommandCenterPage() {
     const staffAvailability = totalPhcs > 0 ? Math.round((activePhcs / totalPhcs) * 100) : 100;
     const patientLoad = occupiedBeds;
     const openEmergencies = districtOverview?.openAlertsCount ?? 0;
-    const pendingRequests = districtOverview?.pendingRequestsCount ?? 0;
+    const pendingRequests = pendingFrontlineRequests.length > 0 ? pendingFrontlineRequests.length : (districtOverview?.pendingRequestsCount ?? 0);
 
     return {
       totalPhcs,
@@ -302,7 +396,7 @@ export default function CommandCenterPage() {
       openEmergencies,
       pendingRequests,
     };
-  }, [isNationalScope, isStateScope, isPhcScope, phcId, nationalOverview, stateOverview, districtOverview, phcDetail]);
+  }, [isNationalScope, isStateScope, isPhcScope, phcId, nationalOverview, stateOverview, districtOverview, phcDetail, pendingFrontlineRequests]);
 
   // Derived live at-risk districts or facilities from overview
   const liveDistricts = useMemo(() => {
@@ -1148,8 +1242,173 @@ export default function CommandCenterPage() {
           </div>
 
           <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-              {/* Action Column A: Top Pending Redistribution Decisions */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 20 }}>
+              {/* Action Column 1: Live Frontline PHC Resource Requisitions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <SendHorizontal size={14} color="#2563eb" />
+                    <span>Frontline PHC Requisitions</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: pendingFrontlineRequests.length > 0 ? '#b91c1c' : '#15803d',
+                      backgroundColor: pendingFrontlineRequests.length > 0 ? '#fee2e2' : '#dcfce7',
+                      padding: '2px 8px',
+                      borderRadius: 12,
+                    }}>
+                      <span style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        backgroundColor: pendingFrontlineRequests.length > 0 ? '#ef4444' : '#22c55e',
+                      }} className={pendingFrontlineRequests.length > 0 ? 'animate-pulse' : ''} />
+                      {pendingFrontlineRequests.length} pending
+                    </span>
+                  </div>
+                </div>
+
+                {frontlineRequests.length > 0 ? (
+                  frontlineRequests.slice(0, 3).map((req: any) => {
+                    const isPending = req.status === 'pending';
+                    const isApproved = req.status === 'approved';
+                    const isDispatched = req.status === 'dispatched';
+                    const isCrit = req.priority === 'critical' || req.priority === 'urgent';
+                    const isLoadingThis = requestActionLoading === req.id;
+
+                    return (
+                      <div
+                        key={req.id}
+                        style={{
+                          padding: '14px',
+                          borderRadius: 8,
+                          backgroundColor: '#f8fafc',
+                          border: `1px solid ${isPending ? '#fed7aa' : '#e2e8f0'}`,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 8,
+                          position: 'relative',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 13 }}>
+                              {req.itemName || `${req.requestType?.toUpperCase()} Supply`} ({formatNumber(req.quantity)} units)
+                            </div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                              Origin: <strong>{req.phcName || 'PHC'}</strong> ({req.districtName || getScopeLabel()})
+                            </div>
+                            {req.notes && (
+                              <div style={{ fontSize: 11, color: '#475569', fontStyle: 'italic', marginTop: 2 }}>
+                                &ldquo;{req.notes}&rdquo;
+                              </div>
+                            )}
+                          </div>
+                          <RiskBadge level={req.priority === 'critical' ? 'CRITICAL' : req.priority === 'urgent' ? 'HIGH' : 'LOW'} size="sm" pulse={isCrit && isPending} />
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid #f1f5f9', fontSize: 11 }}>
+                          <span style={{
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            fontSize: 10,
+                            color: isPending ? '#d97706' : isApproved ? '#2563eb' : isDispatched ? '#059669' : '#64748b',
+                          }}>
+                            ● {req.status}
+                          </span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {isPending && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={isLoadingThis}
+                                  onClick={() => handleApproveRequest(req.id)}
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: 4,
+                                    backgroundColor: '#2563eb',
+                                    color: '#ffffff',
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                  }}
+                                >
+                                  {isLoadingThis ? <RefreshCw size={10} className="animate-spin" /> : <PackageCheck size={11} />}
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isLoadingThis}
+                                  onClick={() => handleRejectRequest(req.id)}
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: 4,
+                                    backgroundColor: '#fee2e2',
+                                    color: '#b91c1c',
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    border: '1px solid #fca5a5',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+
+                            {isApproved && (
+                              <button
+                                type="button"
+                                disabled={isLoadingThis}
+                                onClick={() => handleDispatchRequest(req.id)}
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: 4,
+                                  backgroundColor: '#059669',
+                                  color: '#ffffff',
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                }}
+                              >
+                                {isLoadingThis ? <RefreshCw size={10} className="animate-spin" /> : <Truck size={11} />}
+                                Dispatch
+                              </button>
+                            )}
+
+                            {!isPending && !isApproved && (
+                              <span style={{ fontSize: 10, color: '#64748b' }}>
+                                {req.decidedAt ? new Date(req.decidedAt).toLocaleDateString() : 'Updated'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ padding: '24px', textAlign: 'center', borderRadius: 8, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', fontSize: 12 }}>
+                    <CheckCircle2 size={20} color="#16a34a" style={{ display: 'inline-block', marginBottom: 6 }} />
+                    <div>No pending resource requests in {getScopeLabel()}. All PHC supplies stocked.</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Column 2: Top Pending Redistribution Decisions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1220,7 +1479,7 @@ export default function CommandCenterPage() {
                 )}
               </div>
 
-              {/* Action Column B: Open Emergencies Requiring Sign-Off */}
+              {/* Action Column 3: Open Emergencies Requiring Sign-Off */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>

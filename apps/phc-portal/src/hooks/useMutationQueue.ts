@@ -58,7 +58,7 @@ export function useMutationQueue() {
   ): Promise<MutationQueueEntry> => {
     const mutationId = explicitId || generateUUID();
     const now = new Date().toISOString();
-    const currentPhcId = getCurrentPhcId();
+    const currentPhcId = payload?.phc_id || getCurrentPhcId();
 
     // Get current max local_seq
     const lastEntry = await db.mutation_queue.orderBy('local_seq').last();
@@ -317,6 +317,14 @@ export function useMutationQueue() {
         }
       }
     });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('phc:mutation-enqueued', {
+          detail: { entityType, mutationId, phcId: currentPhcId },
+        })
+      );
+    }
 
     return entry;
   };
