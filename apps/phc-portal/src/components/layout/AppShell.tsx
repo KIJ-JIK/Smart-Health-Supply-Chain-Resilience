@@ -24,6 +24,9 @@ import { EmergencyModal } from '../../modules/emergency/EmergencyModal';
 import { AutoDraftModal } from '../../modules/autoDraft/AutoDraftModal';
 import { LoginView } from '../../modules/auth/LoginView';
 import { usePhcAuthStore } from '../../stores/authStore';
+import { db } from '../../db';
+import { getCurrentPhcId } from '../../db/seedData';
+import { PhcBackendService } from '../../services/phcBackendService';
 import { X, CheckCircle2, AlertTriangle, Info, AlertOctagon } from 'lucide-react';
 
 export const AppShell: React.FC = () => {
@@ -62,6 +65,22 @@ export const AppShell: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
   }, [isDark]);
+
+  // Ensure local Dexie IndexedDB has operational records for the clinic
+  useEffect(() => {
+    async function verifyDbContent() {
+      try {
+        const count = await db.phc_facilities.count();
+        if (count === 0) {
+          const phcId = getCurrentPhcId();
+          await PhcBackendService.hydratePhcDatabase(phcId);
+        }
+      } catch (err) {
+        console.error('Failed to verify or hydrate IndexedDB:', err);
+      }
+    }
+    verifyDbContent();
+  }, []);
 
   if (!isAuthenticated || !token || isLoginRoute) {
     return (

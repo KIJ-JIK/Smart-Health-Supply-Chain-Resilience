@@ -1,5 +1,6 @@
 import { db } from './index';
 import { SystemConfig } from '../types';
+import { PhcBackendService } from '../services/phcBackendService';
 
 export function getCurrentPhcId(): string {
   if (typeof window !== 'undefined') {
@@ -27,8 +28,8 @@ export const CURRENT_PHC_ID = 'c0000003-0000-0000-0000-000000000001';
 export const CURRENT_DEVICE_ID = 'd0000001-0000-0000-0000-000000000001';
 
 /**
- * Initializes baseline configuration parameters.
- * Real operational dataset is hydrated directly from PostgreSQL upon facility selection & login.
+ * Initializes baseline configuration parameters and ensures local clinical database
+ * is automatically hydrated if empty.
  */
 export async function initializeDatabase() {
   const configCount = await db.system_config.count();
@@ -42,4 +43,12 @@ export async function initializeDatabase() {
     ];
     await db.system_config.bulkPut(configs);
   }
+
+  // Ensure clinical database is never empty
+  const facilityCount = await db.phc_facilities.count();
+  if (facilityCount === 0) {
+    const phcId = getCurrentPhcId();
+    await PhcBackendService.hydratePhcDatabase(phcId);
+  }
 }
+
